@@ -21,7 +21,7 @@ Core modules:
 - Runtime discovery for Flatpak and native Godot binaries.
 - Godot-backed validation with isolated workspace-local log/data/cache paths.
 - JSON output suitable for future Godot editor integration.
-- Interactive Codex/OpenCode-style terminal shell with slash commands for implemented workflows.
+- Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
 
 ## Local Runtime Finding
 

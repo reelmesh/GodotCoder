@@ -4,71 +4,137 @@ import { inspectProject } from "./inspect.js";
 import { runtimeDoctor } from "./runtime-doctor.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
+import { color, clearScreen, separator } from "../core/terminal.js";
+
+type AgentMode = "build" | "plan";
+
+interface SessionState {
+  mode: AgentMode;
+  promptCount: number;
+}
 
 export async function startSession(): Promise<void> {
-  const rl = readline.createInterface({ input, output });
+  const state: SessionState = { mode: "build", promptCount: 0 };
 
-  console.log("GodotCoder");
-  console.log("Godot-focused agent workspace. Type /help for commands, /exit to quit.");
-  console.log("");
+  printWelcome(state);
+
+  if (!input.isTTY) {
+    const piped = await readStdin();
+    for (const rawLine of piped.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      console.log(`${promptLabel(state)}${line}`);
+      if (line === "/exit" || line === "/quit") break;
+      await handleSessionLine(line, state);
+    }
+    return;
+  }
+
+  const rl = readline.createInterface({ input, output });
 
   try {
     while (true) {
-      const line = (await rl.question("godotcoder> ")).trim();
+      const line = (await rl.question(promptLabel(state))).trim();
       if (!line) continue;
 
       if (line === "/exit" || line === "/quit") {
         break;
       }
 
-      await handleSessionLine(line);
+      await handleSessionLine(line, state);
     }
   } finally {
     rl.close();
   }
 }
 
-async function handleSessionLine(line: string): Promise<void> {
+async function readStdin(): Promise<string> {
+  let contents = "";
+  input.setEncoding("utf8");
+  for await (const chunk of input) {
+    contents += chunk;
+  }
+  return contents;
+}
+
+async function handleSessionLine(line: string, state: SessionState): Promise<void> {
   const [command, ...args] = line.split(/\s+/);
 
   try {
     switch (command) {
       case "/help":
+      case "?":
         printSessionHelp();
+        return;
+      case "/clear":
+        clearScreen();
+        printWelcome(state);
+        return;
+      case "/mode":
+      case "/agent":
+        setMode(args[0], state);
         return;
       case "/status":
         await showStatus(args);
+        printStatusHint(state);
         return;
       case "/runtime":
+      case "/doctor":
         await runtimeDoctor(args[0] === "doctor" ? args.slice(1) : args);
+        printStatusHint(state);
         return;
       case "/inspect":
         await inspectProject(args);
+        printStatusHint(state);
         return;
       case "/validate":
+      case "/check":
         await validateProject(args);
+        printStatusHint(state);
         return;
       case "/plan":
+        state.mode = "plan";
         printPlanningPlaceholder(args.join(" "));
         return;
       default:
-        printPromptPlaceholder(line);
+        state.promptCount += 1;
+        printPromptPlaceholder(line, state);
     }
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(color(error instanceof Error ? error.message : String(error), "red"));
   }
 }
 
-function printSessionHelp(): void {
-  console.log(`Commands:
-  /status              Show workspace status
-  /runtime doctor      Detect native/Flatpak Godot runtime
-  /inspect             Inspect project.godot and project files
-  /validate            Run Godot-backed validation
-  /plan <idea>         Drafting hook for the next model-backed slice
-  /exit                Quit
+function printWelcome(state: SessionState): void {
+  console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
+  console.log(separator());
+  console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
+  console.log(`${color("commands", "cyan")} /help  /status  /inspect  /validate  /runtime doctor  /mode plan|build  /exit`);
+  console.log(separator());
+  console.log("");
+}
 
-Natural-language prompts are accepted, but model-backed planning/building is the next slice.`);
+function promptLabel(state: SessionState): string {
+  const mode = state.mode === "build" ? color("build", "green") : color("plan", "yellow");
+  return `${mode} ${color("▸", "cyan")} `;
+}
+
+function printSessionHelp(): void {
+  console.log(color("Command Palette", "bold"));
+  console.log(separator());
+  console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
+  console.log(`${color("/runtime doctor", "cyan").padEnd(22)} Detect native/Flatpak Godot runtime`);
+  console.log(`${color("/doctor", "cyan").padEnd(22)} Alias for /runtime doctor`);
+  console.log(`${color("/inspect", "cyan").padEnd(22)} Inspect project.godot and project files`);
+  console.log(`${color("/validate", "cyan").padEnd(22)} Run Godot-backed validation`);
+  console.log(`${color("/check", "cyan").padEnd(22)} Alias for /validate`);
+  console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
+  console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
+  console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Drafting hook for the next model-backed slice`);
+  console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);
+  console.log(`${color("/exit", "cyan").padEnd(22)} Quit`);
+  console.log(separator());
+  console.log(color("Natural-language prompts are accepted; model-backed planning/building is the next slice.", "gray"));
 }
 
 function printPlanningPlaceholder(idea: string): void {
@@ -77,13 +143,29 @@ function printPlanningPlaceholder(idea: string): void {
     return;
   }
 
-  console.log("Planning workflow is not wired to a model yet.");
+  console.log(color("Plan mode", "yellow"));
   console.log(`Captured idea: ${idea}`);
-  console.log("Next slice will turn this into brief, GDD, technical plan, tasks, decisions, and risks.");
+  console.log(color("Next slice will turn this into brief, GDD, technical plan, tasks, decisions, and risks.", "gray"));
 }
 
-function printPromptPlaceholder(prompt: string): void {
-  console.log("Model-backed agent chat is not wired yet.");
+function printPromptPlaceholder(prompt: string, state: SessionState): void {
+  const label = state.mode === "build" ? color("Build prompt", "green") : color("Plan prompt", "yellow");
+  console.log(label);
   console.log(`Captured prompt: ${prompt}`);
-  console.log("Use /status, /runtime doctor, /inspect, or /validate for implemented workflows.");
+  console.log(color("Model-backed agent chat is not wired yet.", "gray"));
+  console.log(color("Use /status, /runtime doctor, /inspect, or /validate for implemented workflows.", "gray"));
+}
+
+function setMode(value: string | undefined, state: SessionState): void {
+  if (value !== "plan" && value !== "build") {
+    console.log("Usage: /mode plan | /mode build");
+    return;
+  }
+
+  state.mode = value;
+  console.log(`Mode set to ${value === "build" ? color("build", "green") : color("plan", "yellow")}`);
+}
+
+function printStatusHint(state: SessionState): void {
+  console.log(color(`mode=${state.mode} prompts=${state.promptCount}`, "gray"));
 }

@@ -79,9 +79,14 @@ Available slash commands:
 /help
 /status
 /runtime doctor
+/doctor
 /inspect
 /validate
+/check
+/mode plan
+/mode build
 /plan <idea>
+/clear
 /exit
 ```
 
@@ -148,4 +153,3 @@ Next implementation slices:
 4. First model-backed `plan` workflow.
 5. Official Godot documentation source interface.
 6. Godot editor integration prototype using subprocess JSON.
-
