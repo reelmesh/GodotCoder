@@ -22,4 +22,5 @@ export async function inspectProject(args: string[]): Promise<void> {
   console.log(`Input actions: ${index.inputMap.length}`);
   console.log(`Scripts: ${index.scripts.length}`);
   console.log(`Scenes: ${index.scenes.length}`);
+  console.log(`Export presets: ${index.exports.join(", ") || "none"}`);
 }

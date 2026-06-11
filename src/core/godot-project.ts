@@ -73,9 +73,38 @@ export async function inspectGodotProject(projectRoot: string): Promise<ProjectI
     scripts: files.filter((file) => file.endsWith(".gd")),
     scenes: files.filter((file) => file.endsWith(".tscn") || file.endsWith(".scn")),
     resources: files.filter((file) => file.endsWith(".tres") || file.endsWith(".res")),
-    exports: files.filter((file) => file === "export_presets.cfg"),
+    exports: await inspectExportPresets(projectRoot),
     updatedAt: new Date().toISOString(),
   };
+}
+
+async function inspectExportPresets(projectRoot: string): Promise<string[]> {
+  const presetPath = path.join(projectRoot, "export_presets.cfg");
+  if (!(await pathExists(presetPath))) {
+    return [];
+  }
+
+  const text = await readFile(presetPath, "utf8");
+  const config = parseGodotConfig(text);
+  const presets: string[] = [];
+
+  for (const [section, values] of Object.entries(config)) {
+    if (!section.match(/^preset_\d+$/)) {
+      continue;
+    }
+
+    const name = stringValue(values.name);
+    const platform = stringValue(values.platform);
+    if (name && platform) {
+      presets.push(`${name} (${platform})`);
+    } else if (name) {
+      presets.push(name);
+    } else if (platform) {
+      presets.push(platform);
+    }
+  }
+
+  return presets.length > 0 ? presets.sort() : ["export_presets.cfg"];
 }
 
 export async function loadProjectIndex(filePath: string): Promise<ProjectIndex | null> {

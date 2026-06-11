@@ -21,6 +21,7 @@ Core modules:
 - Godot project root discovery.
 - Basic `project.godot` parsing.
 - Project index generation.
+- Export preset extraction from `export_presets.cfg` when present.
 - Runtime discovery for Flatpak and native Godot binaries.
 - Local runtime overrides in `.godotcoder.local/runtime-overrides.json` for native, Flatpak, and custom Godot commands.
 - Runtime profiles enriched with Godot project config version, feature tags, main scene, autoloads, plugins, and export preset signals.
