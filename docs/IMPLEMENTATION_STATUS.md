@@ -24,6 +24,7 @@ Core modules:
 - Runtime discovery for Flatpak and native Godot binaries.
 - Local runtime overrides in `.godotcoder.local/runtime-overrides.json` for native, Flatpak, and custom Godot commands.
 - Runtime profiles enriched with Godot project config version, feature tags, main scene, autoloads, plugins, and export preset signals.
+- Lightweight schema guards for runtime profiles, runtime overrides, and project indexes.
 - Godot-backed validation with isolated workspace-local log/data/cache paths.
 - JSON output suitable for future Godot editor integration.
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
@@ -115,7 +116,7 @@ This created a minimal Godot project, built a playable single-scene 2D asteroid 
 
 Recommended next implementation slice:
 
-1. Add TypeBox or equivalent runtime schemas.
-2. Improve `project.godot` parsing for nested sections and typed values.
-3. Expand `plan` and `build` with the first model-backed workflow.
-4. Add official Godot docs source interface.
+1. Improve `project.godot` parsing for nested sections and typed values.
+2. Expand `plan` and `build` with the first model-backed workflow.
+3. Add official Godot docs source interface.
+4. Add schema guards for change records and validation reports.

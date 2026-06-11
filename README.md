@@ -204,8 +204,8 @@ Generated/local artifacts are ignored by default:
 
 Next implementation slices:
 
-1. Runtime schemas with TypeBox or equivalent validation.
-2. Improved `project.godot` parsing.
-3. First model-backed expansion of deterministic `plan` and `build` workflows.
-4. Official Godot documentation source interface.
-5. Godot editor integration prototype using subprocess JSON.
+1. Improved `project.godot` parsing.
+2. First model-backed expansion of deterministic `plan` and `build` workflows.
+3. Official Godot documentation source interface.
+4. Godot editor integration prototype using subprocess JSON.
+5. Schema guards for change records and validation reports.

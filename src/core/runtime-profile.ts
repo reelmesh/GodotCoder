@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ProjectIndex } from "./godot-project.js";
 import type { RuntimeDiscovery } from "./runtime-discovery.js";
+import { asLiteral, asNullableNumber, asNullableString, asObject, asOneOf, asString, asStringArray } from "./schema.js";
 
 export interface RuntimeProfile {
   schemaVersion: 1;
@@ -75,8 +76,53 @@ export function createRuntimeProfile(projectRoot: string, discovery?: RuntimeDis
 
 export async function loadRuntimeProfile(filePath: string): Promise<RuntimeProfile | null> {
   try {
-    return JSON.parse(await readFile(filePath, "utf8")) as RuntimeProfile;
-  } catch {
-    return null;
+    return parseRuntimeProfile(JSON.parse(await readFile(filePath, "utf8")));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
   }
+}
+
+export function parseRuntimeProfile(value: unknown): RuntimeProfile {
+  const root = asObject(value, "runtime profile");
+  const flatpak = asObject(root.flatpak, "runtime profile flatpak");
+  const project = asObject(root.project, "runtime profile project");
+  const paths = asObject(root.paths, "runtime profile paths");
+  const validation = asObject(root.validation, "runtime profile validation");
+
+  return {
+    schemaVersion: asLiteral(root.schemaVersion, 1, "runtime profile schemaVersion"),
+    projectRoot: asString(root.projectRoot, "runtime profile projectRoot"),
+    godotProjectFile: asString(root.godotProjectFile, "runtime profile godotProjectFile"),
+    targetGodotMajor: asLiteral(root.targetGodotMajor, 4, "runtime profile targetGodotMajor"),
+    detectedGodotVersion: asNullableString(root.detectedGodotVersion, "runtime profile detectedGodotVersion"),
+    installType: asOneOf(root.installType, ["unknown", "flatpak", "native", "custom"], "runtime profile installType"),
+    label: asNullableString(root.label, "runtime profile label"),
+    executable: root.executable === null || root.executable === undefined ? null : asStringArray(root.executable, "runtime profile executable"),
+    flatpak: {
+      appId: asNullableString(flatpak.appId, "runtime profile flatpak.appId"),
+      branch: asNullableString(flatpak.branch, "runtime profile flatpak.branch"),
+      availableAppIds: asStringArray(flatpak.availableAppIds, "runtime profile flatpak.availableAppIds"),
+    },
+    project: {
+      configVersion: asNullableNumber(project.configVersion, "runtime profile project.configVersion"),
+      features: asStringArray(project.features, "runtime profile project.features"),
+      mainScene: asNullableString(project.mainScene, "runtime profile project.mainScene"),
+      autoloads: asStringArray(project.autoloads, "runtime profile project.autoloads"),
+      enabledPlugins: asStringArray(project.enabledPlugins, "runtime profile project.enabledPlugins"),
+      exportPresets: asStringArray(project.exportPresets, "runtime profile project.exportPresets"),
+    },
+    paths: {
+      userData: asNullableString(paths.userData, "runtime profile paths.userData"),
+      logs: asNullableString(paths.logs, "runtime profile paths.logs"),
+      exportTemplates: asNullableString(paths.exportTemplates, "runtime profile paths.exportTemplates"),
+    },
+    validation: {
+      supportedCommands: asStringArray(validation.supportedCommands, "runtime profile validation.supportedCommands"),
+      lastValidationId: asNullableString(validation.lastValidationId, "runtime profile validation.lastValidationId"),
+    },
+    updatedAt: asString(root.updatedAt, "runtime profile updatedAt"),
+  };
 }

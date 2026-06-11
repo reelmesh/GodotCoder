@@ -1,13 +1,14 @@
-import { pathExists, readJsonIfExists } from "../core/files.js";
-import { findGodotProjectRoot } from "../core/godot-project.js";
+import { pathExists } from "../core/files.js";
+import { findGodotProjectRoot, loadProjectIndex } from "../core/godot-project.js";
+import { loadRuntimeProfile } from "../core/runtime-profile.js";
 import { workspacePaths } from "../core/workspace.js";
 
 export async function showStatus(args: string[]): Promise<void> {
   const json = args.includes("--json");
   const projectRoot = await findGodotProjectRoot(process.cwd());
   const paths = workspacePaths(projectRoot);
-  const runtimeProfile = await readJsonIfExists(paths.runtimeProfile);
-  const projectIndex = await readJsonIfExists(paths.projectIndex);
+  const runtimeProfile = await loadRuntimeProfile(paths.runtimeProfile);
+  const projectIndex = await loadProjectIndex(paths.projectIndex);
 
   const status = {
     projectRoot,

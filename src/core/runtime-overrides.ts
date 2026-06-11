@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
+import { asLiteral, asNullableString, asObject, asOneOf, asStringArray } from "./schema.js";
 import { workspacePaths } from "./workspace.js";
 
 export interface RuntimeOverride {
@@ -18,23 +19,23 @@ export async function loadRuntimeOverride(projectRoot: string): Promise<RuntimeO
     return null;
   }
 
-  const parsed = JSON.parse(await readFile(overridePath, "utf8")) as Partial<RuntimeOverride>;
-  if (parsed.schemaVersion !== 1) {
-    throw new CliError("RUNTIME_OVERRIDE_INVALID", "Runtime override schemaVersion must be 1.");
-  }
-  if (parsed.installType !== "native" && parsed.installType !== "flatpak" && parsed.installType !== "custom") {
-    throw new CliError("RUNTIME_OVERRIDE_INVALID", "Runtime override installType must be native, flatpak, or custom.");
-  }
-  if (!Array.isArray(parsed.command) || parsed.command.length === 0 || parsed.command.some((part) => typeof part !== "string" || !part.trim())) {
+  return parseRuntimeOverride(JSON.parse(await readFile(overridePath, "utf8")));
+}
+
+export function parseRuntimeOverride(value: unknown): RuntimeOverride {
+  const parsed = asObject(value, "runtime override");
+  const command = asStringArray(parsed.command, "runtime override command");
+
+  if (command.length === 0 || command.some((part) => !part.trim())) {
     throw new CliError("RUNTIME_OVERRIDE_INVALID", "Runtime override command must be a non-empty string array.");
   }
 
   return {
-    schemaVersion: 1,
-    installType: parsed.installType,
-    command: parsed.command,
-    label: typeof parsed.label === "string" ? parsed.label : null,
-    flatpakAppId: typeof parsed.flatpakAppId === "string" ? parsed.flatpakAppId : null,
+    schemaVersion: asLiteral(parsed.schemaVersion, 1, "runtime override schemaVersion"),
+    installType: asOneOf(parsed.installType, ["native", "flatpak", "custom"], "runtime override installType"),
+    command,
+    label: asNullableString(parsed.label, "runtime override label"),
+    flatpakAppId: asNullableString(parsed.flatpakAppId, "runtime override flatpakAppId"),
   };
 }
 

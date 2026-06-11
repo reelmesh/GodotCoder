@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
+import { asLiteral, asNullableNumber, asNullableString, asObject, asString, asStringArray } from "./schema.js";
 
 export interface ProjectIndex {
   schemaVersion: 1;
@@ -74,6 +75,41 @@ export async function inspectGodotProject(projectRoot: string): Promise<ProjectI
     resources: files.filter((file) => file.endsWith(".tres") || file.endsWith(".res")),
     exports: files.filter((file) => file === "export_presets.cfg"),
     updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function loadProjectIndex(filePath: string): Promise<ProjectIndex | null> {
+  try {
+    return parseProjectIndex(JSON.parse(await readFile(filePath, "utf8")));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export function parseProjectIndex(value: unknown): ProjectIndex {
+  const root = asObject(value, "project index");
+  const signals = asObject(root.godotVersionSignals, "project index godotVersionSignals");
+
+  return {
+    schemaVersion: asLiteral(root.schemaVersion, 1, "project index schemaVersion"),
+    projectRoot: asString(root.projectRoot, "project index projectRoot"),
+    godotVersionSignals: {
+      projectConfigVersion: asNullableNumber(signals.projectConfigVersion, "project index godotVersionSignals.projectConfigVersion"),
+      featureTags: asStringArray(signals.featureTags, "project index godotVersionSignals.featureTags"),
+      runtimeVersion: asNullableString(signals.runtimeVersion, "project index godotVersionSignals.runtimeVersion"),
+    },
+    mainScene: asNullableString(root.mainScene, "project index mainScene"),
+    inputMap: asStringArray(root.inputMap, "project index inputMap"),
+    autoloads: asStringArray(root.autoloads, "project index autoloads"),
+    plugins: asStringArray(root.plugins, "project index plugins"),
+    scripts: asStringArray(root.scripts, "project index scripts"),
+    scenes: asStringArray(root.scenes, "project index scenes"),
+    resources: asStringArray(root.resources, "project index resources"),
+    exports: asStringArray(root.exports, "project index exports"),
+    updatedAt: asString(root.updatedAt, "project index updatedAt"),
   };
 }
 
