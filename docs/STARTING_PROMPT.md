@@ -36,6 +36,7 @@ Current workspace:
   - Pi Coding Agent, found under source_projects/pi: model/provider abstraction, coding-agent loop, streaming, tool calling, context persistence, model registry, OAuth/API key handling.
   - BMAD Methodology, found under source_projects/bmad-method-instalation: staged planning artifacts, specialist roles, task decomposition, acceptance criteria, delivery discipline.
   - Existing Godot AI plugin, found under source_projects/gamedev_ai: Godot editor integration, project context, diff application, watch/debug mode, scene/script awareness, Godot-specific skills.
+  - OpenCode, found under opencode: interactive terminal-agent UX, command ergonomics, configuration, packaging, and developer experience reference.
 - Product source of truth:
   - docs/PRD.md
   - docs/TECHNICAL_DESIGN.md
@@ -45,7 +46,7 @@ Operating principles:
 1. Read the existing repo before proposing implementation.
 2. Keep work grounded in docs/PRD.md.
 3. Prefer a narrow vertical slice over broad scaffolding.
-4. Synthesize the three chosen foundation projects: Pi for the LLM/coding-agent spine, BMAD for methodology, and the Godot plugin for editor-native behavior.
+4. Synthesize the chosen foundation projects: Pi for the LLM/coding-agent spine, BMAD for methodology, the Godot plugin for editor-native behavior, and OpenCode for terminal-agent UX.
 5. Keep the user in control of file writes, scene edits, dependency installation, and destructive operations.
 6. Every agent action must be traceable to a user goal, task, tool call, or documented decision.
 7. Build the system so LLM providers can be swapped.

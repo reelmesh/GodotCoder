@@ -262,8 +262,9 @@ GodotCoder is intentionally based on three reference pillars:
 - **Pi Coding Agent:** Use as the model/provider and coding-agent foundation. The relevant patterns are tool-calling, streaming, model registry, provider abstraction, context persistence, OAuth/API key handling, token usage, and agent handoff.
 - **BMAD Methodology:** Use as the planning and delivery methodology. The relevant patterns are staged artifacts, specialist roles, task decomposition, acceptance criteria, decision logs, and keeping implementation aligned with product intent.
 - **Existing Godot AI Plugin:** Use as the Godot editor integration reference. The relevant patterns are editor dock UX, Godot project context, scene/script awareness, safe diff application, watch/debug mode, vector/project indexing, and Godot-specific skill prompts.
+- **OpenCode:** Use as a terminal-agent UX and CLI architecture reference. The relevant patterns are interactive session flow, command ergonomics, terminal UI conventions, configuration, packaging, and developer experience.
 
-The product should synthesize these projects rather than clone any one of them. Pi supplies the LLM execution spine, BMAD supplies the development operating system, and the Godot plugin supplies the editor-native interaction model.
+The product should synthesize these projects rather than clone any one of them. Pi supplies the LLM execution spine, BMAD supplies the development operating system, the Godot plugin supplies the editor-native interaction model, and OpenCode supplies a reference for the interactive terminal agent experience.
 
 ### 9.1 Application Layers
 
@@ -283,6 +284,7 @@ The product should synthesize these projects rather than clone any one of them. 
 - `source_projects/gamedev_ai`: Godot plugin patterns, watch mode, diffs, context management, Godot skill docs.
 - `source_projects/pi/packages/ai`: provider abstraction, tool-calling, streaming, model registry, context persistence.
 - `source_projects/bmad-method-instalation`: planning artifacts and agent role inspiration.
+- `opencode`: terminal-agent UX, CLI ergonomics, configuration, packaging, and interactive session reference.
 - Official Godot public documentation: primary versioned source for Godot API behavior, editor concepts, command-line usage, exports, class references, tutorials, and examples.
 - `docs/TECHNICAL_DESIGN.md`: implementation architecture, workspace schemas, subprocess JSON protocol, validation ladder, patch lifecycle, runtime discovery, and first build slices.
 

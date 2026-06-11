@@ -19,13 +19,16 @@ Do not commit:
 
 - `node_modules/`
 - `dist/`
-- `source_projects/`
+- `source_projects/pi/`
+- `source_projects/gamedev_ai/`
+- `source_projects/bmad-method-instalation/`
+- Nested reference repository metadata such as `opencode/.git/`
 - `.godotcoder/cache/`
 - `.godotcoder/logs/`
 - `.godotcoder/sessions/`
 - `.godotcoder.local/`
 
-`source_projects/` contains local reference material and third-party codebases. It is intentionally ignored until specific code is audited and intentionally incorporated.
+`source_projects/` and `opencode/` contain reference material and third-party codebases. Only commit them intentionally when they are needed as project references, and never commit nested `.git/` directories.
 
 ## Initial Repository Description
 
@@ -48,4 +51,3 @@ typescript
 linux
 flatpak
 ```
-

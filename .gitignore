@@ -2,6 +2,7 @@
 node_modules/
 dist/
 source_projects/
+opencode/.git/
 .godotcoder/cache/
 .godotcoder/logs/
 .godotcoder/sessions/
