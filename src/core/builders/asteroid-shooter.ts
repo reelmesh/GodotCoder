@@ -1,24 +1,17 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import type { FileChange } from "../change-records.js";
+import { writeTrackedFile } from "../change-records.js";
 
 export interface BuildResult {
   filesWritten: string[];
+  changes: FileChange[];
   summary: string;
 }
 
 export async function buildAsteroidShooter(projectRoot: string): Promise<BuildResult> {
-  const filesWritten: string[] = [];
-  const scenesDir = path.join(projectRoot, "scenes");
-  const scriptsDir = path.join(projectRoot, "scripts");
-
-  await mkdir(scenesDir, { recursive: true });
-  await mkdir(scriptsDir, { recursive: true });
-
-  const mainScene = path.join(scenesDir, "main.tscn");
-  const mainScript = path.join(scriptsDir, "main.gd");
-
-  await writeFile(
-    mainScene,
+  const changes = [
+    await writeTrackedFile(
+      projectRoot,
+      "scenes/main.tscn",
     `[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
@@ -26,14 +19,13 @@ export async function buildAsteroidShooter(projectRoot: string): Promise<BuildRe
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 `,
-  );
-  filesWritten.push(mainScene);
-
-  await writeFile(mainScript, mainGdscript());
-  filesWritten.push(mainScript);
+    ),
+    await writeTrackedFile(projectRoot, "scripts/main.gd", mainGdscript()),
+  ];
 
   return {
-    filesWritten,
+    filesWritten: changes.map((change) => change.path),
+    changes,
     summary: "Built a playable single-scene 2D asteroid shooter prototype.",
   };
 }

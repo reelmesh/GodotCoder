@@ -27,6 +27,7 @@ Core modules:
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
+- Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations and hashes.
 
 ## Local Runtime Finding
 
@@ -100,6 +101,6 @@ Recommended next implementation slice:
 1. Add TypeBox or equivalent runtime schemas.
 2. Improve `project.godot` parsing for nested sections and typed values.
 3. Add `runtime-overrides.json` support.
-4. Add patch preview and approval records for build changes.
+4. Add patch preview and approval flow before applying model-generated changes.
 5. Expand `plan` and `build` with the first model-backed workflow.
 6. Add official Godot docs source interface.

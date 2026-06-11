@@ -123,6 +123,14 @@ scripts/main.gd
 .godotcoder/
 ```
 
+Build runs record applied changes under:
+
+```text
+.godotcoder/patches/<patch-id>/record.json
+```
+
+The record includes changed files, create/modify operations, before/after SHA-256 hashes, and linked validation report IDs.
+
 Subcommands are also available for scripting and future editor integration:
 
 ```bash

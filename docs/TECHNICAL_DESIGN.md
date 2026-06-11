@@ -300,6 +300,20 @@ Schemas should be implemented with TypeBox or an equivalent runtime-validating T
 }
 ```
 
+Current implementation records deterministic build changes as applied patch records under:
+
+```text
+.godotcoder/patches/<patch-id>/record.json
+```
+
+Each record stores:
+- prompt/task text
+- summary
+- changed files
+- create/modify operation
+- before and after SHA-256 hashes
+- validation IDs, once connected
+
 Patch statuses:
 - `proposed`
 - `approved`
