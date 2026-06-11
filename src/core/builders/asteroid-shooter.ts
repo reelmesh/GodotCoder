@@ -1,17 +1,22 @@
 import type { FileChange } from "../change-records.js";
 import { writeTrackedFile } from "../change-records.js";
 
+export interface GeneratedFile {
+  path: string;
+  contents: string;
+}
+
 export interface BuildResult {
   filesWritten: string[];
   changes: FileChange[];
   summary: string;
 }
 
-export async function buildAsteroidShooter(projectRoot: string): Promise<BuildResult> {
-  const changes = [
-    await writeTrackedFile(
-      projectRoot,
-      "scenes/main.tscn",
+export function generateAsteroidShooterFiles(): GeneratedFile[] {
+  return [
+    {
+      path: "scenes/main.tscn",
+      contents:
     `[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
@@ -19,9 +24,20 @@ export async function buildAsteroidShooter(projectRoot: string): Promise<BuildRe
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 `,
-    ),
-    await writeTrackedFile(projectRoot, "scripts/main.gd", mainGdscript()),
+    },
+    {
+      path: "scripts/main.gd",
+      contents: mainGdscript(),
+    },
   ];
+}
+
+export async function buildAsteroidShooter(projectRoot: string): Promise<BuildResult> {
+  const changes: FileChange[] = [];
+
+  for (const file of generateAsteroidShooterFiles()) {
+    changes.push(await writeTrackedFile(projectRoot, file.path, file.contents));
+  }
 
   return {
     filesWritten: changes.map((change) => change.path),

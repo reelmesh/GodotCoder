@@ -1,16 +1,35 @@
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
 import { tryFindGodotProjectRoot } from "../core/godot-project.js";
-import { buildAsteroidShooter } from "../core/builders/asteroid-shooter.js";
+import { buildAsteroidShooter, generateAsteroidShooterFiles } from "../core/builders/asteroid-shooter.js";
 import { validateProjectRoot } from "./validate.js";
 import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
+import { previewGeneratedFiles } from "../core/preview.js";
 
 export async function buildProject(args: string[]): Promise<void> {
   const json = args.includes("--json");
+  const preview = args.includes("--preview");
+  const apply = args.includes("--apply") || args.includes("--yes");
   const shouldValidate = !args.includes("--no-validate");
-  const prompt = args.filter((arg) => arg !== "--json" && arg !== "--no-validate").join(" ").trim();
+  const prompt = args.filter((arg) => !["--json", "--no-validate", "--preview", "--apply", "--yes"].includes(arg)).join(" ").trim();
   const existingRoot = await tryFindGodotProjectRoot(process.cwd());
   const projectRoot = existingRoot ?? process.cwd();
   const scaffold = await ensureGreenfieldGodotProject(projectRoot, prompt || "GodotCoder Game");
+
+  if (preview || !apply) {
+    const buildPreview = await previewGeneratedFiles(projectRoot, "Build a playable single-scene 2D asteroid shooter prototype.", generateAsteroidShooterFiles());
+    if (json) {
+      console.log(JSON.stringify({ ok: true, mode: "preview", scaffold, preview: buildPreview }, null, 2));
+      return;
+    }
+
+    if (scaffold.createdProjectFile) {
+      console.log("No project.godot found. Created a minimal greenfield Godot project.");
+    }
+    printPreview(buildPreview);
+    console.log("Apply with: /build <task> --apply");
+    return;
+  }
+
   const result = await buildAsteroidShooter(projectRoot);
   let changeRecord = await writeChangeRecord(projectRoot, {
     kind: "build",
@@ -51,5 +70,14 @@ export async function buildProject(args: string[]): Promise<void> {
         console.log(`${finding.severity.toUpperCase()}: ${finding.message}`);
       }
     }
+  }
+}
+
+function printPreview(buildPreview: Awaited<ReturnType<typeof previewGeneratedFiles>>): void {
+  console.log("Build preview");
+  console.log(buildPreview.summary);
+  for (const file of buildPreview.files) {
+    const sign = file.operation === "create" ? "create" : "modify";
+    console.log(`${sign} ${file.path} (+${file.addedLines} -${file.removedLines}, ${file.beforeLines} -> ${file.afterLines} lines)`);
   }
 }

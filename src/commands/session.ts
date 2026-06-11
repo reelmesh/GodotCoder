@@ -94,6 +94,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await validateProject(args);
         printStatusHint(state);
         return;
+      case "/preview":
+        state.mode = "build";
+        await runBuild([...args, "--preview"].join(" "), state);
+        return;
       case "/build":
         state.mode = "build";
         await runBuild(args.join(" "), state);
@@ -141,7 +145,8 @@ function printSessionHelp(): void {
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);
-  console.log(`${color("/build <task>", "cyan").padEnd(22)} Build the first playable prototype`);
+  console.log(`${color("/preview <task>", "cyan").padEnd(22)} Preview first playable changes`);
+  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes; add --apply to write`);
   console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);
   console.log(`${color("/exit", "cyan").padEnd(22)} Quit`);
   console.log(separator());
@@ -166,7 +171,7 @@ async function runBuild(prompt: string, state: SessionState): Promise<void> {
   }
 
   console.log(color("Building", "green"));
-  await buildProject([prompt]);
+  await buildProject(prompt.split(/\s+/).filter(Boolean));
   printStatusHint(state);
 }
 

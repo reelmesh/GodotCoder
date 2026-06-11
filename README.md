@@ -90,6 +90,7 @@ Available slash commands:
 /mode plan
 /mode build
 /plan <idea>
+/preview <task>
 /build <task>
 /clear
 /exit
@@ -110,6 +111,7 @@ Then inside the shell:
 make a 2d asteroid shooter
 /mode build
 build the first playable
+build the first playable --apply
 /check
 /inspect
 ```
@@ -123,7 +125,7 @@ scripts/main.gd
 .godotcoder/
 ```
 
-Build runs record applied changes under:
+Build previews changes by default. Applied build runs record changes under:
 
 ```text
 .godotcoder/patches/<patch-id>/record.json
@@ -140,7 +142,8 @@ node /path/to/GodotCoder/dist/cli.js runtime doctor
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
-node /path/to/GodotCoder/dist/cli.js build "build the first playable"
+node /path/to/GodotCoder/dist/cli.js build "build the first playable" --preview
+node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply
 ```
 
 Machine-readable output:

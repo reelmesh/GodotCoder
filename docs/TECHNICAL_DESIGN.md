@@ -147,6 +147,7 @@ Responsibilities:
 - Support greenfield and brownfield Godot projects.
 - Create a small playable first slice from the current project plan.
 - Keep generated game code Godot-native and GDScript-first.
+- Preview file changes before writing by default.
 - Run Godot-backed validation after building unless disabled.
 - Report written files and validation results.
 
@@ -546,6 +547,7 @@ Scoring:
 
 - Implement deterministic `build`.
 - Generate a simple playable 2D prototype.
+- Preview build changes before applying.
 - Validate through Godot.
 
 ### Slice 5: Editor Integration Prototype

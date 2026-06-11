@@ -53,7 +53,7 @@ function printHelp(): void {
 Usage:
   godotcoder
   godotcoder init
-  godotcoder build [prompt] [--no-validate]
+  godotcoder build [prompt] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
   godotcoder inspect [--json]
