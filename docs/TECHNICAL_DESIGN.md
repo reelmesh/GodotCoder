@@ -127,9 +127,11 @@ Responsibilities:
 
 ### `godotcoder plan "<game idea>"`
 
-First model-backed workflow.
+First planning workflow. It is deterministic in the current slice and should become model-backed in the next agent slice.
 
 Responsibilities:
+- Support greenfield folders without `project.godot`.
+- Create a minimal Godot project scaffold when no project exists.
 - Read workspace artifacts and project index.
 - Retrieve relevant official Godot docs where available.
 - Produce/update brief, GDD, technical plan, tasks, decisions, and risks.

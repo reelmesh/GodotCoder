@@ -1,6 +1,7 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { inspectProject } from "./inspect.js";
+import { planProject } from "./plan.js";
 import { runtimeDoctor } from "./runtime-doctor.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
@@ -94,11 +95,15 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/plan":
         state.mode = "plan";
-        printPlanningPlaceholder(args.join(" "));
+        await runPlan(args.join(" "), state);
         return;
       default:
         state.promptCount += 1;
-        printPromptPlaceholder(line, state);
+        if (state.mode === "plan") {
+          await runPlan(line, state);
+        } else {
+          printPromptPlaceholder(line, state);
+        }
     }
   } catch (error) {
     console.error(color(error instanceof Error ? error.message : String(error), "red"));
@@ -130,11 +135,11 @@ function printSessionHelp(): void {
   console.log(`${color("/check", "cyan").padEnd(22)} Alias for /validate`);
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
-  console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Drafting hook for the next model-backed slice`);
+  console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);
   console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);
   console.log(`${color("/exit", "cyan").padEnd(22)} Quit`);
   console.log(separator());
-  console.log(color("Natural-language prompts are accepted; model-backed planning/building is the next slice.", "gray"));
+  console.log(color("Natural-language prompts in plan mode create/update planning artifacts. Model-backed generation is the next slice.", "gray"));
 }
 
 function printPlanningPlaceholder(idea: string): void {
@@ -148,11 +153,22 @@ function printPlanningPlaceholder(idea: string): void {
   console.log(color("Next slice will turn this into brief, GDD, technical plan, tasks, decisions, and risks.", "gray"));
 }
 
+async function runPlan(idea: string, state: SessionState): Promise<void> {
+  if (!idea.trim()) {
+    console.log("Usage: /plan <game idea>");
+    return;
+  }
+
+  console.log(color("Planning", "yellow"));
+  await planProject([idea]);
+  printStatusHint(state);
+}
+
 function printPromptPlaceholder(prompt: string, state: SessionState): void {
   const label = state.mode === "build" ? color("Build prompt", "green") : color("Plan prompt", "yellow");
   console.log(label);
   console.log(`Captured prompt: ${prompt}`);
-  console.log(color("Model-backed agent chat is not wired yet.", "gray"));
+  console.log(color("Model-backed build chat is not wired yet.", "gray"));
   console.log(color("Use /status, /runtime doctor, /inspect, or /validate for implemented workflows.", "gray"));
 }
 

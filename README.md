@@ -15,7 +15,7 @@ This repository currently contains the first implementation slice:
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
 
-Model-backed planning and code generation are not wired yet. The next slice is the first agent workflow, starting with `godotcoder plan "<game idea>"`.
+Model-backed code generation is not wired yet. The current `plan` workflow is deterministic: it can scaffold a greenfield Godot project and write initial planning artifacts. The next slice is model-backed expansion of that workflow.
 
 ## Design Direction
 
@@ -65,7 +65,10 @@ npm run dev
 
 ## Usage
 
-Open a terminal inside a Godot project containing `project.godot`.
+Open a terminal inside either:
+
+- an existing Godot project containing `project.godot`, or
+- an empty/new folder where you want GodotCoder to scaffold a project.
 
 Start the interactive shell:
 
@@ -90,6 +93,32 @@ Available slash commands:
 /exit
 ```
 
+Greenfield example:
+
+```bash
+mkdir my-asteroid-game
+cd my-asteroid-game
+node /path/to/GodotCoder/dist/cli.js
+```
+
+Then inside the shell:
+
+```text
+/mode plan
+make a 2d asteroid shooter
+/check
+/inspect
+```
+
+If no `project.godot` exists, the planning workflow creates a minimal Godot project:
+
+```text
+project.godot
+scenes/main.tscn
+scripts/main.gd
+.godotcoder/
+```
+
 Subcommands are also available for scripting and future editor integration:
 
 ```bash
@@ -98,6 +127,7 @@ node /path/to/GodotCoder/dist/cli.js status
 node /path/to/GodotCoder/dist/cli.js runtime doctor
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
+node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
 ```
 
 Machine-readable output:
@@ -150,6 +180,6 @@ Next implementation slices:
 1. Runtime schemas with TypeBox or equivalent validation.
 2. Improved `project.godot` parsing.
 3. Runtime override support.
-4. First model-backed `plan` workflow.
+4. First model-backed expansion of the deterministic `plan` workflow.
 5. Official Godot documentation source interface.
 6. Godot editor integration prototype using subprocess JSON.

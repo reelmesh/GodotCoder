@@ -1,12 +1,15 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { findGodotProjectRoot } from "../core/godot-project.js";
+import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
+import { tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { createRuntimeProfile } from "../core/runtime-profile.js";
 import { workspacePaths } from "../core/workspace.js";
 
 export async function initWorkspace(args: string[]): Promise<void> {
   const json = args.includes("--json");
-  const projectRoot = await findGodotProjectRoot(process.cwd());
+  const existingRoot = await tryFindGodotProjectRoot(process.cwd());
+  const projectRoot = existingRoot ?? process.cwd();
+  const scaffold = existingRoot ? null : await ensureGreenfieldGodotProject(projectRoot);
   const paths = workspacePaths(projectRoot);
 
   await mkdir(paths.workspaceRoot, { recursive: true });
@@ -26,10 +29,13 @@ export async function initWorkspace(args: string[]): Promise<void> {
   await writeIfMissing(paths.runtimeProfile, JSON.stringify(runtimeProfile, null, 2) + "\n");
 
   if (json) {
-    console.log(JSON.stringify({ ok: true, projectRoot, workspaceRoot: paths.workspaceRoot }, null, 2));
+    console.log(JSON.stringify({ ok: true, projectRoot, workspaceRoot: paths.workspaceRoot, scaffold }, null, 2));
     return;
   }
 
+  if (scaffold?.createdProjectFile) {
+    console.log("No project.godot found. Created a minimal greenfield Godot project.");
+  }
   console.log(`Initialized GodotCoder workspace at ${path.relative(process.cwd(), paths.workspaceRoot) || paths.workspaceRoot}`);
 }
 

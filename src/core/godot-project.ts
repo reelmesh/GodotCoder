@@ -38,6 +38,17 @@ export async function findGodotProjectRoot(start: string): Promise<string> {
   }
 }
 
+export async function tryFindGodotProjectRoot(start: string): Promise<string | null> {
+  try {
+    return await findGodotProjectRoot(start);
+  } catch (error) {
+    if (error instanceof CliError && error.code === "GODOT_PROJECT_NOT_FOUND") {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export async function inspectGodotProject(projectRoot: string): Promise<ProjectIndex> {
   const projectFile = path.join(projectRoot, "project.godot");
   const projectText = await readFile(projectFile, "utf8");
@@ -101,7 +112,16 @@ async function collectProjectFiles(projectRoot: string): Promise<string[]> {
 
   async function walk(relativeDir: string): Promise<void> {
     const absoluteDir = path.join(projectRoot, relativeDir);
-    const entries = await readdir(absoluteDir, { withFileTypes: true });
+    let entries;
+    try {
+      entries = await readdir(absoluteDir, { withFileTypes: true });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "EACCES" || code === "EPERM" || code === "ENOENT") {
+        return;
+      }
+      throw error;
+    }
 
     for (const entry of entries) {
       if (entry.name === ".godot" || entry.name === ".godotcoder" || entry.name === ".godotcoder.local" || entry.name === ".git") {

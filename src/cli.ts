@@ -2,6 +2,7 @@
 
 import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
+import { planProject } from "./commands/plan.js";
 import { runtimeDoctor } from "./commands/runtime-doctor.js";
 import { startSession } from "./commands/session.js";
 import { showStatus } from "./commands/status.js";
@@ -15,6 +16,7 @@ const commands: Record<string, CommandHandler> = {
   status: showStatus,
   inspect: inspectProject,
   validate: validateProject,
+  plan: planProject,
 };
 
 async function main(argv: string[]): Promise<void> {
@@ -53,6 +55,7 @@ Usage:
   godotcoder runtime doctor [--json]
   godotcoder inspect [--json]
   godotcoder validate [--json]
+  godotcoder plan <game idea> [--json]
 
 Run without arguments to open the interactive GodotCoder session.
 MVP focus: Godot 4.x, Linux-first, CLI workspace commands.`);

@@ -12,6 +12,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder runtime doctor`
 - `godotcoder inspect`
 - `godotcoder validate`
+- `godotcoder plan <idea>`
 
 Core modules:
 - Workspace path management.
@@ -22,6 +23,8 @@ Core modules:
 - Godot-backed validation with isolated workspace-local log/data/cache paths.
 - JSON output suitable for future Godot editor integration.
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
+- Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
+- Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 
 ## Local Runtime Finding
 
@@ -72,6 +75,14 @@ Validation initially caught a real missing autoload script. After adding the mis
 }
 ```
 
+A greenfield flow under `/tmp/godotcoder-greenfield` verified:
+
+```bash
+printf '/mode plan\nmake a 2d asteroid shooter\n/check\n/inspect\n/exit\n' | node dist/cli.js
+```
+
+This created a minimal Godot project, wrote planning artifacts, validated with zero errors, and inspected the new project.
+
 ## Next Slice
 
 Recommended next implementation slice:
@@ -79,5 +90,5 @@ Recommended next implementation slice:
 1. Add TypeBox or equivalent runtime schemas.
 2. Improve `project.godot` parsing for nested sections and typed values.
 3. Add `runtime-overrides.json` support.
-4. Add `plan` as the first model-backed workflow.
+4. Expand `plan` with the first model-backed workflow.
 5. Add official Godot docs source interface.
