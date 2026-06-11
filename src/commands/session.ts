@@ -3,7 +3,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { buildProject } from "./build.js";
 import { inspectProject } from "./inspect.js";
 import { planProject } from "./plan.js";
-import { runtimeDoctor } from "./runtime-doctor.js";
+import { runtimeCommand, runtimeDoctor } from "./runtime.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
 import { color, clearScreen, separator } from "../core/terminal.js";
@@ -82,8 +82,11 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         printStatusHint(state);
         return;
       case "/runtime":
+        await runtimeCommand(args);
+        printStatusHint(state);
+        return;
       case "/doctor":
-        await runtimeDoctor(args[0] === "doctor" ? args.slice(1) : args);
+        await runtimeDoctor(args);
         printStatusHint(state);
         return;
       case "/inspect":
@@ -150,6 +153,7 @@ function printSessionHelp(): void {
   console.log(separator());
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
   console.log(`${color("/runtime doctor", "cyan").padEnd(22)} Detect native/Flatpak Godot runtime`);
+  console.log(`${color("/runtime use <cmd>", "cyan").padEnd(22)} Pin a native, Flatpak, or custom Godot command`);
   console.log(`${color("/doctor", "cyan").padEnd(22)} Alias for /runtime doctor`);
   console.log(`${color("/inspect", "cyan").padEnd(22)} Inspect project.godot and project files`);
   console.log(`${color("/validate", "cyan").padEnd(22)} Run Godot-backed validation`);

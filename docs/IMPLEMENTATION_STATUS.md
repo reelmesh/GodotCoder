@@ -1,6 +1,6 @@
 # Implementation Status
 
-Date: 2026-06-11
+Date: 2026-06-12
 
 ## Implemented
 
@@ -10,6 +10,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder` interactive session shell
 - `godotcoder status`
 - `godotcoder runtime doctor`
+- `godotcoder runtime use <godot command>`
 - `godotcoder inspect`
 - `godotcoder validate`
 - `godotcoder plan <idea>`
@@ -21,6 +22,8 @@ Core modules:
 - Basic `project.godot` parsing.
 - Project index generation.
 - Runtime discovery for Flatpak and native Godot binaries.
+- Local runtime overrides in `.godotcoder.local/runtime-overrides.json` for native, Flatpak, and custom Godot commands.
+- Runtime profiles enriched with Godot project config version, feature tags, main scene, autoloads, plugins, and export preset signals.
 - Godot-backed validation with isolated workspace-local log/data/cache paths.
 - JSON output suitable for future Godot editor integration.
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
@@ -48,6 +51,15 @@ A native `godot` command was detected:
 ```
 
 The runtime adapter records this as `installType: "native"`. Native Godot and Flatpak should both be treated as first-class Linux runtime targets.
+
+Runtime selection can be pinned per machine:
+
+```bash
+node dist/cli.js runtime use godot
+node dist/cli.js runtime use flatpak run org.godotengine.Godot
+```
+
+The pinned command is written to `.godotcoder.local/runtime-overrides.json` and used by both `runtime doctor` and `validate`.
 
 ## Verification
 
@@ -104,7 +116,6 @@ Recommended next implementation slice:
 
 1. Add TypeBox or equivalent runtime schemas.
 2. Improve `project.godot` parsing for nested sections and typed values.
-3. Add `runtime-overrides.json` support.
-4. Add richer preview diffs before applying model-generated changes.
-5. Expand `plan` and `build` with the first model-backed workflow.
-6. Add official Godot docs source interface.
+3. Add richer preview diffs before applying model-generated changes.
+4. Expand `plan` and `build` with the first model-backed workflow.
+5. Add official Godot docs source interface.

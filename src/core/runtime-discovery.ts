@@ -1,4 +1,5 @@
 import { runProcess } from "./process.js";
+import { loadRuntimeOverride } from "./runtime-overrides.js";
 
 export interface Diagnostic {
   severity: "info" | "warning" | "error";
@@ -6,18 +7,44 @@ export interface Diagnostic {
 }
 
 export interface RuntimeDiscovery {
-  installType: "unknown" | "flatpak" | "native";
+  installType: "unknown" | "flatpak" | "native" | "custom";
   command: string[] | null;
   version: string | null;
   flatpakAppId: string | null;
   flatpakBranch: string | null;
+  overrideLabel: string | null;
   availableFlatpakAppIds: string[];
   diagnostics: Diagnostic[];
 }
 
-export async function discoverRuntime(): Promise<RuntimeDiscovery> {
+export async function discoverRuntime(projectRoot?: string): Promise<RuntimeDiscovery> {
   const diagnostics: Diagnostic[] = [];
   const flatpakApps = await discoverFlatpakApps();
+  const availableFlatpakAppIds = flatpakApps.map((app) => app.application);
+
+  if (projectRoot) {
+    const override = await loadRuntimeOverride(projectRoot);
+    if (override) {
+      const version = await readGodotVersion([...override.command, "--version"]);
+      diagnostics.push({
+        severity: version ? "info" : "error",
+        message: version
+          ? `Using local Godot runtime override: ${override.command.join(" ")}.`
+          : `Runtime override did not return a Godot version: ${override.command.join(" ")}.`,
+      });
+
+      return {
+        installType: override.installType,
+        command: override.command,
+        version,
+        flatpakAppId: override.flatpakAppId,
+        flatpakBranch: flatpakApps.find((app) => app.application === override.flatpakAppId)?.branch ?? null,
+        overrideLabel: override.label,
+        availableFlatpakAppIds,
+        diagnostics,
+      };
+    }
+  }
 
   for (const binary of ["godot4", "godot"]) {
     const version = await readGodotVersion([binary, "--version"]);
@@ -35,7 +62,8 @@ export async function discoverRuntime(): Promise<RuntimeDiscovery> {
         version,
         flatpakAppId: null,
         flatpakBranch: null,
-        availableFlatpakAppIds: flatpakApps.map((app) => app.application),
+        overrideLabel: null,
+        availableFlatpakAppIds,
         diagnostics,
       };
     }
@@ -51,7 +79,8 @@ export async function discoverRuntime(): Promise<RuntimeDiscovery> {
       version,
       flatpakAppId: godotFlatpak.application,
       flatpakBranch: godotFlatpak.branch,
-      availableFlatpakAppIds: flatpakApps.map((app) => app.application),
+      overrideLabel: null,
+      availableFlatpakAppIds,
       diagnostics,
     };
   }
@@ -72,7 +101,8 @@ export async function discoverRuntime(): Promise<RuntimeDiscovery> {
     version: null,
     flatpakAppId: null,
     flatpakBranch: null,
-    availableFlatpakAppIds: flatpakApps.map((app) => app.application),
+    overrideLabel: null,
+    availableFlatpakAppIds,
     diagnostics,
   };
 }

@@ -12,6 +12,7 @@ This repository currently contains the first implementation slice:
 - Workspace initialization: `godotcoder init`
 - Workspace status: `godotcoder status`
 - Runtime detection: `godotcoder runtime doctor`
+- Runtime override selection: `godotcoder runtime use <godot command>`
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
 - First playable prototype build: `godotcoder build`
@@ -83,6 +84,7 @@ Available slash commands:
 /help
 /status
 /runtime doctor
+/runtime use <cmd>
 /doctor
 /inspect
 /validate
@@ -143,6 +145,8 @@ Subcommands are also available for scripting and future editor integration:
 node /path/to/GodotCoder/dist/cli.js init
 node /path/to/GodotCoder/dist/cli.js status
 node /path/to/GodotCoder/dist/cli.js runtime doctor
+node /path/to/GodotCoder/dist/cli.js runtime use godot
+node /path/to/GodotCoder/dist/cli.js runtime use flatpak run org.godotengine.Godot
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
@@ -153,9 +157,12 @@ node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply
 Machine-readable output:
 
 ```bash
+node /path/to/GodotCoder/dist/cli.js runtime doctor --json
 node /path/to/GodotCoder/dist/cli.js inspect --json
 node /path/to/GodotCoder/dist/cli.js validate --json
 ```
+
+Runtime overrides are stored in `.godotcoder.local/runtime-overrides.json`, which is ignored by git because it is machine-specific. The shared `.godotcoder/runtime-profile.json` records the detected runtime, Godot version, Flatpak app metadata when relevant, and project signals from `project.godot`.
 
 ## Workspace
 
@@ -199,8 +206,7 @@ Next implementation slices:
 
 1. Runtime schemas with TypeBox or equivalent validation.
 2. Improved `project.godot` parsing.
-3. Runtime override support.
-4. Patch preview and approval records for generated edits.
-5. First model-backed expansion of deterministic `plan` and `build` workflows.
-6. Official Godot documentation source interface.
-7. Godot editor integration prototype using subprocess JSON.
+3. Richer preview diffs before applying generated edits.
+4. First model-backed expansion of deterministic `plan` and `build` workflows.
+5. Official Godot documentation source interface.
+6. Godot editor integration prototype using subprocess JSON.

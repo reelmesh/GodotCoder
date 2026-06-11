@@ -100,11 +100,30 @@ Responsibilities:
 Discovers Godot runtime details.
 
 Responsibilities:
+- Prefer `.godotcoder.local/runtime-overrides.json` when present.
 - Detect native `godot`/`godot4` binaries if available.
 - Detect Flatpak apps that look like Godot.
 - Run version command where possible.
 - Check project path access.
 - Record supported validation commands.
+
+### `godotcoder runtime use <godot command>`
+
+Pins the Godot command for the current machine.
+
+Examples:
+
+```bash
+godotcoder runtime use godot
+godotcoder runtime use flatpak run org.godotengine.Godot
+```
+
+Responsibilities:
+- Write `.godotcoder.local/runtime-overrides.json`.
+- Classify the command as native, Flatpak, or custom.
+- Re-run discovery through the override.
+- Refresh `.godotcoder/runtime-profile.json`.
+- Keep machine-specific runtime choices out of git.
 
 ### `godotcoder inspect`
 

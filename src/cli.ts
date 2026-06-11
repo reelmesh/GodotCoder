@@ -4,7 +4,7 @@ import { buildProject } from "./commands/build.js";
 import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
 import { planProject } from "./commands/plan.js";
-import { runtimeDoctor } from "./commands/runtime-doctor.js";
+import { runtimeCommand } from "./commands/runtime.js";
 import { startSession } from "./commands/session.js";
 import { showStatus } from "./commands/status.js";
 import { validateProject } from "./commands/validate.js";
@@ -34,8 +34,8 @@ async function main(argv: string[]): Promise<void> {
     return;
   }
 
-  if (command === "runtime" && subcommand === "doctor") {
-    await runtimeDoctor(rest);
+  if (command === "runtime") {
+    await runtimeCommand([subcommand, ...rest].filter((arg): arg is string => Boolean(arg)));
     return;
   }
 
@@ -56,6 +56,7 @@ Usage:
   godotcoder build [prompt] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
+  godotcoder runtime use <godot command>
   godotcoder inspect [--json]
   godotcoder validate [--json]
   godotcoder plan <game idea> [--json]

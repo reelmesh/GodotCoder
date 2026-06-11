@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { findGodotProjectRoot } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
 import { runValidation } from "../core/validation.js";
@@ -32,8 +32,9 @@ export async function validateProjectRoot(projectRoot: string): Promise<{ report
   const paths = workspacePaths(projectRoot);
   let runtimeProfile = await loadRuntimeProfile(paths.runtimeProfile);
   if (!runtimeProfile?.executable) {
-    const discovery = await discoverRuntime();
-    runtimeProfile = createRuntimeProfile(projectRoot, discovery);
+    const discovery = await discoverRuntime(projectRoot);
+    const projectIndex = await inspectGodotProject(projectRoot);
+    runtimeProfile = createRuntimeProfile(projectRoot, discovery, projectIndex);
     await mkdir(paths.workspaceRoot, { recursive: true });
     await writeFile(paths.runtimeProfile, JSON.stringify(runtimeProfile, null, 2) + "\n");
   }

@@ -12,6 +12,8 @@ export function workspacePaths(projectRoot: string) {
     decisions: path.join(workspaceRoot, "decisions.md"),
     riskLog: path.join(workspaceRoot, "risk-log.md"),
     runtimeProfile: path.join(workspaceRoot, "runtime-profile.json"),
+    runtimeOverride: path.join(projectRoot, ".godotcoder.local", "runtime-overrides.json"),
+    runtimeOverrideExample: path.join(projectRoot, ".godotcoder.local", "runtime-overrides.example.json"),
     projectIndex: path.join(workspaceRoot, "project-index.json"),
     agentMemory: path.join(workspaceRoot, "agent-memory.json"),
     validationsDir: path.join(workspaceRoot, "validations"),

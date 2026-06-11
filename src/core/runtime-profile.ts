@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import type { ProjectIndex } from "./godot-project.js";
 import type { RuntimeDiscovery } from "./runtime-discovery.js";
 
 export interface RuntimeProfile {
@@ -9,6 +10,7 @@ export interface RuntimeProfile {
   targetGodotMajor: 4;
   detectedGodotVersion: string | null;
   installType: "unknown" | "flatpak" | "native" | "custom";
+  label: string | null;
   executable: string[] | null;
   flatpak: {
     appId: string | null;
@@ -35,7 +37,7 @@ export interface RuntimeProfile {
   updatedAt: string;
 }
 
-export function createRuntimeProfile(projectRoot: string, discovery?: RuntimeDiscovery): RuntimeProfile {
+export function createRuntimeProfile(projectRoot: string, discovery?: RuntimeDiscovery, projectIndex?: ProjectIndex | null): RuntimeProfile {
   return {
     schemaVersion: 1,
     projectRoot,
@@ -43,6 +45,7 @@ export function createRuntimeProfile(projectRoot: string, discovery?: RuntimeDis
     targetGodotMajor: 4,
     detectedGodotVersion: discovery?.version ?? null,
     installType: discovery?.installType ?? "unknown",
+    label: discovery?.overrideLabel ?? null,
     executable: discovery?.command ?? null,
     flatpak: {
       appId: discovery?.flatpakAppId ?? null,
@@ -50,12 +53,12 @@ export function createRuntimeProfile(projectRoot: string, discovery?: RuntimeDis
       availableAppIds: discovery?.availableFlatpakAppIds ?? [],
     },
     project: {
-      configVersion: null,
-      features: [],
-      mainScene: null,
-      autoloads: [],
-      enabledPlugins: [],
-      exportPresets: [],
+      configVersion: projectIndex?.godotVersionSignals.projectConfigVersion ?? null,
+      features: projectIndex?.godotVersionSignals.featureTags ?? [],
+      mainScene: projectIndex?.mainScene ?? null,
+      autoloads: projectIndex?.autoloads ?? [],
+      enabledPlugins: projectIndex?.plugins ?? [],
+      exportPresets: projectIndex?.exports ?? [],
     },
     paths: {
       userData: null,
