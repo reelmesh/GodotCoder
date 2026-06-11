@@ -28,6 +28,7 @@ godotcoder CLI
     inspect
     validate
     plan
+    build
   core/
     workspace
     project inspector
@@ -79,6 +80,7 @@ Initial slash commands:
 - `/inspect`
 - `/validate`
 - `/plan <idea>`
+- `/build <task>`
 - `/exit`
 
 ### `godotcoder status`
@@ -136,6 +138,17 @@ Responsibilities:
 - Retrieve relevant official Godot docs where available.
 - Produce/update brief, GDD, technical plan, tasks, decisions, and risks.
 - Avoid code edits in the first planning pass.
+
+### `godotcoder build "<task>"`
+
+First deterministic build workflow. It should become model-backed after patch safety and approval records are in place.
+
+Responsibilities:
+- Support greenfield and brownfield Godot projects.
+- Create a small playable first slice from the current project plan.
+- Keep generated game code Godot-native and GDScript-first.
+- Run Godot-backed validation after building unless disabled.
+- Report written files and validation results.
 
 ## 4. Workspace Layout
 
@@ -514,6 +527,12 @@ Scoring:
 - Wire Pi-style provider layer.
 - Implement `plan`.
 - Update brief/GDD/technical-plan/tasks/decisions/risk-log.
+
+### Slice 4.5: First Playable Builder
+
+- Implement deterministic `build`.
+- Generate a simple playable 2D prototype.
+- Validate through Godot.
 
 ### Slice 5: Editor Integration Prototype
 

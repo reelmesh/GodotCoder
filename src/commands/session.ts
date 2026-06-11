@@ -1,5 +1,6 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { buildProject } from "./build.js";
 import { inspectProject } from "./inspect.js";
 import { planProject } from "./plan.js";
 import { runtimeDoctor } from "./runtime-doctor.js";
@@ -93,6 +94,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await validateProject(args);
         printStatusHint(state);
         return;
+      case "/build":
+        state.mode = "build";
+        await runBuild(args.join(" "), state);
+        return;
       case "/plan":
         state.mode = "plan";
         await runPlan(args.join(" "), state);
@@ -102,7 +107,7 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         if (state.mode === "plan") {
           await runPlan(line, state);
         } else {
-          printPromptPlaceholder(line, state);
+          await runBuild(line, state);
         }
     }
   } catch (error) {
@@ -114,7 +119,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /help  /status  /inspect  /validate  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /help  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -136,6 +141,7 @@ function printSessionHelp(): void {
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);
+  console.log(`${color("/build <task>", "cyan").padEnd(22)} Build the first playable prototype`);
   console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);
   console.log(`${color("/exit", "cyan").padEnd(22)} Quit`);
   console.log(separator());
@@ -151,6 +157,17 @@ function printPlanningPlaceholder(idea: string): void {
   console.log(color("Plan mode", "yellow"));
   console.log(`Captured idea: ${idea}`);
   console.log(color("Next slice will turn this into brief, GDD, technical plan, tasks, decisions, and risks.", "gray"));
+}
+
+async function runBuild(prompt: string, state: SessionState): Promise<void> {
+  if (!prompt.trim()) {
+    console.log("Usage: /build <task>");
+    return;
+  }
+
+  console.log(color("Building", "green"));
+  await buildProject([prompt]);
+  printStatusHint(state);
 }
 
 async function runPlan(idea: string, state: SessionState): Promise<void> {

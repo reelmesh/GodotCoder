@@ -3,6 +3,10 @@ node_modules/
 dist/
 source_projects/
 opencode/.git/
+/project.godot
+/scenes/
+/scripts/
+/.godotcoder/
 .godotcoder/cache/
 .godotcoder/logs/
 .godotcoder/sessions/

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { buildProject } from "./commands/build.js";
 import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
 import { planProject } from "./commands/plan.js";
@@ -13,6 +14,7 @@ type CommandHandler = (args: string[]) => Promise<unknown>;
 
 const commands: Record<string, CommandHandler> = {
   init: initWorkspace,
+  build: buildProject,
   status: showStatus,
   inspect: inspectProject,
   validate: validateProject,
@@ -51,6 +53,7 @@ function printHelp(): void {
 Usage:
   godotcoder
   godotcoder init
+  godotcoder build [prompt] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
   godotcoder inspect [--json]

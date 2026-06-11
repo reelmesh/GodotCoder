@@ -13,6 +13,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder inspect`
 - `godotcoder validate`
 - `godotcoder plan <idea>`
+- `godotcoder build <task>`
 
 Core modules:
 - Workspace path management.
@@ -25,6 +26,7 @@ Core modules:
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
+- Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
 
 ## Local Runtime Finding
 
@@ -83,6 +85,14 @@ printf '/mode plan\nmake a 2d asteroid shooter\n/check\n/inspect\n/exit\n' | nod
 
 This created a minimal Godot project, wrote planning artifacts, validated with zero errors, and inspected the new project.
 
+A greenfield build flow under `/tmp/godotcoder-build-smoke` verified:
+
+```bash
+printf '/mode plan\nmake a 2d asteroid shooter\n/mode build\nbuild the first playable\n/inspect\n/exit\n' | node dist/cli.js
+```
+
+This created a minimal Godot project, built a playable single-scene 2D asteroid shooter prototype, ran Godot validation with zero errors, and inspected the resulting project.
+
 ## Next Slice
 
 Recommended next implementation slice:
@@ -90,5 +100,6 @@ Recommended next implementation slice:
 1. Add TypeBox or equivalent runtime schemas.
 2. Improve `project.godot` parsing for nested sections and typed values.
 3. Add `runtime-overrides.json` support.
-4. Expand `plan` with the first model-backed workflow.
-5. Add official Godot docs source interface.
+4. Add patch preview and approval records for build changes.
+5. Expand `plan` and `build` with the first model-backed workflow.
+6. Add official Godot docs source interface.

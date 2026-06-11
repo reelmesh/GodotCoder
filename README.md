@@ -14,6 +14,7 @@ This repository currently contains the first implementation slice:
 - Runtime detection: `godotcoder runtime doctor`
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
+- First playable prototype build: `godotcoder build`
 
 Model-backed code generation is not wired yet. The current `plan` workflow is deterministic: it can scaffold a greenfield Godot project and write initial planning artifacts. The next slice is model-backed expansion of that workflow.
 
@@ -89,6 +90,7 @@ Available slash commands:
 /mode plan
 /mode build
 /plan <idea>
+/build <task>
 /clear
 /exit
 ```
@@ -106,6 +108,8 @@ Then inside the shell:
 ```text
 /mode plan
 make a 2d asteroid shooter
+/mode build
+build the first playable
 /check
 /inspect
 ```
@@ -128,6 +132,7 @@ node /path/to/GodotCoder/dist/cli.js runtime doctor
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
+node /path/to/GodotCoder/dist/cli.js build "build the first playable"
 ```
 
 Machine-readable output:
@@ -180,6 +185,7 @@ Next implementation slices:
 1. Runtime schemas with TypeBox or equivalent validation.
 2. Improved `project.godot` parsing.
 3. Runtime override support.
-4. First model-backed expansion of the deterministic `plan` workflow.
-5. Official Godot documentation source interface.
-6. Godot editor integration prototype using subprocess JSON.
+4. Patch preview and approval records for generated edits.
+5. First model-backed expansion of deterministic `plan` and `build` workflows.
+6. Official Godot documentation source interface.
+7. Godot editor integration prototype using subprocess JSON.
