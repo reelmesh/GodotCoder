@@ -1,6 +1,6 @@
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
 import { tryFindGodotProjectRoot } from "../core/godot-project.js";
-import { buildAsteroidShooter, generateAsteroidShooterFiles } from "../core/builders/asteroid-shooter.js";
+import { selectBuilder } from "../core/builders/index.js";
 import { validateProjectRoot } from "./validate.js";
 import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
 import { previewGeneratedFiles } from "../core/preview.js";
@@ -14,9 +14,10 @@ export async function buildProject(args: string[]): Promise<void> {
   const existingRoot = await tryFindGodotProjectRoot(process.cwd());
   const projectRoot = existingRoot ?? process.cwd();
   const scaffold = await ensureGreenfieldGodotProject(projectRoot, prompt || "GodotCoder Game");
+  const builder = selectBuilder(prompt);
 
   if (preview || !apply) {
-    const buildPreview = await previewGeneratedFiles(projectRoot, "Build a playable single-scene 2D asteroid shooter prototype.", generateAsteroidShooterFiles());
+    const buildPreview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
     if (json) {
       console.log(JSON.stringify({ ok: true, mode: "preview", scaffold, preview: buildPreview }, null, 2));
       return;
@@ -30,7 +31,7 @@ export async function buildProject(args: string[]): Promise<void> {
     return;
   }
 
-  const result = await buildAsteroidShooter(projectRoot);
+  const result = await builder.build(projectRoot);
   let changeRecord = await writeChangeRecord(projectRoot, {
     kind: "build",
     status: "applied",

@@ -32,10 +32,12 @@ Core modules:
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
+- Deterministic first playable builder for a single-scene 2D platformer prototype.
+- Prompt-based deterministic builder selection for supported prototype genres.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
-- Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations and hashes.
+- Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations, unchanged-file detection, and hashes.
 
 Note: in a greenfield folder, preview may create the minimal Godot scaffold first so there is a valid project context. It does not apply the larger build changes or write patch records until `--apply`.
 
@@ -112,6 +114,14 @@ printf '/mode plan\nmake a 2d asteroid shooter\n/mode build\nbuild the first pla
 ```
 
 This created a minimal Godot project, built a playable single-scene 2D asteroid shooter prototype, ran Godot validation with zero errors, and inspected the resulting project.
+
+A platformer build flow under `/tmp/godotcoder-platformer-smoke` verified:
+
+```bash
+node dist/cli.js build "build a 2d platformer with coins" --apply --json
+```
+
+This built a playable single-scene 2D platformer prototype and ran Godot validation with zero errors.
 
 ## Next Slice
 

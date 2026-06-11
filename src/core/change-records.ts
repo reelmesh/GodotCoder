@@ -6,7 +6,7 @@ import { workspacePaths } from "./workspace.js";
 
 export interface FileChange {
   path: string;
-  operation: "create" | "modify";
+  operation: "create" | "modify" | "unchanged";
   beforeSha256: string | null;
   afterSha256: string;
 }
@@ -28,15 +28,16 @@ export async function writeTrackedFile(projectRoot: string, relativePath: string
   const absolutePath = path.join(projectRoot, relativePath);
   const beforeExists = await pathExists(absolutePath);
   const beforeSha256 = beforeExists ? sha256(await readFile(absolutePath)) : null;
+  const afterSha256 = sha256(contents);
 
   await mkdir(path.dirname(absolutePath), { recursive: true });
   await writeFile(absolutePath, contents);
 
   return {
     path: toGodotResourcePath(relativePath),
-    operation: beforeExists ? "modify" : "create",
+    operation: !beforeExists ? "create" : beforeSha256 === afterSha256 ? "unchanged" : "modify",
     beforeSha256,
-    afterSha256: sha256(contents),
+    afterSha256,
   };
 }
 

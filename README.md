@@ -137,7 +137,12 @@ Applied build runs record changes under:
 .godotcoder/patches/<patch-id>/record.json
 ```
 
-The record includes changed files, create/modify operations, before/after SHA-256 hashes, and linked validation report IDs.
+The record includes changed files, create/modify/unchanged operations, before/after SHA-256 hashes, and linked validation report IDs.
+
+The deterministic build slice currently supports prompt-selected prototypes for:
+
+- 2D asteroid shooter prompts.
+- 2D platformer prompts with jumping and coin collection.
 
 Subcommands are also available for scripting and future editor integration:
 

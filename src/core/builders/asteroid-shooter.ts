@@ -1,16 +1,12 @@
-import type { FileChange } from "../change-records.js";
 import { writeTrackedFile } from "../change-records.js";
+import type { BuildResult, GeneratedFile, GameBuilder } from "./types.js";
 
-export interface GeneratedFile {
-  path: string;
-  contents: string;
-}
-
-export interface BuildResult {
-  filesWritten: string[];
-  changes: FileChange[];
-  summary: string;
-}
+export const asteroidShooterBuilder: GameBuilder = {
+  id: "asteroid-shooter",
+  summary: "Build a playable single-scene 2D asteroid shooter prototype.",
+  generateFiles: generateAsteroidShooterFiles,
+  build: buildAsteroidShooter,
+};
 
 export function generateAsteroidShooterFiles(): GeneratedFile[] {
   return [
@@ -33,7 +29,7 @@ script = ExtResource("1_main")
 }
 
 export async function buildAsteroidShooter(projectRoot: string): Promise<BuildResult> {
-  const changes: FileChange[] = [];
+  const changes = [];
 
   for (const file of generateAsteroidShooterFiles()) {
     changes.push(await writeTrackedFile(projectRoot, file.path, file.contents));
