@@ -92,6 +92,8 @@ Available slash commands:
 /plan <idea>
 /preview <task>
 /build <task>
+/apply
+/reject
 /clear
 /exit
 ```
@@ -111,7 +113,7 @@ Then inside the shell:
 make a 2d asteroid shooter
 /mode build
 build the first playable
-build the first playable --apply
+/apply
 /check
 /inspect
 ```
@@ -125,7 +127,9 @@ scripts/main.gd
 .godotcoder/
 ```
 
-Build previews changes by default. Applied build runs record changes under:
+Build previews changes by default and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
+
+Applied build runs record changes under:
 
 ```text
 .godotcoder/patches/<patch-id>/record.json

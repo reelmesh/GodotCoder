@@ -13,10 +13,11 @@ type AgentMode = "build" | "plan";
 interface SessionState {
   mode: AgentMode;
   promptCount: number;
+  pendingBuildPrompt: string | null;
 }
 
 export async function startSession(): Promise<void> {
-  const state: SessionState = { mode: "build", promptCount: 0 };
+  const state: SessionState = { mode: "build", promptCount: 0, pendingBuildPrompt: null };
 
   printWelcome(state);
 
@@ -96,11 +97,22 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/preview":
         state.mode = "build";
-        await runBuild([...args, "--preview"].join(" "), state);
+        await runBuildPreview(args.join(" "), state);
         return;
       case "/build":
         state.mode = "build";
-        await runBuild(args.join(" "), state);
+        if (args.includes("--apply") || args.includes("--yes")) {
+          await runBuildApply(args.filter((arg) => arg !== "--apply" && arg !== "--yes").join(" "), state);
+        } else {
+          await runBuildPreview(args.join(" "), state);
+        }
+        return;
+      case "/apply":
+        state.mode = "build";
+        await applyPendingBuild(args.join(" "), state);
+        return;
+      case "/reject":
+        rejectPendingBuild(state);
         return;
       case "/plan":
         state.mode = "plan";
@@ -111,7 +123,7 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         if (state.mode === "plan") {
           await runPlan(line, state);
         } else {
-          await runBuild(line, state);
+          await runBuildPreview(line, state);
         }
     }
   } catch (error) {
@@ -146,7 +158,9 @@ function printSessionHelp(): void {
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);
   console.log(`${color("/preview <task>", "cyan").padEnd(22)} Preview first playable changes`);
-  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes; add --apply to write`);
+  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes and store pending approval`);
+  console.log(`${color("/apply", "cyan").padEnd(22)} Apply pending build preview`);
+  console.log(`${color("/reject", "cyan").padEnd(22)} Reject pending build preview`);
   console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);
   console.log(`${color("/exit", "cyan").padEnd(22)} Quit`);
   console.log(separator());
@@ -164,14 +178,43 @@ function printPlanningPlaceholder(idea: string): void {
   console.log(color("Next slice will turn this into brief, GDD, technical plan, tasks, decisions, and risks.", "gray"));
 }
 
-async function runBuild(prompt: string, state: SessionState): Promise<void> {
+async function runBuildPreview(prompt: string, state: SessionState): Promise<void> {
   if (!prompt.trim()) {
     console.log("Usage: /build <task>");
     return;
   }
 
-  console.log(color("Building", "green"));
-  await buildProject(prompt.split(/\s+/).filter(Boolean));
+  state.pendingBuildPrompt = stripBuildFlags(prompt);
+  console.log(color("Previewing", "green"));
+  await buildProject([...state.pendingBuildPrompt.split(/\s+/).filter(Boolean), "--preview"]);
+  console.log(color("Pending build stored. Apply with /apply or discard with /reject.", "gray"));
+  printStatusHint(state);
+}
+
+async function runBuildApply(prompt: string, state: SessionState): Promise<void> {
+  const task = stripBuildFlags(prompt || state.pendingBuildPrompt || "");
+  if (!task.trim()) {
+    console.log("No pending build. Use /build <task> first.");
+    return;
+  }
+
+  console.log(color("Applying", "green"));
+  await buildProject([...task.split(/\s+/).filter(Boolean), "--apply"]);
+  state.pendingBuildPrompt = null;
+  printStatusHint(state);
+}
+
+async function applyPendingBuild(prompt: string, state: SessionState): Promise<void> {
+  await runBuildApply(prompt, state);
+}
+
+function rejectPendingBuild(state: SessionState): void {
+  if (!state.pendingBuildPrompt) {
+    console.log("No pending build to reject.");
+    return;
+  }
+  console.log(`Rejected pending build: ${state.pendingBuildPrompt}`);
+  state.pendingBuildPrompt = null;
   printStatusHint(state);
 }
 
@@ -205,5 +248,13 @@ function setMode(value: string | undefined, state: SessionState): void {
 }
 
 function printStatusHint(state: SessionState): void {
-  console.log(color(`mode=${state.mode} prompts=${state.promptCount}`, "gray"));
+  console.log(color(`mode=${state.mode} prompts=${state.promptCount} pending=${state.pendingBuildPrompt ? "build" : "none"}`, "gray"));
+}
+
+function stripBuildFlags(prompt: string): string {
+  return prompt
+    .split(/\s+/)
+    .filter((arg) => !["--preview", "--apply", "--yes", "--no-validate"].includes(arg))
+    .join(" ")
+    .trim();
 }

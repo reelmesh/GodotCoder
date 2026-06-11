@@ -28,6 +28,7 @@ Core modules:
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
 - Build preview mode before applying generated files.
+- Interactive pending build approval with `/apply` and `/reject`.
 - Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations and hashes.
 
 Note: in a greenfield folder, preview may create the minimal Godot scaffold first so there is a valid project context. It does not apply the larger build changes or write patch records until `--apply`.
@@ -92,7 +93,7 @@ This created a minimal Godot project, wrote planning artifacts, validated with z
 A greenfield build flow under `/tmp/godotcoder-build-smoke` verified:
 
 ```bash
-printf '/mode plan\nmake a 2d asteroid shooter\n/mode build\nbuild the first playable --apply\n/inspect\n/exit\n' | node dist/cli.js
+printf '/mode plan\nmake a 2d asteroid shooter\n/mode build\nbuild the first playable\n/apply\n/inspect\n/exit\n' | node dist/cli.js
 ```
 
 This created a minimal Godot project, built a playable single-scene 2D asteroid shooter prototype, ran Godot validation with zero errors, and inspected the resulting project.
@@ -104,6 +105,6 @@ Recommended next implementation slice:
 1. Add TypeBox or equivalent runtime schemas.
 2. Improve `project.godot` parsing for nested sections and typed values.
 3. Add `runtime-overrides.json` support.
-4. Add interactive approval prompts before applying model-generated changes.
+4. Add richer preview diffs before applying model-generated changes.
 5. Expand `plan` and `build` with the first model-backed workflow.
 6. Add official Godot docs source interface.

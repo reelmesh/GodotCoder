@@ -26,7 +26,7 @@ export async function buildProject(args: string[]): Promise<void> {
       console.log("No project.godot found. Created a minimal greenfield Godot project.");
     }
     printPreview(buildPreview);
-    console.log("Apply with: /build <task> --apply");
+    console.log("Apply with: godotcoder build <task> --apply, or /apply in the interactive shell.");
     return;
   }
 
