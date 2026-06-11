@@ -129,7 +129,7 @@ scripts/main.gd
 .godotcoder/
 ```
 
-Build previews changes by default and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
+Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
 
 Applied build runs record changes under:
 
@@ -206,7 +206,6 @@ Next implementation slices:
 
 1. Runtime schemas with TypeBox or equivalent validation.
 2. Improved `project.godot` parsing.
-3. Richer preview diffs before applying generated edits.
-4. First model-backed expansion of deterministic `plan` and `build` workflows.
-5. Official Godot documentation source interface.
-6. Godot editor integration prototype using subprocess JSON.
+3. First model-backed expansion of deterministic `plan` and `build` workflows.
+4. Official Godot documentation source interface.
+5. Godot editor integration prototype using subprocess JSON.

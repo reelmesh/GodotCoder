@@ -31,6 +31,7 @@ Core modules:
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
 - Build preview mode before applying generated files.
+- Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
 - Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations and hashes.
 
@@ -116,6 +117,5 @@ Recommended next implementation slice:
 
 1. Add TypeBox or equivalent runtime schemas.
 2. Improve `project.godot` parsing for nested sections and typed values.
-3. Add richer preview diffs before applying model-generated changes.
-4. Expand `plan` and `build` with the first model-backed workflow.
-5. Add official Godot docs source interface.
+3. Expand `plan` and `build` with the first model-backed workflow.
+4. Add official Godot docs source interface.

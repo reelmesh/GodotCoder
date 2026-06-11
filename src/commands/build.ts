@@ -77,7 +77,23 @@ function printPreview(buildPreview: Awaited<ReturnType<typeof previewGeneratedFi
   console.log("Build preview");
   console.log(buildPreview.summary);
   for (const file of buildPreview.files) {
-    const sign = file.operation === "create" ? "create" : "modify";
+    const sign = file.operation === "create" ? "create" : file.operation === "modify" ? "modify" : "unchanged";
     console.log(`${sign} ${file.path} (+${file.addedLines} -${file.removedLines}, ${file.beforeLines} -> ${file.afterLines} lines)`);
+    if (file.operation === "unchanged") {
+      continue;
+    }
+    console.log(`--- ${file.operation === "create" ? "/dev/null" : file.path}`);
+    console.log(`+++ ${file.path}`);
+    for (const line of file.diff) {
+      if (line.text === "..." && line.beforeLine === null && line.afterLine === null) {
+        console.log(" ...");
+        continue;
+      }
+      const prefix = line.kind === "add" ? "+" : line.kind === "remove" ? "-" : " ";
+      console.log(`${prefix}${line.text}`);
+    }
+    if (file.diffTruncated) {
+      console.log(" ... diff truncated");
+    }
   }
 }
