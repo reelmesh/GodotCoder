@@ -1,0 +1,22 @@
+{
+  "name": "godotcoder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "godotcoder": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "tsx": "4.22.1",
+    "typescript": "5.9.3"
+  }
+}

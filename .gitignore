@@ -1,0 +1,8 @@
+.gitdata/
+node_modules/
+dist/
+source_projects/
+.godotcoder/cache/
+.godotcoder/logs/
+.godotcoder/sessions/
+.godotcoder.local/
