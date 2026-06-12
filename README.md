@@ -16,6 +16,8 @@ This repository currently contains the first implementation slice:
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
 - Agent roster: `godotcoder agents`
+- Settings area: `godotcoder settings`
+- Local auth area: `godotcoder auth`
 - Model provider support: `godotcoder models`, `godotcoder ask`
 - Directed multi-agent harness: `godotcoder harness <game goal>`
 - First playable prototype build: `godotcoder build`
@@ -85,6 +87,8 @@ Available slash commands:
 
 ```text
 /help
+/settings
+/auth
 /agents
 /models
 /ask <prompt>
@@ -166,12 +170,12 @@ node /path/to/GodotCoder/dist/cli.js models use --provider ollama --model llama3
 node /path/to/GodotCoder/dist/cli.js models use --provider lmstudio --model local-model
 
 # OpenAI API
-export OPENAI_API_KEY=...
 node /path/to/GodotCoder/dist/cli.js models use --provider openai --model your-model --api-key-env OPENAI_API_KEY
+node /path/to/GodotCoder/dist/cli.js auth login --provider openai --api-key sk-...
 
 # Anthropic API
-export ANTHROPIC_API_KEY=...
 node /path/to/GodotCoder/dist/cli.js models use --provider anthropic --model your-model --api-key-env ANTHROPIC_API_KEY
+node /path/to/GodotCoder/dist/cli.js auth login --provider anthropic --api-key sk-ant-...
 
 # Any OpenAI-compatible API
 node /path/to/GodotCoder/dist/cli.js models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
@@ -185,6 +189,19 @@ node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" -
 ```
 
 Model output is advisory in this slice. It does not directly write game files.
+
+Settings and auth:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js settings
+node /path/to/GodotCoder/dist/cli.js settings set defaultMode plan
+node /path/to/GodotCoder/dist/cli.js settings set approvalMode preview
+node /path/to/GodotCoder/dist/cli.js settings set preferredProvider ollama
+node /path/to/GodotCoder/dist/cli.js auth
+node /path/to/GodotCoder/dist/cli.js auth logout --provider openai
+```
+
+Auth stores API keys in `.godotcoder.local/secrets.json`, ignored by git. Environment variables still win over local secrets when both exist.
 
 Applied build runs record changes under:
 
@@ -203,6 +220,8 @@ Subcommands are also available for scripting and future editor integration:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js init
+node /path/to/GodotCoder/dist/cli.js settings
+node /path/to/GodotCoder/dist/cli.js auth
 node /path/to/GodotCoder/dist/cli.js agents
 node /path/to/GodotCoder/dist/cli.js models
 node /path/to/GodotCoder/dist/cli.js ask "Review this Godot game idea"
@@ -267,6 +286,8 @@ Common local config files:
 .godotcoder.local/
   runtime-overrides.json
   model-config.json
+  user-settings.json
+  secrets.json
 ```
 
 ## Documentation

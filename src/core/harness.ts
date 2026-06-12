@@ -119,7 +119,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
             role: "user",
             content: `Review this Godot game goal and current deterministic harness plan. Return concise risks, missing acceptance criteria, and next implementation tasks.\n\nGoal: ${goal}\n\nMode: ${mode}\nMain scene: ${projectIndex.mainScene ?? "unknown"}\nScripts: ${projectIndex.scripts.join(", ") || "none"}\nSelected builder: ${builder.id}\nPreview files: ${preview.files.map((file) => `${file.operation} ${file.path}`).join(", ")}`,
           },
-        ]);
+        ], projectRoot);
         steps.push({
           id: "model-advisory",
           agent: "orchestrator+docs-librarian",

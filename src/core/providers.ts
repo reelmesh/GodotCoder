@@ -3,6 +3,7 @@ import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
 import { asLiteral, asNullableString, asObject, asOneOf, asString } from "./schema.js";
+import { getProviderApiKey } from "./settings.js";
 import { workspacePaths } from "./workspace.js";
 
 export type ModelProviderKind = "openai" | "anthropic" | "ollama" | "lmstudio" | "openai-compatible";
@@ -66,17 +67,17 @@ export async function writeModelConfigExample(projectRoot: string): Promise<void
   await writeFile(paths.modelConfigExample, JSON.stringify(example, null, 2) + "\n");
 }
 
-export async function completeWithModel(config: ModelConfig, messages: ModelMessage[]): Promise<ModelReply> {
+export async function completeWithModel(config: ModelConfig, messages: ModelMessage[], projectRoot?: string | null): Promise<ModelReply> {
   if (config.provider === "anthropic") {
-    return completeAnthropic(config, messages);
+    return completeAnthropic(config, messages, projectRoot ?? null);
   }
   if (config.provider === "ollama") {
     return completeOllama(config, messages);
   }
-  return completeOpenAICompatible(config, messages);
+  return completeOpenAICompatible(config, messages, projectRoot ?? null);
 }
 
-export async function inspectProvider(config: ModelConfig | null): Promise<ProviderStatus> {
+export async function inspectProvider(config: ModelConfig | null, projectRoot?: string | null): Promise<ProviderStatus> {
   if (!config) {
     return {
       provider: "openai-compatible",
@@ -93,11 +94,12 @@ export async function inspectProvider(config: ModelConfig | null): Promise<Provi
   const diagnostics: string[] = [];
   const local = config.provider === "ollama" || config.provider === "lmstudio";
   const keyRequired = config.provider === "openai" || config.provider === "anthropic" || (config.provider === "openai-compatible" && Boolean(config.apiKeyEnv));
-  if (keyRequired && config.apiKeyEnv && !process.env[config.apiKeyEnv]) {
-    diagnostics.push(`Missing API key env: ${config.apiKeyEnv}`);
+  const apiKey = await getProviderApiKey(projectRoot ?? null, config.provider, config.apiKeyEnv);
+  if (keyRequired && !apiKey) {
+    diagnostics.push(`Missing API key. Set ${config.apiKeyEnv ?? "provider key"} env or run auth login.`);
   }
 
-  const models = await listModels(config).catch((error: unknown) => {
+  const models = await listModels(config, projectRoot ?? null).catch((error: unknown) => {
     diagnostics.push(error instanceof Error ? error.message : String(error));
     return [];
   });
@@ -185,12 +187,13 @@ function requireEnv(name: string): string {
   return value;
 }
 
-async function completeOpenAICompatible(config: ModelConfig, messages: ModelMessage[]): Promise<ModelReply> {
+async function completeOpenAICompatible(config: ModelConfig, messages: ModelMessage[], projectRoot: string | null): Promise<ModelReply> {
   const baseUrl = config.baseUrl ?? defaultBaseUrl(config.provider);
   if (!baseUrl) throw new CliError("MODEL_CONFIG_MISSING", "OpenAI-compatible provider requires baseUrl.");
   const headers: Record<string, string> = { "content-type": "application/json" };
-  if (config.apiKeyEnv) {
-    headers.authorization = `Bearer ${requireEnv(config.apiKeyEnv)}`;
+  const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv);
+  if (apiKey) {
+    headers.authorization = `Bearer ${apiKey}`;
   }
 
   const response = await fetchJson(`${trimSlash(baseUrl)}/chat/completions`, {
@@ -205,15 +208,19 @@ async function completeOpenAICompatible(config: ModelConfig, messages: ModelMess
   return { provider: config.provider, model: config.model, content: asString(message.content, "chat response content") };
 }
 
-async function completeAnthropic(config: ModelConfig, messages: ModelMessage[]): Promise<ModelReply> {
+async function completeAnthropic(config: ModelConfig, messages: ModelMessage[], projectRoot: string | null): Promise<ModelReply> {
   const baseUrl = config.baseUrl ?? defaultBaseUrl("anthropic");
+  const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv ?? "ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    throw new CliError("MODEL_CONFIG_MISSING", "Missing Anthropic API key. Set env or run auth login.");
+  }
   const system = messages.filter((message) => message.role === "system").map((message) => message.content).join("\n\n");
   const nonSystem = messages.filter((message) => message.role !== "system");
   const response = await fetchJson(`${trimSlash(baseUrl!)}/messages`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": requireEnv(config.apiKeyEnv ?? "ANTHROPIC_API_KEY"),
+      "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({ model: config.model, max_tokens: 1400, system, messages: nonSystem }),
@@ -236,7 +243,7 @@ async function completeOllama(config: ModelConfig, messages: ModelMessage[]): Pr
   return { provider: config.provider, model: config.model, content: asString(message.content, "ollama response content") };
 }
 
-async function listModels(config: ModelConfig): Promise<string[]> {
+async function listModels(config: ModelConfig, projectRoot: string | null): Promise<string[]> {
   if (config.provider === "ollama") {
     const root = asObject(await fetchJson(`${trimSlash(config.baseUrl ?? defaultBaseUrl("ollama")!)}/api/tags`), "ollama tags");
     const models = Array.isArray(root.models) ? root.models : [];
@@ -248,7 +255,8 @@ async function listModels(config: ModelConfig): Promise<string[]> {
   const baseUrl = config.baseUrl ?? defaultBaseUrl(config.provider);
   if (!baseUrl) return [];
   const headers: Record<string, string> = {};
-  if (config.apiKeyEnv) headers.authorization = `Bearer ${requireEnv(config.apiKeyEnv)}`;
+  const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv);
+  if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   const root = asObject(await fetchJson(`${trimSlash(baseUrl)}/models`, { headers }), "models response");
   const data = Array.isArray(root.data) ? root.data : [];
   return data.map((item) => asNullableString(asObject(item, "model").id, "model id")).filter((item): item is string => Boolean(item));

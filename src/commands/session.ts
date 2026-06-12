@@ -1,5 +1,6 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { authCommand } from "./auth.js";
 import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
 import { runHarnessCommand } from "./harness.js";
@@ -7,6 +8,7 @@ import { inspectProject } from "./inspect.js";
 import { askModel, modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
+import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
 import { color, clearScreen, separator } from "../core/terminal.js";
@@ -84,6 +86,15 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await showStatus(args);
         printStatusHint(state);
         return;
+      case "/settings":
+        await settingsCommand(args);
+        printStatusHint(state);
+        return;
+      case "/auth":
+      case "/login":
+        await authCommand(command === "/login" ? ["login", ...args] : args);
+        printStatusHint(state);
+        return;
       case "/agents":
         await showAgents(args);
         printStatusHint(state);
@@ -159,7 +170,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /help  /agents  /models  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /help  /settings  /auth  /agents  /models  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -173,6 +184,10 @@ function printSessionHelp(): void {
   console.log(color("Command Palette", "bold"));
   console.log(separator());
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
+  console.log(`${color("/settings", "cyan").padEnd(22)} Show local GodotCoder settings`);
+  console.log(`${color("/settings set", "cyan").padEnd(22)} Set defaultMode, approvalMode, preferredProvider, showDiffs`);
+  console.log(`${color("/auth", "cyan").padEnd(22)} Show local auth status`);
+  console.log(`${color("/auth login", "cyan").padEnd(22)} Save provider API key locally`);
   console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);
   console.log(`${color("/models", "cyan").padEnd(22)} Show or configure model provider`);
   console.log(`${color("/ask <prompt>", "cyan").padEnd(22)} Ask configured LLM with GodotCoder system prompt`);

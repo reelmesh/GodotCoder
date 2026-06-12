@@ -23,6 +23,8 @@ Accepted direction:
 godotcoder CLI
   commands/
     init
+    settings
+    auth
     status
     runtime doctor
     inspect
@@ -79,6 +81,8 @@ Responsibilities:
 - Keep subcommands available for scripting and editor integration.
 
 Initial slash commands:
+- `/settings`
+- `/auth`
 - `/agents`
 - `/models`
 - `/ask <prompt>`
@@ -102,6 +106,47 @@ Responsibilities:
 - Report whether planning artifacts exist.
 - Report latest validation result.
 - Report dirty/missing workspace artifacts.
+
+### `godotcoder settings`
+
+Shows local user settings.
+
+Responsibilities:
+- Load `.godotcoder.local/user-settings.json`.
+- Report default mode, approval mode, preferred provider, and diff display policy.
+- Keep machine-specific preferences out of git.
+
+### `godotcoder settings set <key> <value>`
+
+Writes one local setting.
+
+Supported keys:
+- `defaultMode`: `plan` or `build`
+- `approvalMode`: `preview` or `auto-apply`
+- `preferredProvider`: `openai`, `anthropic`, `ollama`, `lmstudio`, or `openai-compatible`
+- `showDiffs`: `compact` or `full`
+
+### `godotcoder auth`
+
+Shows local auth status.
+
+Responsibilities:
+- Load `.godotcoder.local/secrets.json`.
+- Report configured providers with redacted keys.
+- Report active model provider.
+
+### `godotcoder auth login`
+
+Stores local provider secret.
+
+Responsibilities:
+- Support API-key providers: OpenAI, Anthropic, OpenAI-compatible APIs.
+- Store secrets under `.godotcoder.local/secrets.json`.
+- Prefer environment variables when both env and local secret exist.
+
+### `godotcoder auth logout`
+
+Removes local provider secret.
 
 ### `godotcoder agents`
 

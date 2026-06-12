@@ -28,7 +28,7 @@ export async function askModel(args: string[]): Promise<void> {
   const reply = await completeWithModel(config, [
     { role: "system", content: modelSystemPrompt() },
     { role: "user", content: prompt },
-  ]);
+  ], projectRoot);
 
   if (json) {
     console.log(JSON.stringify({ ok: true, reply }, null, 2));
@@ -46,7 +46,7 @@ async function showModels(args: string[]): Promise<void> {
   if (await tryFindGodotProjectRoot(process.cwd())) {
     await writeModelConfigExample(projectRoot);
   }
-  const status = await inspectProvider(config);
+  const status = await inspectProvider(config, projectRoot);
 
   if (json) {
     console.log(JSON.stringify({ ok: status.configured, status }, null, 2));
@@ -87,7 +87,7 @@ async function useModel(args: string[]): Promise<void> {
     apiKeyEnv: apiKeyEnv ?? defaultApiKeyEnv(provider),
   };
   await writeModelConfig(projectRoot, config);
-  const status = await inspectProvider(config);
+  const status = await inspectProvider(config, projectRoot);
 
   if (json) {
     console.log(JSON.stringify({ ok: status.configured, config, status }, null, 2));

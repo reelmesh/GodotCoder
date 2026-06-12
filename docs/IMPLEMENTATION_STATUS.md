@@ -8,6 +8,11 @@ First TypeScript/Node CLI slice:
 
 - `godotcoder init`
 - `godotcoder` interactive session shell
+- `godotcoder settings`
+- `godotcoder settings set <key> <value>`
+- `godotcoder auth`
+- `godotcoder auth login --provider <provider> --api-key <key>`
+- `godotcoder auth logout --provider <provider>`
 - `godotcoder agents`
 - `godotcoder models`
 - `godotcoder models use --provider <provider> --model <model>`
@@ -27,6 +32,8 @@ Core modules:
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
 - Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
 - Model config in `.godotcoder.local/model-config.json`.
+- User settings in `.godotcoder.local/user-settings.json`.
+- Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - Advisory LLM calls through `ask` and `harness --llm`.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
@@ -152,6 +159,17 @@ node dist/cli.js harness "make a 2d asteroid shooter" --llm --json
 ```
 
 With Ollama not running, harness records model advisory failure and continues deterministic preview instead of crashing.
+
+Settings/auth flow verified:
+
+```bash
+node dist/cli.js settings --json
+node dist/cli.js settings set defaultMode plan --json
+node dist/cli.js auth login --provider openai --api-key test-key-123456 --json
+node dist/cli.js auth --json
+```
+
+Auth status redacts stored key and reports active model provider.
 
 ## Next Slice
 

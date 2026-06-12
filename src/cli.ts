@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { buildProject } from "./commands/build.js";
+import { authCommand } from "./commands/auth.js";
 import { showAgents } from "./commands/agents.js";
 import { runHarnessCommand } from "./commands/harness.js";
 import { initWorkspace } from "./commands/init.js";
@@ -8,6 +9,7 @@ import { inspectProject } from "./commands/inspect.js";
 import { askModel, modelsCommand } from "./commands/models.js";
 import { planProject } from "./commands/plan.js";
 import { runtimeCommand } from "./commands/runtime.js";
+import { settingsCommand } from "./commands/settings.js";
 import { startSession } from "./commands/session.js";
 import { showStatus } from "./commands/status.js";
 import { validateProject } from "./commands/validate.js";
@@ -17,6 +19,8 @@ type CommandHandler = (args: string[]) => Promise<unknown>;
 
 const commands: Record<string, CommandHandler> = {
   init: initWorkspace,
+  auth: authCommand,
+  settings: settingsCommand,
   agents: showAgents,
   harness: runHarnessCommand,
   run: runHarnessCommand,
@@ -61,6 +65,11 @@ function printHelp(): void {
 Usage:
   godotcoder
   godotcoder init
+  godotcoder settings [--json]
+  godotcoder settings set <key> <value>
+  godotcoder auth [--json]
+  godotcoder auth login --provider <provider> --api-key <key>
+  godotcoder auth logout --provider <provider>
   godotcoder agents [--json]
   godotcoder models [--json]
   godotcoder models use --provider <provider> --model <model> [--base-url <url>] [--api-key-env <ENV>]
