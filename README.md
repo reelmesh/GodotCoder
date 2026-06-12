@@ -21,6 +21,8 @@ This repository currently contains the first implementation slice:
 - Model provider support: `godotcoder models`, `godotcoder ask`
 - Directed multi-agent harness: `godotcoder harness <game goal>`
 - First playable prototype build: `godotcoder build`
+- End-to-end playable pipeline: `godotcoder pipeline <game idea>`
+- Godot launch helper: `godotcoder play`
 
 Model-backed code generation is not trusted to write files yet. Current LLM support is advisory through configured providers; edits still go through deterministic preview/apply boundaries and Godot validation.
 
@@ -86,6 +88,10 @@ node /path/to/GodotCoder/dist/cli.js
 Available slash commands:
 
 ```text
+/menu
+/make <idea>
+/pipeline <idea>
+/play
 /help
 /setup
 /settings
@@ -95,6 +101,7 @@ Available slash commands:
 /ask <prompt>
 /harness <goal>
 /run <goal>
+/runs
 /status
 /runtime doctor
 /runtime use <cmd>
@@ -124,13 +131,8 @@ node /path/to/GodotCoder/dist/cli.js
 Then inside the shell:
 
 ```text
-/mode plan
-make a 2d asteroid shooter
-/mode build
-build the first playable
-/apply
-/check
-/inspect
+/make make a 2d asteroid shooter
+/play
 ```
 
 If no `project.godot` exists, the planning workflow creates a minimal Godot project:
@@ -143,6 +145,29 @@ scripts/main.gd
 ```
 
 Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
+
+The fastest end-to-end path is the pipeline command:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter"
+node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d platformer with coins" --play
+```
+
+Pipeline mode:
+
+- creates a greenfield Godot project when needed,
+- writes planning artifacts and backlog,
+- runs the directed Godot agent harness,
+- applies the selected first-playable builder,
+- records a patch and harness run,
+- validates through the configured Godot runtime,
+- optionally launches the game with `--play`.
+
+Use preview mode when you want to inspect first:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --preview
+```
 
 Harness workflow runs a BMAD-style Godot agent sequence:
 
@@ -244,6 +269,11 @@ node /path/to/GodotCoder/dist/cli.js models
 node /path/to/GodotCoder/dist/cli.js ask "Review this Godot game idea"
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins"
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --apply
+node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter"
+node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d platformer with coins" --play
+node /path/to/GodotCoder/dist/cli.js runs
+node /path/to/GodotCoder/dist/cli.js play
+node /path/to/GodotCoder/dist/cli.js play --editor
 node /path/to/GodotCoder/dist/cli.js status
 node /path/to/GodotCoder/dist/cli.js runtime doctor
 node /path/to/GodotCoder/dist/cli.js runtime use godot

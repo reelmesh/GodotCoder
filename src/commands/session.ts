@@ -8,6 +8,8 @@ import { runHarnessCommand } from "./harness.js";
 import { inspectProject } from "./inspect.js";
 import { askModel, modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
+import { pipelineCommand } from "./pipeline.js";
+import { playCommand } from "./play.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
 import { runsCommand } from "./runs.js";
 import { setupCommand } from "./setup.js";
@@ -135,6 +137,16 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await runHarnessCommand(args);
         printStatusHint(state);
         return;
+      case "/pipeline":
+      case "/make":
+        await pipelineCommand(["--embedded", ...args]);
+        printStatusHint(state);
+        return;
+      case "/play":
+      case "/open":
+        await playCommand(args);
+        printStatusHint(state);
+        return;
       case "/runtime":
         await runtimeCommand(args);
         printStatusHint(state);
@@ -192,7 +204,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /help  /setup  /settings  /auth  /agents  /models  /runs  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /help  /setup  /settings  /auth  /models  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -223,6 +235,10 @@ function printSessionHelp(): void {
   console.log(`${color("/ask <prompt>", "cyan").padEnd(22)} Ask configured LLM with GodotCoder system prompt`);
   console.log(`${color("/harness <goal>", "cyan").padEnd(22)} Run directed multi-agent workflow preview`);
   console.log(`${color("/run <goal>", "cyan").padEnd(22)} Alias for /harness`);
+  console.log(`${color("/pipeline <idea>", "cyan").padEnd(22)} Build a complete playable slice and validate it`);
+  console.log(`${color("/make <idea>", "cyan").padEnd(22)} Alias for /pipeline`);
+  console.log(`${color("/play", "cyan").padEnd(22)} Launch the current Godot game`);
+  console.log(`${color("/open", "cyan").padEnd(22)} Alias for /play`);
   console.log(`${color("/runtime doctor", "cyan").padEnd(22)} Detect native/Flatpak Godot runtime`);
   console.log(`${color("/runtime use <cmd>", "cyan").padEnd(22)} Pin a native, Flatpak, or custom Godot command`);
   console.log(`${color("/doctor", "cyan").padEnd(22)} Alias for /runtime doctor`);

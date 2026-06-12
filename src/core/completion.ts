@@ -19,6 +19,10 @@ const commandNames = [
   "/chat",
   "/harness",
   "/run",
+  "/pipeline",
+  "/make",
+  "/play",
+  "/open",
   "/runtime",
   "/doctor",
   "/inspect",
@@ -122,12 +126,12 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(runsCommands, currentToken, line);
   }
 
-  if (first === "/build" || first === "/preview" || first === "/plan" || first === "/harness" || first === "/run" || first === "/ask" || first === "/chat") {
-    return [[], line];
-  }
-
   if (currentToken.startsWith("--")) {
     return completeFlags(first, currentToken, line);
+  }
+
+  if (first === "/build" || first === "/preview" || first === "/plan" || first === "/harness" || first === "/run" || first === "/pipeline" || first === "/make" || first === "/ask" || first === "/chat") {
+    return [[], line];
   }
 
   return [[], line];
@@ -139,6 +143,10 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/preview": ["--no-validate"],
     "/harness": ["--apply", "--json", "--llm"],
     "/run": ["--apply", "--json", "--llm"],
+    "/pipeline": ["--preview", "--llm", "--model", "--play", "--json", "--no-validate"],
+    "/make": ["--preview", "--llm", "--model", "--play", "--json", "--no-validate"],
+    "/play": ["--editor", "--json"],
+    "/open": ["--editor", "--json"],
     "/plan": ["--json"],
     "/ask": ["--json"],
     "/chat": ["--json"],

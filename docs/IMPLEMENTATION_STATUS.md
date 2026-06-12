@@ -1,6 +1,6 @@
 # Implementation Status
 
-Date: 2026-06-12
+Date: 2026-06-13
 
 ## Implemented
 
@@ -30,6 +30,10 @@ First TypeScript/Node CLI slice:
 - `godotcoder validate`
 - `godotcoder plan <idea>`
 - `godotcoder build <task>`
+- `godotcoder pipeline <game idea>`
+- `godotcoder play`
+- `godotcoder runs`
+- `godotcoder menu`
 
 Core modules:
 - Workspace path management.
@@ -64,6 +68,11 @@ Core modules:
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
 - Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations, unchanged-file detection, and hashes.
+- End-to-end pipeline command that creates greenfield projects, writes planning artifacts, runs the directed harness, applies a first playable, validates with Godot, and records the run.
+- `--preview`, `--llm`, `--play`, `--json`, and `--no-validate` pipeline flags.
+- Godot launch helper for running the current game or opening the editor through the configured runtime.
+- Home menu and run-history browser for the main CLI workflow.
+- Slash command completion and menu type-to-jump support.
 
 Note: in a greenfield folder, preview may create the minimal Godot scaffold first so there is a valid project context. It does not apply the larger build changes or write patch records until `--apply`.
 
@@ -158,6 +167,22 @@ node dist/cli.js harness "make a 2d platformer with coins" --apply --json
 
 This created agent roster, backlog, planning artifacts, run records, patch record, and Godot validation report with zero errors.
 
+An end-to-end pipeline preview under `/tmp/godotcoder-pipeline-smoke` verified:
+
+```bash
+node dist/cli.js pipeline "make a 2d asteroid shooter" --preview --json
+```
+
+This created a greenfield Godot scaffold, planning artifacts, agent roster, backlog, runtime profile, and harness run record without applying the full prototype.
+
+An end-to-end pipeline apply under `/tmp/godotcoder-pipeline-apply-smoke` verified:
+
+```bash
+node dist/cli.js pipeline "make a 2d platformer with coins" --json
+```
+
+This created a greenfield Godot project, built a playable single-scene platformer, wrote patch/run/validation records, and Godot validation returned zero errors and zero warnings.
+
 Model provider flow verified without requiring live credentials:
 
 ```bash
@@ -187,7 +212,8 @@ Auth status redacts stored key and reports active model provider.
 
 Recommended next implementation slice:
 
-1. Improve `project.godot` parsing for nested sections and typed values.
+1. Add more first-playable builders and builder capability metadata.
 2. Promote provider/model layer from advisory output to controlled agent task execution.
 3. Add official Godot docs source interface.
-4. Add schema guards for change records and validation reports.
+4. Add repair loop: validation error -> agent diagnosis -> patch proposal -> revalidate.
+5. Improve `project.godot` parsing for nested sections and typed values.

@@ -9,6 +9,8 @@ import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
 import { askModel, modelsCommand } from "./commands/models.js";
 import { planProject } from "./commands/plan.js";
+import { pipelineCommand } from "./commands/pipeline.js";
+import { playCommand } from "./commands/play.js";
 import { runtimeCommand } from "./commands/runtime.js";
 import { runsCommand } from "./commands/runs.js";
 import { setupCommand } from "./commands/setup.js";
@@ -38,6 +40,8 @@ const commands: Record<string, CommandHandler> = {
   inspect: inspectProject,
   validate: validateProject,
   plan: planProject,
+  pipeline: pipelineCommand,
+  play: playCommand,
 };
 
 async function main(argv: string[]): Promise<void> {
@@ -97,6 +101,8 @@ Usage:
   godotcoder inspect [--json]
   godotcoder validate [--json]
   godotcoder plan <game idea> [--json]
+  godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--json]
+  godotcoder play [--editor] [--json]
 
 Run without arguments to open the interactive GodotCoder session.
 MVP focus: Godot 4.x, Linux-first, CLI workspace commands.`);
