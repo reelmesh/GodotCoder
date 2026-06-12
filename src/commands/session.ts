@@ -3,15 +3,18 @@ import { stdin as input, stdout as output } from "node:process";
 import { authCommand } from "./auth.js";
 import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
+import { homeCommand } from "./home.js";
 import { runHarnessCommand } from "./harness.js";
 import { inspectProject } from "./inspect.js";
 import { askModel, modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
+import { runsCommand } from "./runs.js";
 import { setupCommand } from "./setup.js";
 import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
+import { completeSessionLine } from "../core/completion.js";
 import { color, clearScreen, separator } from "../core/terminal.js";
 
 type AgentMode = "build" | "plan";
@@ -39,7 +42,7 @@ export async function startSession(): Promise<void> {
     return;
   }
 
-  const rl = readline.createInterface({ input, output });
+  const rl = readline.createInterface({ input, output, completer: sessionCompleter });
 
   try {
     while (true) {
@@ -55,6 +58,10 @@ export async function startSession(): Promise<void> {
   } finally {
     rl.close();
   }
+}
+
+function sessionCompleter(line: string): [string[], string] {
+  return completeSessionLine(line);
 }
 
 async function readStdin(): Promise<string> {
@@ -75,6 +82,11 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
       case "?":
         printSessionHelp();
         return;
+      case "/home":
+      case "/menu":
+        await homeCommand(["--embedded"]);
+        printStatusHint(state);
+        return;
       case "/clear":
         clearScreen();
         printWelcome(state);
@@ -92,7 +104,7 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         printStatusHint(state);
         return;
       case "/settings":
-        await settingsCommand(args);
+        await settingsCommand(["--embedded", ...args]);
         printStatusHint(state);
         return;
       case "/auth":
@@ -106,6 +118,11 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/models":
         await modelsCommand(args);
+        printStatusHint(state);
+        return;
+      case "/runs":
+      case "/history":
+        await runsCommand(["--embedded", ...args]);
         printStatusHint(state);
         return;
       case "/ask":
@@ -175,7 +192,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /help  /setup  /settings  /auth  /agents  /models  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /help  /setup  /settings  /auth  /agents  /models  /runs  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -188,6 +205,8 @@ function promptLabel(state: SessionState): string {
 function printSessionHelp(): void {
   console.log(color("Command Palette", "bold"));
   console.log(separator());
+  console.log(`${color("/menu", "cyan").padEnd(22)} Open the GodotCoder home menu`);
+  console.log(`${color("/home", "cyan").padEnd(22)} Alias for /menu`);
   console.log(`${color("/setup", "cyan").padEnd(22)} Guided setup for runtime, models, auth, settings`);
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
   console.log(`${color("/settings", "cyan").padEnd(22)} Show local GodotCoder settings`);
@@ -199,6 +218,8 @@ function printSessionHelp(): void {
   console.log(`${color("/auth login", "cyan").padEnd(22)} Save provider API key locally`);
   console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);
   console.log(`${color("/models", "cyan").padEnd(22)} Show or configure model provider`);
+  console.log(`${color("/runs", "cyan").padEnd(22)} Browse harness run history`);
+  console.log(`${color("/history", "cyan").padEnd(22)} Alias for /runs`);
   console.log(`${color("/ask <prompt>", "cyan").padEnd(22)} Ask configured LLM with GodotCoder system prompt`);
   console.log(`${color("/harness <goal>", "cyan").padEnd(22)} Run directed multi-agent workflow preview`);
   console.log(`${color("/run <goal>", "cyan").padEnd(22)} Alias for /harness`);

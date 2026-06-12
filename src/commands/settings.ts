@@ -1,13 +1,13 @@
-import readline from "node:readline/promises";
 import type { Interface } from "node:readline/promises";
-import { stdin as input, stdout as output } from "node:process";
 import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { chooseMenuOption, withMenu } from "../core/menu.js";
 import { loadModelConfig } from "../core/providers.js";
 import { loadSettings, setSetting, writeSettings, defaultSettings } from "../core/settings.js";
 import { workspacePaths } from "../core/workspace.js";
 
 export async function settingsCommand(args: string[]): Promise<void> {
-  const [subcommand, ...rest] = args;
+  const embedded = args.includes("--embedded");
+  const [subcommand, ...rest] = args.filter((arg) => arg !== "--embedded");
   if (subcommand === "set") {
     await setSettingsValue(rest);
     return;
@@ -36,44 +36,44 @@ export async function settingsCommand(args: string[]): Promise<void> {
     printSettingsHelp();
     return;
   }
-  if (!subcommand && input.isTTY && !args.includes("--json")) {
-    await openSettingsMenu();
+  if (!subcommand && !args.includes("--json")) {
+    const exitedToShell = await openSettingsMenu();
+    if (exitedToShell && !embedded) {
+      const { startSession } = await import("./session.js");
+      await startSession();
+    }
     return;
   }
   await showSettings(args);
 }
 
-async function openSettingsMenu(): Promise<void> {
+async function openSettingsMenu(): Promise<boolean> {
   const projectRoot = await findGodotProjectRoot(process.cwd());
-  const rl = readline.createInterface({ input, output });
-
-  try {
+  await withMenu(async (rl) => {
     while (true) {
       const settings = await loadSettings(projectRoot);
       console.log("");
       console.log("GodotCoder settings");
-      console.log(`1. Default mode        ${settings.defaultMode}`);
-      console.log(`2. Approval mode       ${settings.approvalMode}`);
-      console.log(`3. Preferred provider  ${settings.preferredProvider ?? "none"}`);
-      console.log(`4. Diff display        ${settings.showDiffs}`);
-      console.log("5. Show config paths");
-      console.log("0. Back");
+      const choice = await chooseMenuOption(rl, "Choose setting", [
+        { value: "defaultMode", label: "Default mode", description: settings.defaultMode },
+        { value: "approvalMode", label: "Approval mode", description: settings.approvalMode },
+        { value: "preferredProvider", label: "Preferred provider", description: settings.preferredProvider ?? "none" },
+        { value: "showDiffs", label: "Diff display", description: settings.showDiffs },
+        { value: "paths", label: "Show config paths" },
+      ]);
+      if (!choice) return;
 
-      const choice = (await rl.question("Choose setting ▸ ")).trim();
-      if (choice === "0" || choice.toLowerCase() === "q" || choice.toLowerCase() === "back") {
-        return;
-      }
-      if (choice === "1") {
+      if (choice === "defaultMode") {
         await chooseValue(rl, projectRoot, "defaultMode", [
           ["plan", "Open in planning mode"],
           ["build", "Open in build mode"],
         ]);
-      } else if (choice === "2") {
+      } else if (choice === "approvalMode") {
         await chooseValue(rl, projectRoot, "approvalMode", [
           ["preview", "Preview before apply"],
           ["auto-apply", "Apply without preview gate"],
         ]);
-      } else if (choice === "3") {
+      } else if (choice === "preferredProvider") {
         await chooseValue(rl, projectRoot, "preferredProvider", [
           ["openai", "OpenAI API"],
           ["anthropic", "Anthropic API"],
@@ -81,33 +81,30 @@ async function openSettingsMenu(): Promise<void> {
           ["lmstudio", "LM Studio local"],
           ["openai-compatible", "Custom OpenAI-compatible API"],
         ]);
-      } else if (choice === "4") {
+      } else if (choice === "showDiffs") {
         await chooseValue(rl, projectRoot, "showDiffs", [
           ["compact", "Compact diffs"],
           ["full", "Full diffs"],
         ]);
-      } else if (choice === "5") {
+      } else if (choice === "paths") {
         const paths = workspacePaths(projectRoot);
         console.log(`Settings: ${paths.userSettings}`);
         console.log(`Secrets: ${paths.secrets}`);
         console.log(`Model config: ${paths.modelConfig}`);
         console.log(`Runtime override: ${paths.runtimeOverride}`);
-      } else {
-        console.log("Unknown choice.");
       }
     }
-  } finally {
-    rl.close();
-  }
+  });
+  return true;
 }
 
 async function chooseValue(rl: Interface, projectRoot: string, key: string, options: Array<[string, string]>): Promise<void> {
-  for (let index = 0; index < options.length; index += 1) {
-    const [value, label] = options[index]!;
-    console.log(`${index + 1}. ${value.padEnd(18)} ${label}`);
-  }
-  const choice = (await rl.question("Choose value ▸ ")).trim();
-  const selected = options[Number(choice) - 1]?.[0] ?? options.find(([value]) => value === choice)?.[0];
+  const choice = await chooseMenuOption(
+    rl,
+    "Choose value",
+    options.map(([value, label]) => ({ value, label })),
+  );
+  const selected = choice;
   if (!selected) {
     console.log("No change.");
     return;

@@ -9,6 +9,8 @@ export interface MenuOption {
   description?: string;
 }
 
+const BACK_VALUE = "__back__";
+
 export async function withMenu<T>(handler: (rl: Interface) => Promise<T>): Promise<T> {
   const rl = createInterface({ input, output });
   try {
@@ -32,25 +34,53 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
     let index = 0;
     let renderedLines = 0;
     let active = true;
+    const menuItems = [...options, { value: BACK_VALUE, label: "Back" }];
+    let filterText = "";
+    let filterTimer: NodeJS.Timeout | null = null;
 
     const render = () => {
       cursorTo(output, 0, 0);
       clearScreenDown(output);
       output.write(`${prompt}\n`);
-      output.write("Use arrow keys, space, enter.\n");
-      for (let i = 0; i < options.length; i += 1) {
-        const option = options[i]!;
+      output.write("Use arrow keys, type to jump, space, enter.\n");
+      if (filterText) {
+        output.write(`Filter: ${filterText}\n`);
+      }
+      for (let i = 0; i < menuItems.length; i += 1) {
+        const option = menuItems[i]!;
         const selected = i === index;
         output.write(`${selected ? "[*]" : "[ ]"} ${option.label}${option.description ? `  ${option.description}` : ""}\n`);
       }
-      output.write("[ ] Back\n");
-      renderedLines = options.length + 3;
+      renderedLines = menuItems.length + 2 + (filterText ? 1 : 0);
+    };
+
+    const resetFilter = () => {
+      if (filterTimer) {
+        clearTimeout(filterTimer);
+      }
+      filterTimer = setTimeout(() => {
+        filterText = "";
+        filterTimer = null;
+        render();
+      }, 800);
+    };
+
+    const matchIndex = (query: string): number | null => {
+      const normalized = query.trim().toLowerCase();
+      if (!normalized) return null;
+      const exact = menuItems.findIndex((option) => option.label.toLowerCase().startsWith(normalized) || option.value.toLowerCase().startsWith(normalized));
+      if (exact >= 0) return exact;
+      const partial = menuItems.findIndex((option) => option.label.toLowerCase().includes(normalized) || option.value.toLowerCase().includes(normalized) || (option.description ?? "").toLowerCase().includes(normalized));
+      return partial >= 0 ? partial : null;
     };
 
     const cleanup = (value: string | null) => {
       if (!active) return;
       active = false;
       input.off("keypress", onKeypress);
+      if (filterTimer) {
+        clearTimeout(filterTimer);
+      }
       if (!wasRaw) {
         input.setRawMode(false);
       }
@@ -59,27 +89,62 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
       resolve(value);
     };
 
-    const onKeypress = (_str: string, key: import("node:readline").Key) => {
+    const onKeypress = (str: string, key: import("node:readline").Key) => {
       if (key.name === "up") {
-        index = index <= 0 ? options.length - 1 : index - 1;
+        index = index <= 0 ? menuItems.length - 1 : index - 1;
         render();
         return;
       }
       if (key.name === "down") {
-        index = index >= options.length - 1 ? 0 : index + 1;
+        index = index >= menuItems.length - 1 ? 0 : index + 1;
         render();
-        return;
-      }
-      if (key.name === "space") {
-        cleanup(options[index]?.value ?? null);
-        return;
-      }
-      if (key.name === "return" || key.name === "enter") {
-        cleanup(options[index]?.value ?? null);
         return;
       }
       if (key.name === "escape" || key.name === "q") {
         cleanup(null);
+        return;
+      }
+      if (key.name === "backspace" || key.name === "delete") {
+        filterText = filterText.slice(0, -1);
+        const found = matchIndex(filterText);
+        if (found !== null) index = found;
+        resetFilter();
+        render();
+        return;
+      }
+      if (key.name === "tab") {
+        const query = filterText.trim();
+        const candidates = menuItems
+          .map((option, optionIndex) => ({ option, optionIndex }))
+          .filter(({ option }) =>
+            !query ||
+            option.label.toLowerCase().startsWith(query.toLowerCase()) ||
+            option.value.toLowerCase().startsWith(query.toLowerCase()) ||
+            (option.description ?? "").toLowerCase().includes(query.toLowerCase()),
+          );
+        if (candidates.length > 0) {
+          const current = candidates.findIndex(({ optionIndex }) => optionIndex === index);
+          const next = candidates[(current + 1) % candidates.length]!;
+          index = next.optionIndex;
+          render();
+        }
+        return;
+      }
+      if (typeof str === "string" && str.length === 1 && !key.ctrl && !key.meta && !key.shift && !/[\r\n\t]/.test(str)) {
+        filterText += str;
+        const found = matchIndex(filterText);
+        if (found !== null) index = found;
+        resetFilter();
+        render();
+        return;
+      }
+      if (key.name === "space") {
+        cleanup(menuItems[index]?.value === BACK_VALUE ? null : (menuItems[index]?.value ?? null));
+        return;
+      }
+      if (key.name === "return" || key.name === "enter") {
+        cleanup(menuItems[index]?.value === BACK_VALUE ? null : (menuItems[index]?.value ?? null));
+        return;
       }
     };
 

@@ -4,11 +4,13 @@ import { buildProject } from "./commands/build.js";
 import { authCommand } from "./commands/auth.js";
 import { showAgents } from "./commands/agents.js";
 import { runHarnessCommand } from "./commands/harness.js";
+import { homeCommand } from "./commands/home.js";
 import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
 import { askModel, modelsCommand } from "./commands/models.js";
 import { planProject } from "./commands/plan.js";
 import { runtimeCommand } from "./commands/runtime.js";
+import { runsCommand } from "./commands/runs.js";
 import { setupCommand } from "./commands/setup.js";
 import { settingsCommand } from "./commands/settings.js";
 import { startSession } from "./commands/session.js";
@@ -20,6 +22,8 @@ type CommandHandler = (args: string[]) => Promise<unknown>;
 
 const commands: Record<string, CommandHandler> = {
   init: initWorkspace,
+  home: homeCommand,
+  menu: homeCommand,
   auth: authCommand,
   setup: setupCommand,
   settings: settingsCommand,
@@ -28,6 +32,7 @@ const commands: Record<string, CommandHandler> = {
   run: runHarnessCommand,
   ask: askModel,
   models: modelsCommand,
+  runs: runsCommand,
   build: buildProject,
   status: showStatus,
   inspect: inspectProject,
@@ -66,6 +71,7 @@ function printHelp(): void {
 
 Usage:
   godotcoder
+  godotcoder menu
   godotcoder init
   godotcoder setup
   godotcoder settings [--json]
@@ -80,6 +86,8 @@ Usage:
   godotcoder agents [--json]
   godotcoder models [--json]
   godotcoder models use --provider <provider> --model <model> [--base-url <url>] [--api-key-env <ENV>]
+  godotcoder runs
+  godotcoder runs list|show <run-id>
   godotcoder ask <prompt> [--json]
   godotcoder harness <game goal> [--apply] [--json]
   godotcoder build [prompt] [--preview] [--apply] [--no-validate]
