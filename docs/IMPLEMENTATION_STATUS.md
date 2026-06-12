@@ -39,6 +39,7 @@ Core modules:
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
 - Interactive menu-first settings UI in TTY sessions.
+- Bracketed `[*]` menu selection with arrow-key navigation and `space`/`enter` accept.
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - Advisory LLM calls through `ask` and `harness --llm`.
 - Godot project root discovery.

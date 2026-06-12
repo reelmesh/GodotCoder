@@ -127,6 +127,7 @@ Responsibilities:
 - Load `.godotcoder.local/user-settings.json`.
 - Report default mode, approval mode, preferred provider, and diff display policy.
 - Keep machine-specific preferences out of git.
+- Use `[*]` selection markers, arrow-key navigation, and `space`/`enter` confirmation.
 
 ### `godotcoder settings set <key> <value>`
 

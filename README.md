@@ -198,6 +198,7 @@ node /path/to/GodotCoder/dist/cli.js setup
 ```
 
 `setup` opens one menu for runtime, model provider, auth, preferences, and status.
+Menus use `[*]` selection markers with arrow-key navigation, plus `space` or `enter` to accept.
 
 Settings and auth:
 
