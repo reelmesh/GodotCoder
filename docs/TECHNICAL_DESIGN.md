@@ -23,6 +23,7 @@ Accepted direction:
 godotcoder CLI
   commands/
     init
+    setup
     settings
     auth
     status
@@ -81,6 +82,7 @@ Responsibilities:
 - Keep subcommands available for scripting and editor integration.
 
 Initial slash commands:
+- `/setup`
 - `/settings`
 - `/auth`
 - `/agents`
@@ -106,6 +108,15 @@ Responsibilities:
 - Report whether planning artifacts exist.
 - Report latest validation result.
 - Report dirty/missing workspace artifacts.
+
+### `godotcoder setup`
+
+Opens guided menu for first-run and ongoing configuration.
+
+Responsibilities:
+- Route runtime, model provider, auth, preferences, and status from one place.
+- Avoid requiring command memorization.
+- Keep JSON/status output available for scripts and editor integration.
 
 ### `godotcoder settings`
 

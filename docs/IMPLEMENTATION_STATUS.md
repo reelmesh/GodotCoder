@@ -8,6 +8,7 @@ First TypeScript/Node CLI slice:
 
 - `godotcoder init`
 - `godotcoder` interactive session shell
+- `godotcoder setup`
 - `godotcoder settings`
 - `godotcoder settings set <key> <value>`
 - `godotcoder settings default-mode plan|build`
@@ -51,6 +52,7 @@ Core modules:
 - Godot-backed validation with isolated workspace-local log/data/cache paths.
 - JSON output suitable for future Godot editor integration.
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
+- Menu-first setup, settings, model, auth, and runtime flows for TTY sessions.
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Harness-generated backlog and durable run records under `.godotcoder/runs/`.
@@ -168,6 +170,7 @@ With Ollama not running, harness records model advisory failure and continues de
 Settings/auth flow verified:
 
 ```bash
+node dist/cli.js setup
 node dist/cli.js settings --json
 node dist/cli.js settings
 node dist/cli.js settings set defaultMode plan --json

@@ -1,4 +1,6 @@
+import type { Interface } from "node:readline/promises";
 import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { chooseMenuOption, withMenu } from "../core/menu.js";
 import type { ModelProviderKind } from "../core/providers.js";
 import { loadModelConfig } from "../core/providers.js";
 import { loadSecrets, redactSecret, removeProviderSecret, writeProviderSecret } from "../core/settings.js";
@@ -14,7 +16,59 @@ export async function authCommand(args: string[]): Promise<void> {
     await logout(rest);
     return;
   }
+  if (!subcommand && process.stdin.isTTY && !args.includes("--json")) {
+    await openAuthMenu();
+    return;
+  }
   await status(args);
+}
+
+async function openAuthMenu(): Promise<void> {
+  const projectRoot = await findGodotProjectRoot(process.cwd());
+  await withMenu(async (rl) => {
+    while (true) {
+      console.log("");
+      await status([]);
+      const choice = await chooseMenuOption(rl, "Auth action", [
+        { value: "login", label: "Login / save API key" },
+        { value: "logout", label: "Logout / remove API key" },
+      ]);
+      if (!choice) return;
+      if (choice === "login") {
+        await loginFromMenu(rl, projectRoot);
+      } else if (choice === "logout") {
+        await logoutFromMenu(rl, projectRoot);
+      }
+    }
+  });
+}
+
+async function loginFromMenu(rl: Interface, projectRoot: string): Promise<void> {
+  const provider = (await chooseMenuOption(rl, "Provider", [
+    { value: "openai", label: "OpenAI" },
+    { value: "anthropic", label: "Anthropic" },
+    { value: "openai-compatible", label: "OpenAI-compatible" },
+  ])) as ModelProviderKind | null;
+  if (!provider) return;
+
+  const apiKey = (await rl.question("API key ▸ ")).trim();
+  if (!apiKey) {
+    console.log("No key saved.");
+    return;
+  }
+  await writeProviderSecret(projectRoot, provider, apiKey);
+  console.log(`Saved auth for ${provider}.`);
+}
+
+async function logoutFromMenu(rl: Interface, projectRoot: string): Promise<void> {
+  const provider = (await chooseMenuOption(rl, "Provider", [
+    { value: "openai", label: "OpenAI" },
+    { value: "anthropic", label: "Anthropic" },
+    { value: "openai-compatible", label: "OpenAI-compatible" },
+  ])) as ModelProviderKind | null;
+  if (!provider) return;
+  await removeProviderSecret(projectRoot, provider);
+  console.log(`Removed auth for ${provider}.`);
 }
 
 async function status(args: string[]): Promise<void> {

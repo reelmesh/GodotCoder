@@ -9,6 +9,7 @@ import { inspectProject } from "./commands/inspect.js";
 import { askModel, modelsCommand } from "./commands/models.js";
 import { planProject } from "./commands/plan.js";
 import { runtimeCommand } from "./commands/runtime.js";
+import { setupCommand } from "./commands/setup.js";
 import { settingsCommand } from "./commands/settings.js";
 import { startSession } from "./commands/session.js";
 import { showStatus } from "./commands/status.js";
@@ -20,6 +21,7 @@ type CommandHandler = (args: string[]) => Promise<unknown>;
 const commands: Record<string, CommandHandler> = {
   init: initWorkspace,
   auth: authCommand,
+  setup: setupCommand,
   settings: settingsCommand,
   agents: showAgents,
   harness: runHarnessCommand,
@@ -65,6 +67,7 @@ function printHelp(): void {
 Usage:
   godotcoder
   godotcoder init
+  godotcoder setup
   godotcoder settings [--json]
   godotcoder settings set <key> <value>
   godotcoder settings default-mode plan|build

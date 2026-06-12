@@ -87,6 +87,7 @@ Available slash commands:
 
 ```text
 /help
+/setup
 /settings
 /auth
 /agents
@@ -190,13 +191,21 @@ node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" -
 
 Model output is advisory in this slice. It does not directly write game files.
 
+Guided setup:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js setup
+```
+
+`setup` opens one menu for runtime, model provider, auth, preferences, and status.
+
 Settings and auth:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js settings
 ```
 
-`settings` opens an interactive menu in a terminal. Command shortcuts still exist for scripting:
+`settings`, `models`, `auth`, and `runtime` open interactive menus in a terminal. Command shortcuts still exist for scripting:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js settings default-mode plan
@@ -226,6 +235,7 @@ Subcommands are also available for scripting and future editor integration:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js init
+node /path/to/GodotCoder/dist/cli.js setup
 node /path/to/GodotCoder/dist/cli.js settings
 node /path/to/GodotCoder/dist/cli.js auth
 node /path/to/GodotCoder/dist/cli.js agents

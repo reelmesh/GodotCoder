@@ -8,6 +8,7 @@ import { inspectProject } from "./inspect.js";
 import { askModel, modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
+import { setupCommand } from "./setup.js";
 import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
@@ -84,6 +85,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/status":
         await showStatus(args);
+        printStatusHint(state);
+        return;
+      case "/setup":
+        await setupCommand(args);
         printStatusHint(state);
         return;
       case "/settings":
@@ -170,7 +175,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /help  /settings  /auth  /agents  /models  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /help  /setup  /settings  /auth  /agents  /models  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -183,6 +188,7 @@ function promptLabel(state: SessionState): string {
 function printSessionHelp(): void {
   console.log(color("Command Palette", "bold"));
   console.log(separator());
+  console.log(`${color("/setup", "cyan").padEnd(22)} Guided setup for runtime, models, auth, settings`);
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
   console.log(`${color("/settings", "cyan").padEnd(22)} Show local GodotCoder settings`);
   console.log(`${color("/settings default-mode", "cyan").padEnd(22)} Set plan/build default mode`);

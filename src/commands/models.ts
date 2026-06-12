@@ -1,4 +1,6 @@
+import type { Interface } from "node:readline/promises";
 import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { chooseMenuOption, withMenu } from "../core/menu.js";
 import { completeWithModel, inspectProvider, loadModelConfig, modelSystemPrompt, writeModelConfig, writeModelConfigExample, type ModelConfig, type ModelProviderKind } from "../core/providers.js";
 
 export async function modelsCommand(args: string[]): Promise<void> {
@@ -7,7 +9,69 @@ export async function modelsCommand(args: string[]): Promise<void> {
     await useModel(rest);
     return;
   }
+  if (!subcommand && process.stdin.isTTY && !args.includes("--json")) {
+    await openModelsMenu();
+    return;
+  }
   await showModels(args);
+}
+
+async function openModelsMenu(): Promise<void> {
+  const projectRoot = await findGodotProjectRoot(process.cwd());
+  await withMenu(async (rl) => {
+    while (true) {
+      const config = await loadModelConfig(projectRoot);
+      console.log("");
+      console.log("GodotCoder models");
+      console.log(`Current: ${config ? `${config.provider}:${config.model}` : "not configured"}`);
+      const choice = await chooseMenuOption(rl, "Choose action", [
+        { value: "provider", label: "Configure provider", description: "Ollama, LM Studio, OpenAI, Anthropic, custom" },
+        { value: "status", label: "Check provider status" },
+        { value: "test", label: "Ask test prompt" },
+      ]);
+      if (!choice) return;
+
+      if (choice === "provider") {
+        await configureProvider(rl, projectRoot);
+      } else if (choice === "status") {
+        await showModels([]);
+      } else if (choice === "test") {
+        const prompt = (await rl.question("Prompt ▸ ")).trim() || "Say one sentence about Godot.";
+        await askModel([prompt]);
+      }
+    }
+  });
+}
+
+async function configureProvider(rl: Interface, projectRoot: string): Promise<void> {
+  const provider = (await chooseMenuOption(rl, "Provider", [
+    { value: "ollama", label: "Ollama", description: "local, http://127.0.0.1:11434" },
+    { value: "lmstudio", label: "LM Studio", description: "local, OpenAI-compatible" },
+    { value: "openai", label: "OpenAI API" },
+    { value: "anthropic", label: "Anthropic API" },
+    { value: "openai-compatible", label: "OpenAI-compatible API" },
+  ])) as ModelProviderKind | null;
+  if (!provider) return;
+
+  const model = (await rl.question("Model name ▸ ")).trim();
+  if (!model) {
+    console.log("No model set.");
+    return;
+  }
+
+  const defaultUrl = defaultBaseUrl(provider);
+  const baseUrlAnswer = (await rl.question(`Base URL (${defaultUrl ?? "required"}) ▸ `)).trim();
+  const apiKeyDefault = defaultApiKeyEnv(provider);
+  const apiKeyEnvAnswer = provider === "ollama" || provider === "lmstudio" ? "" : (await rl.question(`API key env (${apiKeyDefault ?? "none"}) ▸ `)).trim();
+  const config: ModelConfig = {
+    schemaVersion: 1,
+    provider,
+    model,
+    baseUrl: baseUrlAnswer || defaultUrl,
+    apiKeyEnv: apiKeyEnvAnswer || apiKeyDefault,
+  };
+  await writeModelConfig(projectRoot, config);
+  console.log(`Saved model config: ${config.provider}:${config.model}`);
 }
 
 export async function askModel(args: string[]): Promise<void> {
