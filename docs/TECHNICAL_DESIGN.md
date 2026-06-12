@@ -126,6 +126,12 @@ Supported keys:
 - `preferredProvider`: `openai`, `anthropic`, `ollama`, `lmstudio`, or `openai-compatible`
 - `showDiffs`: `compact` or `full`
 
+Friendly aliases:
+- `godotcoder settings default-mode plan|build`
+- `godotcoder settings approval-mode preview|auto-apply`
+- `godotcoder settings provider <provider>`
+- `godotcoder settings diffs compact|full`
+
 ### `godotcoder auth`
 
 Shows local auth status.

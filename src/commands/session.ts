@@ -185,7 +185,10 @@ function printSessionHelp(): void {
   console.log(separator());
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
   console.log(`${color("/settings", "cyan").padEnd(22)} Show local GodotCoder settings`);
-  console.log(`${color("/settings set", "cyan").padEnd(22)} Set defaultMode, approvalMode, preferredProvider, showDiffs`);
+  console.log(`${color("/settings default-mode", "cyan").padEnd(22)} Set plan/build default mode`);
+  console.log(`${color("/settings approval-mode", "cyan").padEnd(22)} Set preview/auto-apply behavior`);
+  console.log(`${color("/settings provider", "cyan").padEnd(22)} Set preferred model provider`);
+  console.log(`${color("/settings diffs", "cyan").padEnd(22)} Set compact/full diffs`);
   console.log(`${color("/auth", "cyan").padEnd(22)} Show local auth status`);
   console.log(`${color("/auth login", "cyan").padEnd(22)} Save provider API key locally`);
   console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);

@@ -194,9 +194,10 @@ Settings and auth:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js settings
-node /path/to/GodotCoder/dist/cli.js settings set defaultMode plan
-node /path/to/GodotCoder/dist/cli.js settings set approvalMode preview
-node /path/to/GodotCoder/dist/cli.js settings set preferredProvider ollama
+node /path/to/GodotCoder/dist/cli.js settings default-mode plan
+node /path/to/GodotCoder/dist/cli.js settings approval-mode preview
+node /path/to/GodotCoder/dist/cli.js settings provider ollama
+node /path/to/GodotCoder/dist/cli.js settings diffs compact
 node /path/to/GodotCoder/dist/cli.js auth
 node /path/to/GodotCoder/dist/cli.js auth logout --provider openai
 ```

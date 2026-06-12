@@ -10,6 +10,10 @@ First TypeScript/Node CLI slice:
 - `godotcoder` interactive session shell
 - `godotcoder settings`
 - `godotcoder settings set <key> <value>`
+- `godotcoder settings default-mode plan|build`
+- `godotcoder settings approval-mode preview|auto-apply`
+- `godotcoder settings provider <provider>`
+- `godotcoder settings diffs compact|full`
 - `godotcoder auth`
 - `godotcoder auth login --provider <provider> --api-key <key>`
 - `godotcoder auth logout --provider <provider>`
@@ -165,6 +169,8 @@ Settings/auth flow verified:
 ```bash
 node dist/cli.js settings --json
 node dist/cli.js settings set defaultMode plan --json
+node dist/cli.js settings default-mode build --json
+node dist/cli.js settings provider ollama --json
 node dist/cli.js auth login --provider openai --api-key test-key-123456 --json
 node dist/cli.js auth --json
 ```

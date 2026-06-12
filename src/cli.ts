@@ -67,6 +67,10 @@ Usage:
   godotcoder init
   godotcoder settings [--json]
   godotcoder settings set <key> <value>
+  godotcoder settings default-mode plan|build
+  godotcoder settings approval-mode preview|auto-apply
+  godotcoder settings provider <provider>
+  godotcoder settings diffs compact|full
   godotcoder auth [--json]
   godotcoder auth login --provider <provider> --api-key <key>
   godotcoder auth logout --provider <provider>
