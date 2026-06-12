@@ -1,3 +1,6 @@
+import readline from "node:readline/promises";
+import type { Interface } from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
 import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { loadModelConfig } from "../core/providers.js";
 import { loadSettings, setSetting, writeSettings, defaultSettings } from "../core/settings.js";
@@ -33,7 +36,85 @@ export async function settingsCommand(args: string[]): Promise<void> {
     printSettingsHelp();
     return;
   }
+  if (!subcommand && input.isTTY && !args.includes("--json")) {
+    await openSettingsMenu();
+    return;
+  }
   await showSettings(args);
+}
+
+async function openSettingsMenu(): Promise<void> {
+  const projectRoot = await findGodotProjectRoot(process.cwd());
+  const rl = readline.createInterface({ input, output });
+
+  try {
+    while (true) {
+      const settings = await loadSettings(projectRoot);
+      console.log("");
+      console.log("GodotCoder settings");
+      console.log(`1. Default mode        ${settings.defaultMode}`);
+      console.log(`2. Approval mode       ${settings.approvalMode}`);
+      console.log(`3. Preferred provider  ${settings.preferredProvider ?? "none"}`);
+      console.log(`4. Diff display        ${settings.showDiffs}`);
+      console.log("5. Show config paths");
+      console.log("0. Back");
+
+      const choice = (await rl.question("Choose setting ▸ ")).trim();
+      if (choice === "0" || choice.toLowerCase() === "q" || choice.toLowerCase() === "back") {
+        return;
+      }
+      if (choice === "1") {
+        await chooseValue(rl, projectRoot, "defaultMode", [
+          ["plan", "Open in planning mode"],
+          ["build", "Open in build mode"],
+        ]);
+      } else if (choice === "2") {
+        await chooseValue(rl, projectRoot, "approvalMode", [
+          ["preview", "Preview before apply"],
+          ["auto-apply", "Apply without preview gate"],
+        ]);
+      } else if (choice === "3") {
+        await chooseValue(rl, projectRoot, "preferredProvider", [
+          ["openai", "OpenAI API"],
+          ["anthropic", "Anthropic API"],
+          ["ollama", "Ollama local"],
+          ["lmstudio", "LM Studio local"],
+          ["openai-compatible", "Custom OpenAI-compatible API"],
+        ]);
+      } else if (choice === "4") {
+        await chooseValue(rl, projectRoot, "showDiffs", [
+          ["compact", "Compact diffs"],
+          ["full", "Full diffs"],
+        ]);
+      } else if (choice === "5") {
+        const paths = workspacePaths(projectRoot);
+        console.log(`Settings: ${paths.userSettings}`);
+        console.log(`Secrets: ${paths.secrets}`);
+        console.log(`Model config: ${paths.modelConfig}`);
+        console.log(`Runtime override: ${paths.runtimeOverride}`);
+      } else {
+        console.log("Unknown choice.");
+      }
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+async function chooseValue(rl: Interface, projectRoot: string, key: string, options: Array<[string, string]>): Promise<void> {
+  for (let index = 0; index < options.length; index += 1) {
+    const [value, label] = options[index]!;
+    console.log(`${index + 1}. ${value.padEnd(18)} ${label}`);
+  }
+  const choice = (await rl.question("Choose value ▸ ")).trim();
+  const selected = options[Number(choice) - 1]?.[0] ?? options.find(([value]) => value === choice)?.[0];
+  if (!selected) {
+    console.log("No change.");
+    return;
+  }
+
+  await setSetting(projectRoot, key, selected);
+  console.log(`Saved ${key}=${selected}`);
 }
 
 async function showSettings(args: string[]): Promise<void> {

@@ -194,6 +194,11 @@ Settings and auth:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js settings
+```
+
+`settings` opens an interactive menu in a terminal. Command shortcuts still exist for scripting:
+
+```bash
 node /path/to/GodotCoder/dist/cli.js settings default-mode plan
 node /path/to/GodotCoder/dist/cli.js settings approval-mode preview
 node /path/to/GodotCoder/dist/cli.js settings provider ollama

@@ -112,6 +112,7 @@ Responsibilities:
 Shows local user settings.
 
 Responsibilities:
+- Open an interactive menu in TTY sessions.
 - Load `.godotcoder.local/user-settings.json`.
 - Report default mode, approval mode, preferred provider, and diff display policy.
 - Keep machine-specific preferences out of git.

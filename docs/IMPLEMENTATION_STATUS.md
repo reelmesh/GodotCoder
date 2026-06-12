@@ -37,6 +37,7 @@ Core modules:
 - Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
+- Interactive menu-first settings UI in TTY sessions.
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - Advisory LLM calls through `ask` and `harness --llm`.
 - Godot project root discovery.
@@ -168,6 +169,7 @@ Settings/auth flow verified:
 
 ```bash
 node dist/cli.js settings --json
+node dist/cli.js settings
 node dist/cli.js settings set defaultMode plan --json
 node dist/cli.js settings default-mode build --json
 node dist/cli.js settings provider ollama --json
