@@ -9,6 +9,9 @@ First TypeScript/Node CLI slice:
 - `godotcoder init`
 - `godotcoder` interactive session shell
 - `godotcoder agents`
+- `godotcoder models`
+- `godotcoder models use --provider <provider> --model <model>`
+- `godotcoder ask <prompt>`
 - `godotcoder harness <game goal>`
 - `godotcoder status`
 - `godotcoder runtime doctor`
@@ -22,6 +25,9 @@ Core modules:
 - Workspace path management.
 - Godot-specific agent roster with ownership boundaries and gates.
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
+- Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
+- Model config in `.godotcoder.local/model-config.json`.
+- Advisory LLM calls through `ask` and `harness --llm`.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
 - Project index generation.
@@ -137,11 +143,21 @@ node dist/cli.js harness "make a 2d platformer with coins" --apply --json
 
 This created agent roster, backlog, planning artifacts, run records, patch record, and Godot validation report with zero errors.
 
+Model provider flow verified without requiring live credentials:
+
+```bash
+node dist/cli.js models --json
+node dist/cli.js models use --provider ollama --model llama3.1 --json
+node dist/cli.js harness "make a 2d asteroid shooter" --llm --json
+```
+
+With Ollama not running, harness records model advisory failure and continues deterministic preview instead of crashing.
+
 ## Next Slice
 
 Recommended next implementation slice:
 
 1. Improve `project.godot` parsing for nested sections and typed values.
-2. Wire provider/model layer into harness agents.
+2. Promote provider/model layer from advisory output to controlled agent task execution.
 3. Add official Godot docs source interface.
 4. Add schema guards for change records and validation reports.

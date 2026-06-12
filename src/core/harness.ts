@@ -6,6 +6,7 @@ import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
 import { writePlanningArtifacts } from "./planning.js";
 import { previewGeneratedFiles, type BuildPreview } from "./preview.js";
+import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
 import { createRuntimeProfile } from "./runtime-profile.js";
 import { discoverRuntime } from "./runtime-discovery.js";
 import { runValidation, type ValidationReport } from "./validation.js";
@@ -33,9 +34,10 @@ export interface HarnessRun {
   steps: HarnessStep[];
   preview: BuildPreview | null;
   validation: ValidationReport | null;
+  modelAdvisory: ModelReply | null;
 }
 
-export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
+export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; llm: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
   const startedAt = new Date();
   const existingRoot = await tryFindGodotProjectRoot(startDir);
   const projectRoot = existingRoot ?? startDir;
@@ -105,6 +107,48 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   const builder = selectBuilder(goal);
   const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
   let validation: ValidationReport | null = null;
+  let modelAdvisory: ModelReply | null = null;
+
+  if (options.llm) {
+    const modelConfig = await loadModelConfig(projectRoot);
+    if (modelConfig) {
+      try {
+        modelAdvisory = await completeWithModel(modelConfig, [
+          { role: "system", content: modelSystemPrompt() },
+          {
+            role: "user",
+            content: `Review this Godot game goal and current deterministic harness plan. Return concise risks, missing acceptance criteria, and next implementation tasks.\n\nGoal: ${goal}\n\nMode: ${mode}\nMain scene: ${projectIndex.mainScene ?? "unknown"}\nScripts: ${projectIndex.scripts.join(", ") || "none"}\nSelected builder: ${builder.id}\nPreview files: ${preview.files.map((file) => `${file.operation} ${file.path}`).join(", ")}`,
+          },
+        ]);
+        steps.push({
+          id: "model-advisory",
+          agent: "orchestrator+docs-librarian",
+          status: "done",
+          summary: `Model advisory generated with ${modelAdvisory.provider}:${modelAdvisory.model}.`,
+          artifacts: [],
+          gates: ["advisory only", "no direct file writes from model text"],
+        });
+      } catch (error) {
+        steps.push({
+          id: "model-advisory",
+          agent: "orchestrator+docs-librarian",
+          status: "failed",
+          summary: `Model advisory failed: ${error instanceof Error ? error.message : String(error)}`,
+          artifacts: [],
+          gates: ["harness continues without model output"],
+        });
+      }
+    } else {
+      steps.push({
+        id: "model-advisory",
+        agent: "orchestrator+docs-librarian",
+        status: "skipped",
+        summary: "No model provider configured.",
+        artifacts: [],
+        gates: ["run `godotcoder models use ...` to enable LLM advisory"],
+      });
+    }
+  }
 
   if (options.apply) {
     const result = await builder.build(projectRoot);
@@ -162,6 +206,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     steps,
     preview,
     validation,
+    modelAdvisory,
   };
   const runPath = path.join(paths.runsDir, `${run.id}.json`);
   await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");

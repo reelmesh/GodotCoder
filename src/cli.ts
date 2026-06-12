@@ -5,6 +5,7 @@ import { showAgents } from "./commands/agents.js";
 import { runHarnessCommand } from "./commands/harness.js";
 import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
+import { askModel, modelsCommand } from "./commands/models.js";
 import { planProject } from "./commands/plan.js";
 import { runtimeCommand } from "./commands/runtime.js";
 import { startSession } from "./commands/session.js";
@@ -19,6 +20,8 @@ const commands: Record<string, CommandHandler> = {
   agents: showAgents,
   harness: runHarnessCommand,
   run: runHarnessCommand,
+  ask: askModel,
+  models: modelsCommand,
   build: buildProject,
   status: showStatus,
   inspect: inspectProject,
@@ -59,6 +62,9 @@ Usage:
   godotcoder
   godotcoder init
   godotcoder agents [--json]
+  godotcoder models [--json]
+  godotcoder models use --provider <provider> --model <model> [--base-url <url>] [--api-key-env <ENV>]
+  godotcoder ask <prompt> [--json]
   godotcoder harness <game goal> [--apply] [--json]
   godotcoder build [prompt] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]

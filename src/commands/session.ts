@@ -4,6 +4,7 @@ import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
 import { runHarnessCommand } from "./harness.js";
 import { inspectProject } from "./inspect.js";
+import { askModel, modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
 import { showStatus } from "./status.js";
@@ -87,6 +88,15 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await showAgents(args);
         printStatusHint(state);
         return;
+      case "/models":
+        await modelsCommand(args);
+        printStatusHint(state);
+        return;
+      case "/ask":
+      case "/chat":
+        await askModel(args);
+        printStatusHint(state);
+        return;
       case "/harness":
       case "/run":
         await runHarnessCommand(args);
@@ -149,7 +159,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /help  /agents  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /help  /agents  /models  /ask  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -164,6 +174,8 @@ function printSessionHelp(): void {
   console.log(separator());
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
   console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);
+  console.log(`${color("/models", "cyan").padEnd(22)} Show or configure model provider`);
+  console.log(`${color("/ask <prompt>", "cyan").padEnd(22)} Ask configured LLM with GodotCoder system prompt`);
   console.log(`${color("/harness <goal>", "cyan").padEnd(22)} Run directed multi-agent workflow preview`);
   console.log(`${color("/run <goal>", "cyan").padEnd(22)} Alias for /harness`);
   console.log(`${color("/runtime doctor", "cyan").padEnd(22)} Detect native/Flatpak Godot runtime`);

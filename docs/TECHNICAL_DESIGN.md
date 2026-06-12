@@ -28,6 +28,8 @@ godotcoder CLI
     inspect
     validate
     agents
+    models
+    ask
     harness
     plan
     build
@@ -78,6 +80,8 @@ Responsibilities:
 
 Initial slash commands:
 - `/agents`
+- `/models`
+- `/ask <prompt>`
 - `/harness <goal>`
 - `/status`
 - `/runtime doctor`
@@ -108,6 +112,39 @@ Responsibilities:
 - Expose machine-readable roster for editor integration.
 - Make roles explicit before provider-backed execution exists.
 
+### `godotcoder models`
+
+Inspects configured model provider.
+
+Responsibilities:
+- Load `.godotcoder.local/model-config.json` or environment variables.
+- Support OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
+- List models where provider exposes model listing.
+- Report missing API keys or unreachable local servers without touching game files.
+
+### `godotcoder models use`
+
+Writes local model configuration.
+
+Examples:
+
+```bash
+godotcoder models use --provider ollama --model llama3.1
+godotcoder models use --provider lmstudio --model local-model
+godotcoder models use --provider openai --model your-model --api-key-env OPENAI_API_KEY
+godotcoder models use --provider anthropic --model your-model --api-key-env ANTHROPIC_API_KEY
+godotcoder models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
+```
+
+### `godotcoder ask <prompt>`
+
+Runs one model prompt with GodotCoder system prompt.
+
+Responsibilities:
+- Keep response advisory.
+- Enforce Godot-only/GDScript-first instruction in system prompt.
+- Avoid file writes.
+
 ### `godotcoder harness "<game goal>"`
 
 Runs directed multi-agent workflow.
@@ -119,6 +156,7 @@ Responsibilities:
 - Preview implementation by default.
 - Apply changes only with `--apply`.
 - Run Godot validation after apply unless disabled.
+- Optionally request model advisory with `--llm`.
 - Write `.godotcoder/runs/<run-id>.json`.
 
 ### `godotcoder runtime doctor`
@@ -206,9 +244,12 @@ Responsibilities:
   tasks.md
   decisions.md
   risk-log.md
+  backlog.md
+  agent-roster.json
   runtime-profile.json
   project-index.json
   agent-memory.json
+  runs/
   validations/
   sessions/
   patches/
@@ -220,6 +261,7 @@ Responsibilities:
   secrets.json
   user-settings.json
   runtime-overrides.json
+  model-config.json
 ```
 
 Version-control policy:

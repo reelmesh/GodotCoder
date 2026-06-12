@@ -16,10 +16,11 @@ This repository currently contains the first implementation slice:
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
 - Agent roster: `godotcoder agents`
+- Model provider support: `godotcoder models`, `godotcoder ask`
 - Directed multi-agent harness: `godotcoder harness <game goal>`
 - First playable prototype build: `godotcoder build`
 
-Model-backed code generation is not wired yet. Current workflows are deterministic but now run through a Godot-specific harness with named agents, phase gates, run records, preview/apply boundaries, and Godot validation.
+Model-backed code generation is not trusted to write files yet. Current LLM support is advisory through configured providers; edits still go through deterministic preview/apply boundaries and Godot validation.
 
 ## Design Direction
 
@@ -85,6 +86,8 @@ Available slash commands:
 ```text
 /help
 /agents
+/models
+/ask <prompt>
 /harness <goal>
 /run <goal>
 /status
@@ -153,6 +156,36 @@ It writes:
 
 Phases: orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, docs librarian. Preview mode stops before writes beyond planning/scaffold artifacts. Apply mode writes patch records and runs Godot validation.
 
+LLM providers are optional and can use cloud APIs or local HTTP servers:
+
+```bash
+# Ollama
+node /path/to/GodotCoder/dist/cli.js models use --provider ollama --model llama3.1
+
+# LM Studio OpenAI-compatible local server
+node /path/to/GodotCoder/dist/cli.js models use --provider lmstudio --model local-model
+
+# OpenAI API
+export OPENAI_API_KEY=...
+node /path/to/GodotCoder/dist/cli.js models use --provider openai --model your-model --api-key-env OPENAI_API_KEY
+
+# Anthropic API
+export ANTHROPIC_API_KEY=...
+node /path/to/GodotCoder/dist/cli.js models use --provider anthropic --model your-model --api-key-env ANTHROPIC_API_KEY
+
+# Any OpenAI-compatible API
+node /path/to/GodotCoder/dist/cli.js models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
+```
+
+Use configured model:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js ask "Review this Godot mechanic"
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --llm
+```
+
+Model output is advisory in this slice. It does not directly write game files.
+
 Applied build runs record changes under:
 
 ```text
@@ -171,6 +204,8 @@ Subcommands are also available for scripting and future editor integration:
 ```bash
 node /path/to/GodotCoder/dist/cli.js init
 node /path/to/GodotCoder/dist/cli.js agents
+node /path/to/GodotCoder/dist/cli.js models
+node /path/to/GodotCoder/dist/cli.js ask "Review this Godot game idea"
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins"
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --apply
 node /path/to/GodotCoder/dist/cli.js status
@@ -188,11 +223,12 @@ Machine-readable output:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js runtime doctor --json
+node /path/to/GodotCoder/dist/cli.js models --json
 node /path/to/GodotCoder/dist/cli.js inspect --json
 node /path/to/GodotCoder/dist/cli.js validate --json
 ```
 
-Runtime overrides are stored in `.godotcoder.local/runtime-overrides.json`, which is ignored by git because it is machine-specific. The shared `.godotcoder/runtime-profile.json` records the detected runtime, Godot version, Flatpak app metadata when relevant, and project signals from `project.godot`.
+Runtime and model configs are stored in `.godotcoder.local/`, which is ignored by git because it is machine-specific. The shared `.godotcoder/runtime-profile.json` records the detected runtime, Godot version, Flatpak app metadata when relevant, and project signals from `project.godot`.
 
 ## Workspace
 
@@ -225,6 +261,14 @@ Generated/local artifacts are ignored by default:
 .godotcoder.local/
 ```
 
+Common local config files:
+
+```text
+.godotcoder.local/
+  runtime-overrides.json
+  model-config.json
+```
+
 ## Documentation
 
 - [Product Requirements](docs/PRD.md)
@@ -238,7 +282,7 @@ Generated/local artifacts are ignored by default:
 Next implementation slices:
 
 1. Improved `project.godot` parsing.
-2. Provider/model layer wired into harness agents.
+2. Provider/model layer promoted from advisory to agent task execution.
 3. Official Godot documentation source interface.
 4. Godot editor integration prototype using subprocess JSON.
 5. Schema guards for change records and validation reports.
