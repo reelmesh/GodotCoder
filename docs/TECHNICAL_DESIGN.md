@@ -27,6 +27,8 @@ godotcoder CLI
     runtime doctor
     inspect
     validate
+    agents
+    harness
     plan
     build
   core/
@@ -75,6 +77,8 @@ Responsibilities:
 - Keep subcommands available for scripting and editor integration.
 
 Initial slash commands:
+- `/agents`
+- `/harness <goal>`
 - `/status`
 - `/runtime doctor`
 - `/inspect`
@@ -94,6 +98,28 @@ Responsibilities:
 - Report whether planning artifacts exist.
 - Report latest validation result.
 - Report dirty/missing workspace artifacts.
+
+### `godotcoder agents`
+
+Prints GodotCoder agent roster.
+
+Responsibilities:
+- List Godot-specific agents and ownership boundaries.
+- Expose machine-readable roster for editor integration.
+- Make roles explicit before provider-backed execution exists.
+
+### `godotcoder harness "<game goal>"`
+
+Runs directed multi-agent workflow.
+
+Responsibilities:
+- Support greenfield and brownfield projects.
+- Create/update agent roster, backlog, planning artifacts, project index, runtime profile, and run record.
+- Route phases through orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian.
+- Preview implementation by default.
+- Apply changes only with `--apply`.
+- Run Godot validation after apply unless disabled.
+- Write `.godotcoder/runs/<run-id>.json`.
 
 ### `godotcoder runtime doctor`
 

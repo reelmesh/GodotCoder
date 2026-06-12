@@ -8,6 +8,8 @@ First TypeScript/Node CLI slice:
 
 - `godotcoder init`
 - `godotcoder` interactive session shell
+- `godotcoder agents`
+- `godotcoder harness <game goal>`
 - `godotcoder status`
 - `godotcoder runtime doctor`
 - `godotcoder runtime use <godot command>`
@@ -18,6 +20,8 @@ First TypeScript/Node CLI slice:
 
 Core modules:
 - Workspace path management.
+- Godot-specific agent roster with ownership boundaries and gates.
+- Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
 - Project index generation.
@@ -31,6 +35,7 @@ Core modules:
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
+- Harness-generated backlog and durable run records under `.godotcoder/runs/`.
 - Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
 - Deterministic first playable builder for a single-scene 2D platformer prototype.
 - Prompt-based deterministic builder selection for supported prototype genres.
@@ -123,11 +128,20 @@ node dist/cli.js build "build a 2d platformer with coins" --apply --json
 
 This built a playable single-scene 2D platformer prototype and ran Godot validation with zero errors.
 
+A directed harness flow under `/tmp/godotcoder-harness-smoke` verified:
+
+```bash
+node dist/cli.js harness "make a 2d platformer with coins" --json
+node dist/cli.js harness "make a 2d platformer with coins" --apply --json
+```
+
+This created agent roster, backlog, planning artifacts, run records, patch record, and Godot validation report with zero errors.
+
 ## Next Slice
 
 Recommended next implementation slice:
 
 1. Improve `project.godot` parsing for nested sections and typed values.
-2. Expand `plan` and `build` with the first model-backed workflow.
+2. Wire provider/model layer into harness agents.
 3. Add official Godot docs source interface.
 4. Add schema guards for change records and validation reports.

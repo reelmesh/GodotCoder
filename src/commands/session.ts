@@ -1,6 +1,8 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
+import { runHarnessCommand } from "./harness.js";
 import { inspectProject } from "./inspect.js";
 import { planProject } from "./plan.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
@@ -81,6 +83,15 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await showStatus(args);
         printStatusHint(state);
         return;
+      case "/agents":
+        await showAgents(args);
+        printStatusHint(state);
+        return;
+      case "/harness":
+      case "/run":
+        await runHarnessCommand(args);
+        printStatusHint(state);
+        return;
       case "/runtime":
         await runtimeCommand(args);
         printStatusHint(state);
@@ -138,7 +149,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /help  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
+  console.log(`${color("commands", "cyan")} /help  /agents  /harness  /status  /inspect  /validate  /build  /runtime doctor  /mode plan|build  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -152,6 +163,9 @@ function printSessionHelp(): void {
   console.log(color("Command Palette", "bold"));
   console.log(separator());
   console.log(`${color("/status", "cyan").padEnd(22)} Show workspace status`);
+  console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);
+  console.log(`${color("/harness <goal>", "cyan").padEnd(22)} Run directed multi-agent workflow preview`);
+  console.log(`${color("/run <goal>", "cyan").padEnd(22)} Alias for /harness`);
   console.log(`${color("/runtime doctor", "cyan").padEnd(22)} Detect native/Flatpak Godot runtime`);
   console.log(`${color("/runtime use <cmd>", "cyan").padEnd(22)} Pin a native, Flatpak, or custom Godot command`);
   console.log(`${color("/doctor", "cyan").padEnd(22)} Alias for /runtime doctor`);

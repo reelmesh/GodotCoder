@@ -11,6 +11,8 @@ export function workspacePaths(projectRoot: string) {
     tasks: path.join(workspaceRoot, "tasks.md"),
     decisions: path.join(workspaceRoot, "decisions.md"),
     riskLog: path.join(workspaceRoot, "risk-log.md"),
+    backlog: path.join(workspaceRoot, "backlog.md"),
+    agentRoster: path.join(workspaceRoot, "agent-roster.json"),
     runtimeProfile: path.join(workspaceRoot, "runtime-profile.json"),
     runtimeOverride: path.join(projectRoot, ".godotcoder.local", "runtime-overrides.json"),
     runtimeOverrideExample: path.join(projectRoot, ".godotcoder.local", "runtime-overrides.example.json"),
@@ -18,6 +20,7 @@ export function workspacePaths(projectRoot: string) {
     agentMemory: path.join(workspaceRoot, "agent-memory.json"),
     validationsDir: path.join(workspaceRoot, "validations"),
     patchesDir: path.join(workspaceRoot, "patches"),
+    runsDir: path.join(workspaceRoot, "runs"),
     cacheDir: path.join(workspaceRoot, "cache"),
     cacheDocsDir: path.join(workspaceRoot, "cache", "docs"),
   };

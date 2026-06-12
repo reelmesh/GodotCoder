@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { buildProject } from "./commands/build.js";
+import { showAgents } from "./commands/agents.js";
+import { runHarnessCommand } from "./commands/harness.js";
 import { initWorkspace } from "./commands/init.js";
 import { inspectProject } from "./commands/inspect.js";
 import { planProject } from "./commands/plan.js";
@@ -14,6 +16,9 @@ type CommandHandler = (args: string[]) => Promise<unknown>;
 
 const commands: Record<string, CommandHandler> = {
   init: initWorkspace,
+  agents: showAgents,
+  harness: runHarnessCommand,
+  run: runHarnessCommand,
   build: buildProject,
   status: showStatus,
   inspect: inspectProject,
@@ -53,6 +58,8 @@ function printHelp(): void {
 Usage:
   godotcoder
   godotcoder init
+  godotcoder agents [--json]
+  godotcoder harness <game goal> [--apply] [--json]
   godotcoder build [prompt] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]

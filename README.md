@@ -15,9 +15,11 @@ This repository currently contains the first implementation slice:
 - Runtime override selection: `godotcoder runtime use <godot command>`
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
+- Agent roster: `godotcoder agents`
+- Directed multi-agent harness: `godotcoder harness <game goal>`
 - First playable prototype build: `godotcoder build`
 
-Model-backed code generation is not wired yet. The current `plan` workflow is deterministic: it can scaffold a greenfield Godot project and write initial planning artifacts. The next slice is model-backed expansion of that workflow.
+Model-backed code generation is not wired yet. Current workflows are deterministic but now run through a Godot-specific harness with named agents, phase gates, run records, preview/apply boundaries, and Godot validation.
 
 ## Design Direction
 
@@ -82,6 +84,9 @@ Available slash commands:
 
 ```text
 /help
+/agents
+/harness <goal>
+/run <goal>
 /status
 /runtime doctor
 /runtime use <cmd>
@@ -131,6 +136,23 @@ scripts/main.gd
 
 Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
 
+Harness workflow runs a BMAD-style Godot agent sequence:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins"
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --apply
+```
+
+It writes:
+
+```text
+.godotcoder/agent-roster.json
+.godotcoder/backlog.md
+.godotcoder/runs/<run-id>.json
+```
+
+Phases: orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, docs librarian. Preview mode stops before writes beyond planning/scaffold artifacts. Apply mode writes patch records and runs Godot validation.
+
 Applied build runs record changes under:
 
 ```text
@@ -148,6 +170,9 @@ Subcommands are also available for scripting and future editor integration:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js init
+node /path/to/GodotCoder/dist/cli.js agents
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins"
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --apply
 node /path/to/GodotCoder/dist/cli.js status
 node /path/to/GodotCoder/dist/cli.js runtime doctor
 node /path/to/GodotCoder/dist/cli.js runtime use godot
@@ -183,9 +208,12 @@ Durable project artifacts:
   tasks.md
   decisions.md
   risk-log.md
+  backlog.md
+  agent-roster.json
   runtime-profile.json
   project-index.json
   agent-memory.json
+  runs/
 ```
 
 Generated/local artifacts are ignored by default:
@@ -210,7 +238,7 @@ Generated/local artifacts are ignored by default:
 Next implementation slices:
 
 1. Improved `project.godot` parsing.
-2. First model-backed expansion of deterministic `plan` and `build` workflows.
+2. Provider/model layer wired into harness agents.
 3. Official Godot documentation source interface.
 4. Godot editor integration prototype using subprocess JSON.
 5. Schema guards for change records and validation reports.
