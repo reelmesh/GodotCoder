@@ -279,7 +279,7 @@ node /path/to/GodotCoder/dist/cli.js auth logout --provider openai
 ```
 
 Auth stores API keys in `.godotcoder.local/secrets.json`, ignored by git. Environment variables still win over local secrets when both exist.
-For LM Studio servers with authentication enabled, use `LM_API_TOKEN` or `auth login --provider lmstudio`. GodotCoder calls LM Studio through `/api/v1/models` and `/api/v1/chat`.
+For LM Studio servers with authentication enabled, use `LM_API_TOKEN` or `auth login --provider lmstudio`. GodotCoder defaults LM Studio to `http://10.0.0.9:1234` and calls `/api/v1/models` plus `/api/v1/chat`.
 
 Applied build runs record changes under:
 

@@ -75,7 +75,7 @@ async function setupModel(rl: Interface, projectRoot: string): Promise<void> {
   if (!provider) return;
   const model = (await rl.question("Model name ▸ ")).trim();
   if (!model) return;
-  const defaultUrl = provider === "ollama" ? "http://127.0.0.1:11434" : provider === "lmstudio" ? "http://127.0.0.1:1234" : provider === "openai" ? "https://api.openai.com/v1" : provider === "anthropic" ? "https://api.anthropic.com/v1" : null;
+  const defaultUrl = provider === "ollama" ? "http://127.0.0.1:11434" : provider === "lmstudio" ? "http://10.0.0.9:1234" : provider === "openai" ? "https://api.openai.com/v1" : provider === "anthropic" ? "https://api.anthropic.com/v1" : null;
   const baseUrl = (await rl.question(`Base URL (${defaultUrl ?? "required"}) ▸ `)).trim() || defaultUrl;
   const apiKeyEnv = provider === "openai" ? "OPENAI_API_KEY" : provider === "anthropic" ? "ANTHROPIC_API_KEY" : null;
   const config: ModelConfig = { schemaVersion: 1, provider, model, baseUrl, apiKeyEnv };

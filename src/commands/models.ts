@@ -46,7 +46,7 @@ async function openModelsMenu(): Promise<void> {
 async function configureProvider(rl: Interface, projectRoot: string): Promise<void> {
   const provider = (await chooseMenuOption(rl, "Provider", [
     { value: "ollama", label: "Ollama", description: "local, http://127.0.0.1:11434" },
-    { value: "lmstudio", label: "LM Studio", description: "local, http://127.0.0.1:1234" },
+    { value: "lmstudio", label: "LM Studio", description: "local, http://10.0.0.9:1234" },
     { value: "openai", label: "OpenAI API" },
     { value: "anthropic", label: "Anthropic API" },
     { value: "openai-compatible", label: "OpenAI-compatible API" },
@@ -183,7 +183,7 @@ function defaultBaseUrl(provider: ModelProviderKind): string | null {
   if (provider === "openai") return "https://api.openai.com/v1";
   if (provider === "anthropic") return "https://api.anthropic.com/v1";
   if (provider === "ollama") return "http://127.0.0.1:11434";
-  if (provider === "lmstudio") return "http://127.0.0.1:1234";
+  if (provider === "lmstudio") return "http://10.0.0.9:1234";
   return null;
 }
 
