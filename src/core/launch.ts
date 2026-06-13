@@ -3,6 +3,7 @@ import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js
 import { discoverRuntime } from "./runtime-discovery.js";
 import { createRuntimeProfile } from "./runtime-profile.js";
 import { CliError } from "./errors.js";
+import { godotVersionPolicyText, isGodotVersionSupported } from "./godot-version.js";
 
 export interface LaunchResult {
   projectRoot: string;
@@ -22,6 +23,9 @@ export async function launchGodot(startDir: string, mode: "game" | "editor"): Pr
   const profile = createRuntimeProfile(projectRoot, discovery, projectIndex);
   if (!profile.executable) {
     throw new CliError("GODOT_RUNTIME_NOT_FOUND", "No Godot runtime configured. Use `godotcoder runtime` or `godotcoder setup` first.");
+  }
+  if (!isGodotVersionSupported(profile.detectedGodotVersion)) {
+    throw new CliError("GODOT_RUNTIME_UNSUPPORTED", `Unsupported Godot runtime version ${profile.detectedGodotVersion ?? "unknown"}. ${godotVersionPolicyText()}`);
   }
 
   const command = mode === "editor" ? [...profile.executable, "--editor", "--path", projectRoot] : [...profile.executable, "--path", projectRoot];

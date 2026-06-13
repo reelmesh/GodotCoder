@@ -1,5 +1,6 @@
 import { runProcess } from "./process.js";
 import { loadRuntimeOverride } from "./runtime-overrides.js";
+import { godotVersionPolicyText, isGodotVersionSupported } from "./godot-version.js";
 
 export interface Diagnostic {
   severity: "info" | "warning" | "error";
@@ -26,6 +27,7 @@ export async function discoverRuntime(projectRoot?: string): Promise<RuntimeDisc
     const override = await loadRuntimeOverride(projectRoot);
     if (override) {
       const version = await readGodotVersion([...override.command, "--version"]);
+      appendVersionDiagnostics(diagnostics, version, override.command.join(" "));
       diagnostics.push({
         severity: version ? "info" : "error",
         message: version
@@ -49,6 +51,7 @@ export async function discoverRuntime(projectRoot?: string): Promise<RuntimeDisc
   for (const binary of ["godot4", "godot"]) {
     const version = await readGodotVersion([binary, "--version"]);
     if (version) {
+      appendVersionDiagnostics(diagnostics, version, binary);
       if (!flatpakApps.some((app) => /godot/i.test(`${app.application} ${app.name}`))) {
         diagnostics.push({
           severity: "info",
@@ -73,6 +76,7 @@ export async function discoverRuntime(projectRoot?: string): Promise<RuntimeDisc
   if (godotFlatpak) {
     const command = ["flatpak", "run", godotFlatpak.application];
     const version = await readGodotVersion([...command, "--version"]);
+    appendVersionDiagnostics(diagnostics, version, command.join(" "));
     return {
       installType: "flatpak",
       command,
@@ -92,7 +96,7 @@ export async function discoverRuntime(projectRoot?: string): Promise<RuntimeDisc
 
   diagnostics.push({
     severity: "error",
-    message: "No Godot runtime was detected. Configure a runtime override or install Godot 4.x.",
+    message: `No Godot runtime was detected. Configure a runtime override or install ${godotVersionPolicyText()}`,
   });
 
   return {
@@ -105,6 +109,23 @@ export async function discoverRuntime(projectRoot?: string): Promise<RuntimeDisc
     availableFlatpakAppIds,
     diagnostics,
   };
+}
+
+function appendVersionDiagnostics(diagnostics: Diagnostic[], version: string | null, label: string): void {
+  if (!version) {
+    diagnostics.push({
+      severity: "error",
+      message: `Could not determine Godot version for ${label}. ${godotVersionPolicyText()}`,
+    });
+    return;
+  }
+
+  if (!isGodotVersionSupported(version)) {
+    diagnostics.push({
+      severity: "error",
+      message: `Unsupported Godot runtime ${version} from ${label}. ${godotVersionPolicyText()}`,
+    });
+  }
 }
 
 async function discoverFlatpakApps(): Promise<Array<{ application: string; name: string; branch: string }>> {

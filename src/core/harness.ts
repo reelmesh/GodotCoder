@@ -82,7 +82,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     status: "done",
     summary: "Updated brief, GDD, technical plan, tasks, decisions, and risks.",
     artifacts: planning.filesWritten,
-    gates: ["core loop defined", "Godot 4.x + GDScript-first rule recorded", "validation requirement recorded"],
+    gates: ["core loop defined", "Godot 4.3+ + GDScript-first rule recorded", "validation requirement recorded"],
   });
 
   await writeBacklog(projectRoot, goal);

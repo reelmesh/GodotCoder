@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ProjectIndex } from "./godot-project.js";
 import type { RuntimeDiscovery } from "./runtime-discovery.js";
+import { MIN_GODOT_VERSION, isGodotVersionSupported } from "./godot-version.js";
 import { asLiteral, asNullableNumber, asNullableString, asObject, asOneOf, asString, asStringArray } from "./schema.js";
 
 export interface RuntimeProfile {
@@ -10,6 +11,8 @@ export interface RuntimeProfile {
   godotProjectFile: string;
   targetGodotMajor: 4;
   detectedGodotVersion: string | null;
+  minimumGodotVersion: typeof MIN_GODOT_VERSION;
+  supported: boolean;
   installType: "unknown" | "flatpak" | "native" | "custom";
   label: string | null;
   executable: string[] | null;
@@ -45,6 +48,8 @@ export function createRuntimeProfile(projectRoot: string, discovery?: RuntimeDis
     godotProjectFile: path.join(projectRoot, "project.godot"),
     targetGodotMajor: 4,
     detectedGodotVersion: discovery?.version ?? null,
+    minimumGodotVersion: MIN_GODOT_VERSION,
+    supported: isGodotVersionSupported(discovery?.version),
     installType: discovery?.installType ?? "unknown",
     label: discovery?.overrideLabel ?? null,
     executable: discovery?.command ?? null,
@@ -98,6 +103,8 @@ export function parseRuntimeProfile(value: unknown): RuntimeProfile {
     godotProjectFile: asString(root.godotProjectFile, "runtime profile godotProjectFile"),
     targetGodotMajor: asLiteral(root.targetGodotMajor, 4, "runtime profile targetGodotMajor"),
     detectedGodotVersion: asNullableString(root.detectedGodotVersion, "runtime profile detectedGodotVersion"),
+    minimumGodotVersion: root.minimumGodotVersion === undefined ? MIN_GODOT_VERSION : asLiteral(root.minimumGodotVersion, MIN_GODOT_VERSION, "runtime profile minimumGodotVersion"),
+    supported: root.supported === undefined ? isGodotVersionSupported(asNullableString(root.detectedGodotVersion, "runtime profile detectedGodotVersion")) : Boolean(root.supported),
     installType: asOneOf(root.installType, ["unknown", "flatpak", "native", "custom"], "runtime profile installType"),
     label: asNullableString(root.label, "runtime profile label"),
     executable: root.executable === null || root.executable === undefined ? null : asStringArray(root.executable, "runtime profile executable"),

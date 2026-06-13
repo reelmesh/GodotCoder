@@ -55,7 +55,7 @@ export const godotAgents: AgentDefinition[] = [
     owns: ["technical plan", "Godot version constraints", "scene architecture"],
     inputs: ["project index", "GDD", "runtime profile"],
     outputs: [".godotcoder/technical-plan.md", ".godotcoder/decisions.md"],
-    gates: ["GDScript-first", "Godot 4.x-compatible", "no non-Godot game runtime"],
+    gates: ["GDScript-first", "Godot 4.3+-compatible", "no non-Godot game runtime"],
   },
   {
     id: "gameplay-engineer",

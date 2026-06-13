@@ -84,6 +84,8 @@ export async function runtimeDoctor(args: string[]): Promise<void> {
   console.log("Godot runtime doctor");
   console.log(`Install type: ${profile.installType}`);
   console.log(`Version: ${profile.detectedGodotVersion ?? "not detected"}`);
+  console.log(`Minimum: ${profile.minimumGodotVersion}`);
+  console.log(`Supported: ${profile.supported ? "yes" : "no"}`);
   console.log(`Executable: ${profile.executable?.join(" ") ?? "not detected"}`);
   if (profile.label) {
     console.log(`Label: ${profile.label}`);

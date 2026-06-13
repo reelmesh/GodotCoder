@@ -105,7 +105,7 @@ Usage:
   godotcoder play [--editor] [--json]
 
 Run without arguments to open the interactive GodotCoder session.
-MVP focus: Godot 4.x, Linux-first, CLI workspace commands.`);
+MVP focus: Godot 4.3+, Linux-first, CLI workspace commands.`);
 }
 
 main(process.argv.slice(2)).catch((error: unknown) => {

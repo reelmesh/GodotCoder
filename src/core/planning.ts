@@ -34,7 +34,7 @@ ${mode === "greenfield" ? "Greenfield Godot project scaffold." : "Existing Godot
 
 ## Initial Target
 
-- Godot 4.x
+- Godot 4.3+
 - GDScript-first
 - 2D-first until scope requires otherwise
 - Validate through the installed Godot executable
@@ -112,7 +112,7 @@ ${idea}
       paths.decisions,
       `# Decisions
 
-- Use Godot 4.x.
+- Use Godot 4.3 or newer.
 - Use GDScript-first implementation.
 - Use Godot-backed validation as the authority for project health.
 - Start with a small playable vertical slice.

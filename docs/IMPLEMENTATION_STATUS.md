@@ -36,6 +36,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder menu`
 
 Core modules:
+- Godot 4.3+ runtime policy; Godot 4.2 and older are unsupported.
 - Workspace path management.
 - Godot-specific agent roster with ownership boundaries and gates.
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
@@ -96,6 +97,7 @@ A native `godot` command was detected:
 ```
 
 The runtime adapter records this as `installType: "native"`. Native Godot and Flatpak should both be treated as first-class Linux runtime targets.
+GodotCoder requires Godot 4.3 or newer. Runtime profiles record `minimumGodotVersion: "4.3.0"` and whether the detected runtime is supported.
 
 Runtime selection can be pinned per machine:
 

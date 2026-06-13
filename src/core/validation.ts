@@ -1,5 +1,6 @@
 import type { RuntimeProfile } from "./runtime-profile.js";
 import { runProcess } from "./process.js";
+import { godotVersionPolicyText, isGodotVersionSupported } from "./godot-version.js";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -63,6 +64,19 @@ export async function runValidation(projectRoot: string, runtimeProfile: Runtime
       line: null,
       column: null,
       message: "No Godot runtime is configured. Run `godotcoder runtime doctor` first.",
+      raw: "",
+    };
+    return createReport(id, command, projectRoot, startedAt, null, runtimeProfile, [finding]);
+  }
+
+  if (!isGodotVersionSupported(runtimeProfile?.detectedGodotVersion)) {
+    const finding: ValidationFinding = {
+      severity: "error",
+      subsystem: "runtime",
+      file: null,
+      line: null,
+      column: null,
+      message: `Unsupported Godot runtime version ${runtimeProfile?.detectedGodotVersion ?? "unknown"}. ${godotVersionPolicyText()}`,
       raw: "",
     };
     return createReport(id, command, projectRoot, startedAt, null, runtimeProfile, [finding]);

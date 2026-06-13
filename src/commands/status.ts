@@ -17,6 +17,8 @@ export async function showStatus(args: string[]): Promise<void> {
     runtimeProfileExists: await pathExists(paths.runtimeProfile),
     projectIndexExists: await pathExists(paths.projectIndex),
     detectedGodotVersion: runtimeProfile?.detectedGodotVersion ?? null,
+    minimumGodotVersion: runtimeProfile?.minimumGodotVersion ?? "4.3.0",
+    runtimeSupported: runtimeProfile?.supported ?? false,
     installType: runtimeProfile?.installType ?? "unknown",
     mainScene: projectIndex?.mainScene ?? runtimeProfile?.project?.mainScene ?? null,
   };
@@ -30,5 +32,6 @@ export async function showStatus(args: string[]): Promise<void> {
   console.log(`Project: ${status.projectRoot}`);
   console.log(`Workspace: ${status.workspaceExists ? status.workspaceRoot : "not initialized"}`);
   console.log(`Runtime: ${status.installType}${status.detectedGodotVersion ? ` (${status.detectedGodotVersion})` : ""}`);
+  console.log(`Runtime supported: ${status.runtimeSupported ? "yes" : "no"} (minimum ${status.minimumGodotVersion})`);
   console.log(`Main scene: ${status.mainScene ?? "unknown"}`);
 }

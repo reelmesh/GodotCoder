@@ -37,7 +37,7 @@ GodotCoder is intentionally based on three reference pillars:
 The product direction is:
 
 - TypeScript/Node CLI.
-- Godot 4.x first.
+- Godot 4.3 or newer only.
 - Linux first.
 - Native Godot and Flatpak Godot as first-class runtime targets.
 - Official Godot documentation as the primary trusted knowledge source.
@@ -51,7 +51,7 @@ Requirements:
 
 - Node.js `>=22.19.0`
 - npm
-- Godot 4.x available as either a native command (`godot` or `godot4`) or a Flatpak app
+- Godot 4.3 or newer available as either a native command (`godot` or `godot4`) or a Flatpak app
 
 Install dependencies and build:
 
