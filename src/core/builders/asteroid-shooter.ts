@@ -4,6 +4,8 @@ import type { BuildResult, GeneratedFile, GameBuilder } from "./types.js";
 export const asteroidShooterBuilder: GameBuilder = {
   id: "asteroid-shooter",
   summary: "Build a playable single-scene 2D asteroid shooter prototype.",
+  genres: ["2d shooter", "arcade shooter", "space shooter"],
+  capabilities: ["twin-stick movement", "projectiles", "enemy spawning", "score chase", "single-scene prototype"],
   generateFiles: generateAsteroidShooterFiles,
   build: buildAsteroidShooter,
 };

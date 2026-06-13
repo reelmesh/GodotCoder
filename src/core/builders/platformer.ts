@@ -4,6 +4,8 @@ import type { BuildResult, GeneratedFile, GameBuilder } from "./types.js";
 export const platformerBuilder: GameBuilder = {
   id: "platformer",
   summary: "Build a playable single-scene 2D platformer prototype.",
+  genres: ["2d platformer", "side scroller"],
+  capabilities: ["jumping", "coin collection", "grounded movement", "single-scene prototype"],
   generateFiles: generatePlatformerFiles,
   build: buildPlatformer,
 };

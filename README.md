@@ -97,6 +97,7 @@ Available slash commands:
 /setup
 /settings
 /auth
+/builders
 /agents
 /models
 /ask <prompt>
@@ -147,6 +148,12 @@ scripts/main.gd
 ```
 
 Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
+
+Inspect the available first-playable templates with:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js builders
+```
 
 The fastest end-to-end path is the pipeline command:
 
@@ -244,6 +251,14 @@ node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" -
 
 Model output is advisory in this slice. It does not directly write game files.
 
+Builder selection is capability-based. The current registry exposes template
+genres and gameplay capabilities so the CLI can choose the closest fit for a
+goal without hardcoding every phrase into a single regex.
+
+```bash
+node /path/to/GodotCoder/dist/cli.js builders --json
+```
+
 Guided setup:
 
 ```bash
@@ -292,6 +307,7 @@ node /path/to/GodotCoder/dist/cli.js init
 node /path/to/GodotCoder/dist/cli.js setup
 node /path/to/GodotCoder/dist/cli.js settings
 node /path/to/GodotCoder/dist/cli.js auth
+node /path/to/GodotCoder/dist/cli.js builders
 node /path/to/GodotCoder/dist/cli.js agents
 node /path/to/GodotCoder/dist/cli.js models
 node /path/to/GodotCoder/dist/cli.js ask "Review this Godot game idea"
@@ -308,6 +324,7 @@ node /path/to/GodotCoder/dist/cli.js runtime use godot
 node /path/to/GodotCoder/dist/cli.js runtime use flatpak run org.godotengine.Godot
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
+node /path/to/GodotCoder/dist/cli.js builders --json
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply

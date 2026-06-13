@@ -18,6 +18,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder auth`
 - `godotcoder auth login --provider <provider> --api-key <key>`
 - `godotcoder auth logout --provider <provider>`
+- `godotcoder builders`
 - `godotcoder agents`
 - `godotcoder models`
 - `godotcoder models use --provider <provider> --model <model>`
@@ -65,7 +66,8 @@ Core modules:
 - Harness-generated backlog and durable run records under `.godotcoder/runs/`.
 - Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
 - Deterministic first playable builder for a single-scene 2D platformer prototype.
-- Prompt-based deterministic builder selection for supported prototype genres.
+- Capability-based deterministic builder selection for supported prototype genres.
+- `godotcoder builders` command that lists builder templates, genre tags, and gameplay capabilities.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
@@ -245,7 +247,7 @@ Auth status redacts stored key and reports active model provider.
 
 Recommended next implementation slice:
 
-1. Add more first-playable builders and builder capability metadata.
+1. Add more first-playable builders for additional Godot genres.
 2. Promote provider/model layer from advisory output to controlled agent task execution.
 3. Add official Godot docs source interface.
 4. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.

@@ -14,6 +14,8 @@ export interface BuildResult {
 export interface GameBuilder {
   id: string;
   summary: string;
+  genres: string[];
+  capabilities: string[];
   generateFiles(): GeneratedFile[];
   build(projectRoot: string): Promise<BuildResult>;
 }
