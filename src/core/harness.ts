@@ -4,9 +4,10 @@ import { selectBuilder } from "./builders/index.js";
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
+import { applyLlmBuild, generateLlmBuild, type LlmBuildPlan } from "./llm-build.js";
 import { writePlanningArtifacts } from "./planning.js";
 import { previewGeneratedFiles, type BuildPreview } from "./preview.js";
-import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
+import { loadModelConfig, type ModelReply } from "./providers.js";
 import { attemptRepair, type RepairAttempt } from "./repair.js";
 import { createRuntimeProfile } from "./runtime-profile.js";
 import { discoverRuntime } from "./runtime-discovery.js";
@@ -37,6 +38,8 @@ export interface HarnessRun {
   validation: ValidationReport | null;
   repairs: RepairAttempt[];
   modelAdvisory: ModelReply | null;
+  modelImplementation: ModelReply | null;
+  implementationSource: "deterministic" | "llm";
 }
 
 export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; llm: boolean; repair?: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
@@ -108,54 +111,58 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   });
 
   const builder = selectBuilder(goal);
-  const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
   let validation: ValidationReport | null = null;
   const repairs: RepairAttempt[] = [];
   let modelAdvisory: ModelReply | null = null;
+  let modelImplementation: ModelReply | null = null;
+  let implementationSource: "deterministic" | "llm" = "deterministic";
+  let llmPlan: LlmBuildPlan | null = null;
+  let implementationSummary = builder.summary;
+  let implementationFiles = builder.generateFiles();
 
   if (options.llm) {
     const modelConfig = await loadModelConfig(projectRoot);
     if (modelConfig) {
       try {
-        modelAdvisory = await completeWithModel(modelConfig, [
-          { role: "system", content: modelSystemPrompt() },
-          {
-            role: "user",
-            content: `Review this Godot game goal and current deterministic harness plan. Return concise risks, missing acceptance criteria, and next implementation tasks.\n\nGoal: ${goal}\n\nMode: ${mode}\nMain scene: ${projectIndex.mainScene ?? "unknown"}\nScripts: ${projectIndex.scripts.join(", ") || "none"}\nSelected builder: ${builder.id}\nPreview files: ${preview.files.map((file) => `${file.operation} ${file.path}`).join(", ")}`,
-          },
-        ], projectRoot);
+        llmPlan = await generateLlmBuild(projectRoot, goal);
+        modelImplementation = llmPlan.reply;
+        implementationSource = "llm";
+        implementationSummary = llmPlan.summary;
+        implementationFiles = llmPlan.files;
         steps.push({
-          id: "model-advisory",
-          agent: "orchestrator+docs-librarian",
+          id: "model-implementation",
+          agent: "orchestrator+gameplay-engineer",
           status: "done",
-          summary: `Model advisory generated with ${modelAdvisory.provider}:${modelAdvisory.model}.`,
-          artifacts: [],
-          gates: ["advisory only", "no direct file writes from model text"],
+          summary: `Controlled model implementation generated with ${modelImplementation.provider}:${modelImplementation.model}.`,
+          artifacts: llmPlan.files.map((file) => `res://${file.path}`),
+          gates: ["JSON parsed", "paths and extensions allowed", "preview/apply gates still active"],
         });
       } catch (error) {
         steps.push({
-          id: "model-advisory",
-          agent: "orchestrator+docs-librarian",
+          id: "model-implementation",
+          agent: "orchestrator+gameplay-engineer",
           status: "failed",
-          summary: `Model advisory failed: ${error instanceof Error ? error.message : String(error)}`,
+          summary: `Controlled model implementation failed: ${error instanceof Error ? error.message : String(error)}`,
           artifacts: [],
-          gates: ["harness continues without model output"],
+          gates: ["harness fell back to deterministic builder"],
         });
       }
     } else {
       steps.push({
-        id: "model-advisory",
-        agent: "orchestrator+docs-librarian",
+        id: "model-implementation",
+        agent: "orchestrator+gameplay-engineer",
         status: "skipped",
         summary: "No model provider configured.",
         artifacts: [],
-        gates: ["run `godotcoder models use ...` to enable LLM advisory"],
+        gates: ["run `godotcoder models use ...` to enable LLM implementation"],
       });
     }
   }
 
+  const preview = await previewGeneratedFiles(projectRoot, implementationSummary, implementationFiles);
+
   if (options.apply) {
-    const result = await builder.build(projectRoot);
+    const result = llmPlan ? await applyLlmBuild(projectRoot, llmPlan) : await builder.build(projectRoot);
     let record = await writeChangeRecord(projectRoot, {
       kind: "build",
       status: "applied",
@@ -170,7 +177,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
       status: "done",
       summary: result.summary,
       artifacts: [path.join(paths.patchesDir, record.id, "record.json"), ...result.filesWritten],
-      gates: ["changes applied", "patch record written"],
+      gates: [`source: ${implementationSource}`, "changes applied", "patch record written"],
     });
 
     if (options.validate) {
@@ -210,9 +217,9 @@ export async function runHarness(startDir: string, goal: string, options: { appl
       id: "implementation-preview",
       agent: "gameplay-engineer",
       status: "preview",
-      summary: builder.summary,
+      summary: implementationSummary,
       artifacts: preview.files.map((file) => file.path),
-      gates: ["preview only", "apply required before patch record", "validation waits for apply"],
+      gates: [`source: ${implementationSource}`, "preview only", "apply required before patch record", "validation waits for apply"],
     });
   }
 
@@ -230,6 +237,8 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     validation,
     repairs,
     modelAdvisory,
+    modelImplementation,
+    implementationSource,
   };
   const runPath = path.join(paths.runsDir, `${run.id}.json`);
   await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");

@@ -92,6 +92,7 @@ async function runPipeline(goal: string, options: PipelineOptions): Promise<void
   console.log("GodotCoder pipeline");
   console.log(`Goal: ${harness.run.goal}`);
   console.log(`Mode: ${harness.run.mode}`);
+  console.log(`Implementation: ${harness.run.implementationSource}`);
   console.log(`Run: ${harness.runPath}`);
   console.log("");
   for (const step of harness.run.steps) {

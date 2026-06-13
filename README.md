@@ -245,7 +245,7 @@ node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --l
 node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --apply
 ```
 
-Harness model output is advisory. `build --llm` can generate controlled Godot file changes, but writes still go through path validation, preview/apply gates, patch records, and optional Godot validation.
+`harness --llm`, `pipeline --llm`, and `build --llm` can generate controlled Godot file changes. Writes still go through path validation, preview/apply gates, patch records, and optional Godot validation. If a configured model is unavailable during harness or pipeline runs, GodotCoder records the failed model step and falls back to the deterministic bootstrap builder.
 
 LLM-driven game synthesis is the primary path. Deterministic prototype builders
 exist only as internal bootstrap fallbacks for smoke tests and initial
@@ -389,8 +389,8 @@ Common local config files:
 
 Next implementation slices:
 
-1. Improved `project.godot` parsing.
-2. Provider/model layer promoted from advisory to agent task execution.
+1. Stronger LLM agent prompts and acceptance gates for open-ended game synthesis.
+2. Improved `project.godot` parsing.
 3. Official Godot documentation source interface.
 4. Godot editor integration prototype using subprocess JSON.
 5. Schema guards for change records and validation reports.

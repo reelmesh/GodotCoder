@@ -23,6 +23,7 @@ export async function runHarnessCommand(args: string[]): Promise<void> {
   console.log("GodotCoder harness run");
   console.log(`Run: ${result.runPath}`);
   console.log(`Mode: ${result.run.mode}`);
+  console.log(`Implementation: ${result.run.implementationSource}`);
   console.log(`Goal: ${result.run.goal}`);
   for (const step of result.run.steps) {
     console.log(`${step.status.padEnd(7)} ${step.agent.padEnd(18)} ${step.summary}`);
@@ -31,6 +32,10 @@ export async function runHarnessCommand(args: string[]): Promise<void> {
     console.log("");
     console.log(`${result.run.modelAdvisory.provider}:${result.run.modelAdvisory.model}`);
     console.log(result.run.modelAdvisory.content);
+  }
+  if (result.run.modelImplementation) {
+    console.log("");
+    console.log(`Model implementation: ${result.run.modelImplementation.provider}:${result.run.modelImplementation.model}`);
   }
   if (!apply) {
     console.log("Preview only. Apply with: godotcoder harness <goal> --apply");

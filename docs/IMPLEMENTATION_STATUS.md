@@ -51,7 +51,8 @@ Core modules:
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - LM Studio bearer token support through `LM_API_TOKEN` or `auth login --provider lmstudio`.
 - LM Studio base URLs accept either full URLs or bare `host:port` values, normalizing bare values to `http://host:port`.
-- Advisory LLM calls through `ask` and `harness --llm`.
+- Advisory LLM calls through `ask`.
+- Controlled LLM implementation through `build --llm`, `harness --llm`, and `pipeline --llm`.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
 - Project index generation.
@@ -70,6 +71,7 @@ Core modules:
 - Internal deterministic bootstrap fallbacks for a single-scene 2D asteroid shooter prototype and a single-scene 2D platformer prototype.
 - Open-ended game synthesis remains LLM-driven; deterministic fallbacks are for bootstrap and validation only.
 - `godotcoder build --llm` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
+- `harness --llm` and `pipeline --llm` promote configured model output into the directed agent implementation step, preserving JSON parsing, path/extension validation, preview/apply gates, patch records, and Godot validation.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
@@ -265,12 +267,21 @@ node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game rea
 
 LM Studio chat uses typed `input` blocks, returns `output` arrays, and can include reasoning items. The provider parser extracts message content and ignores reasoning for controlled JSON parsing.
 
+Controlled LLM harness/pipeline path verified with an LM Studio-compatible local server:
+
+```bash
+node dist/cli.js models use --provider lmstudio --model mock-godot --base-url http://127.0.0.1:18082 --json
+node dist/cli.js pipeline "make a custom cozy puzzle game" --preview --llm --json
+node dist/cli.js pipeline "make a custom cozy puzzle game" --llm --no-validate --json
+```
+
+The preview run recorded `model-implementation` as done, `implementationSource: "llm"`, and the preview diff came from the model-generated Godot file. The apply run wrote the model-generated file and patch record with `source: llm`. With no provider configured, `pipeline --llm --preview` records `model-implementation` as skipped and falls back to the deterministic bootstrap builder.
+
 ## Next Slice
 
 Recommended next implementation slice:
 
-1. Promote provider/model layer from advisory output to controlled agent task execution.
-2. Expand open-ended game synthesis beyond bootstrap fallbacks.
-3. Add official Godot docs source interface.
-4. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
-5. Improve `project.godot` parsing for nested sections and typed values.
+1. Expand open-ended game synthesis quality with stronger agent prompts and acceptance gates.
+2. Add official Godot docs source interface.
+3. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
+4. Improve `project.godot` parsing for nested sections and typed values.
