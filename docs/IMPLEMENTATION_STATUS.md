@@ -47,8 +47,10 @@ Core modules:
 - User settings in `.godotcoder.local/user-settings.json`.
 - Interactive menu-first settings UI in TTY sessions.
 - Bracketed `[*]` menu selection with arrow-key navigation and `space`/`enter` accept.
+- Nested menu text prompts use isolated readline input so typed characters are not echoed twice.
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - LM Studio bearer token support through `LM_API_TOKEN` or `auth login --provider lmstudio`.
+- LM Studio base URLs accept either full URLs or bare `host:port` values, normalizing bare values to `http://host:port`.
 - Advisory LLM calls through `ask` and `harness --llm`.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
@@ -248,7 +250,7 @@ Controlled LLM build path verified without live model credentials:
 ```bash
 node dist/cli.js build "make original puzzle game" --llm --preview --json
 node dist/cli.js auth login --provider lmstudio --api-key test-token --json
-node dist/cli.js models use --provider lmstudio --model local-model --json
+node dist/cli.js models use --provider lmstudio --model local-model --base-url 10.0.0.9:1234 --json
 ```
 
 With no model provider configured, `build --llm` exits with `MODEL_CONFIG_MISSING`. LM Studio auth accepts local bearer tokens and `models use --provider lmstudio` records `apiKeyEnv: "LM_API_TOKEN"`.

@@ -1,6 +1,6 @@
 import type { Interface } from "node:readline/promises";
 import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
-import { chooseMenuOption, withMenu } from "../core/menu.js";
+import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { completeWithModel, inspectProvider, loadModelConfig, modelSystemPrompt, writeModelConfig, writeModelConfigExample, type ModelConfig, type ModelProviderKind } from "../core/providers.js";
 
 export async function modelsCommand(args: string[]): Promise<void> {
@@ -36,7 +36,7 @@ async function openModelsMenu(): Promise<void> {
       } else if (choice === "status") {
         await showModels([]);
       } else if (choice === "test") {
-        const prompt = (await rl.question("Prompt ▸ ")).trim() || "Say one sentence about Godot.";
+        const prompt = (await askMenuQuestion(rl, "Prompt ▸ ")).trim() || "Say one sentence about Godot.";
         await askModel([prompt]);
       }
     }
@@ -53,16 +53,16 @@ async function configureProvider(rl: Interface, projectRoot: string): Promise<vo
   ])) as ModelProviderKind | null;
   if (!provider) return;
 
-  const model = (await rl.question("Model name ▸ ")).trim();
+  const model = (await askMenuQuestion(rl, "Model name ▸ ")).trim();
   if (!model) {
     console.log("No model set.");
     return;
   }
 
   const defaultUrl = defaultBaseUrl(provider);
-  const baseUrlAnswer = (await rl.question(`Base URL (${defaultUrl ?? "required"}) ▸ `)).trim();
+  const baseUrlAnswer = (await askMenuQuestion(rl, `Base URL (${defaultUrl ?? "required"}) ▸ `)).trim();
   const apiKeyDefault = defaultApiKeyEnv(provider);
-  const apiKeyEnvAnswer = provider === "ollama" || provider === "lmstudio" ? "" : (await rl.question(`API key env (${apiKeyDefault ?? "none"}) ▸ `)).trim();
+  const apiKeyEnvAnswer = provider === "ollama" || provider === "lmstudio" ? "" : (await askMenuQuestion(rl, `API key env (${apiKeyDefault ?? "none"}) ▸ `)).trim();
   const config: ModelConfig = {
     schemaVersion: 1,
     provider,

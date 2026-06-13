@@ -1,6 +1,6 @@
 import type { Interface } from "node:readline/promises";
 import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
-import { chooseMenuOption, withMenu } from "../core/menu.js";
+import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import type { ModelProviderKind } from "../core/providers.js";
 import { loadModelConfig } from "../core/providers.js";
 import { loadSecrets, redactSecret, removeProviderSecret, writeProviderSecret } from "../core/settings.js";
@@ -52,7 +52,7 @@ async function loginFromMenu(rl: Interface, projectRoot: string): Promise<void> 
   ])) as ModelProviderKind | null;
   if (!provider) return;
 
-  const apiKey = (await rl.question("API key ▸ ")).trim();
+  const apiKey = (await askMenuQuestion(rl, "API key ▸ ")).trim();
   if (!apiKey) {
     console.log("No key saved.");
     return;

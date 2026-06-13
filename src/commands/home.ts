@@ -14,7 +14,7 @@ import { setupCommand } from "./setup.js";
 import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
-import { chooseMenuOption, withMenu } from "../core/menu.js";
+import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { color } from "../core/terminal.js";
 
 export async function homeCommand(args: string[] = []): Promise<void> {
@@ -77,7 +77,7 @@ async function runMenuAction(action: () => Promise<void>): Promise<void> {
 }
 
 async function promptAndRun(rl: Interface, label: string, run: (prompt: string) => Promise<void>): Promise<void> {
-  const prompt = (await rl.question(`${label} > `)).trim();
+  const prompt = (await askMenuQuestion(rl, `${label} > `)).trim();
   if (!prompt) {
     console.log("No prompt entered.");
     return;

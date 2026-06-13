@@ -333,7 +333,8 @@ function extractModelIds(value: unknown, label: string): string[] {
 }
 
 function lmStudioBaseUrl(value: string): string {
-  return trimSlash(value).replace(/\/(?:api\/)?v1$/, "");
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `http://${value}`;
+  return trimSlash(withScheme).replace(/\/(?:api\/)?v1$/, "");
 }
 
 function messagesToPrompt(messages: ModelMessage[]): string {

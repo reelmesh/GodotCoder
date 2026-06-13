@@ -1,7 +1,7 @@
 import type { Interface } from "node:readline/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
-import { chooseMenuOption, withMenu } from "../core/menu.js";
+import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { writeRuntimeOverride } from "../core/runtime-overrides.js";
 import { createRuntimeProfile } from "../core/runtime-profile.js";
@@ -41,10 +41,10 @@ async function openRuntimeMenu(): Promise<void> {
       if (choice === "native") {
         await setRuntimeFromMenu(rl, projectRoot, ["godot"]);
       } else if (choice === "flatpak") {
-        const appId = (await rl.question("Flatpak app id (org.godotengine.Godot) ▸ ")).trim() || "org.godotengine.Godot";
+        const appId = (await askMenuQuestion(rl, "Flatpak app id (org.godotengine.Godot) ▸ ")).trim() || "org.godotengine.Godot";
         await setRuntimeFromMenu(rl, projectRoot, ["flatpak", "run", appId]);
       } else if (choice === "custom") {
-        const command = (await rl.question("Command ▸ ")).trim().split(/\s+/).filter(Boolean);
+        const command = (await askMenuQuestion(rl, "Command ▸ ")).trim().split(/\s+/).filter(Boolean);
         if (command.length > 0) {
           await setRuntimeFromMenu(rl, projectRoot, command);
         }

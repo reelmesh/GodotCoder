@@ -155,6 +155,17 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
   });
 }
 
+export async function askMenuQuestion(rl: Interface, prompt: string): Promise<string> {
+  rl.pause();
+  const questionRl = createInterface({ input, output });
+  try {
+    return await questionRl.question(prompt);
+  } finally {
+    questionRl.close();
+    rl.resume();
+  }
+}
+
 async function chooseMenuOptionFallback(rl: Interface, prompt: string, options: MenuOption[]): Promise<string | null> {
   console.log(prompt);
   for (let index = 0; index < options.length; index += 1) {

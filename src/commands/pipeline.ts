@@ -1,7 +1,7 @@
 import type { Interface } from "node:readline/promises";
 import { runHarness } from "../core/harness.js";
 import { launchGodot, type LaunchResult } from "../core/launch.js";
-import { chooseMenuOption, withMenu } from "../core/menu.js";
+import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 
 interface PipelineOptions {
   apply: boolean;
@@ -34,7 +34,7 @@ export async function pipelineCommand(args: string[]): Promise<void> {
 
 async function openPipelineMenu(_embedded: boolean): Promise<void> {
   await withMenu(async (rl) => {
-    const goal = (await rl.question("Game idea > ")).trim();
+    const goal = (await askMenuQuestion(rl, "Game idea > ")).trim();
     if (!goal) {
       console.log("No game idea entered.");
       return;
