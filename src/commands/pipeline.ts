@@ -7,6 +7,7 @@ interface PipelineOptions {
   apply: boolean;
   validate: boolean;
   llm: boolean;
+  repair: boolean;
   play: boolean;
   json: boolean;
 }
@@ -63,6 +64,7 @@ async function openPipelineMenu(_embedded: boolean): Promise<void> {
       apply: applyChoice === "apply",
       validate: true,
       llm: modelChoice === "on",
+      repair: true,
       play: playChoice === "play",
       json: false,
     });
@@ -74,6 +76,7 @@ async function runPipeline(goal: string, options: PipelineOptions): Promise<void
     apply: options.apply,
     validate: options.validate,
     llm: options.llm,
+    repair: options.repair,
   });
 
   let launch: LaunchResult | null = null;
@@ -116,13 +119,14 @@ function parsePipelineOptions(args: string[]): PipelineOptions {
     apply: !args.includes("--preview"),
     validate: !args.includes("--no-validate"),
     llm: args.includes("--llm") || args.includes("--model"),
+    repair: !args.includes("--no-repair"),
     play: args.includes("--play"),
     json: args.includes("--json"),
   };
 }
 
 function isPipelineFlag(arg: string): boolean {
-  return ["--preview", "--no-validate", "--llm", "--model", "--play", "--json"].includes(arg);
+  return ["--preview", "--no-validate", "--no-repair", "--llm", "--model", "--play", "--json"].includes(arg);
 }
 
 function pipelineOk(run: Awaited<ReturnType<typeof runHarness>>["run"]): boolean {
@@ -130,5 +134,5 @@ function pipelineOk(run: Awaited<ReturnType<typeof runHarness>>["run"]): boolean
 }
 
 function printPipelineHelp(): void {
-  console.log("Usage: godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--json]");
+  console.log("Usage: godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--no-repair] [--json]");
 }

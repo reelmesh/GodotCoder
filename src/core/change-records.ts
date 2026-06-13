@@ -14,7 +14,7 @@ export interface FileChange {
 export interface ChangeRecord {
   schemaVersion: 1;
   id: string;
-  kind: "build";
+  kind: "build" | "repair";
   status: "applied";
   prompt: string;
   summary: string;
@@ -43,7 +43,7 @@ export async function writeTrackedFile(projectRoot: string, relativePath: string
 
 export async function writeChangeRecord(projectRoot: string, record: Omit<ChangeRecord, "schemaVersion" | "id" | "createdAt" | "updatedAt">): Promise<ChangeRecord> {
   const now = new Date().toISOString();
-  const id = `patch_${now.replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "_")}`;
+  const id = `patch_${timestampId(new Date(now))}`;
   const fullRecord: ChangeRecord = {
     schemaVersion: 1,
     id,
@@ -75,4 +75,8 @@ function sha256(value: string | Buffer): string {
 
 function toGodotResourcePath(relativePath: string): string {
   return `res://${relativePath.split(path.sep).join("/")}`;
+}
+
+function timestampId(date: Date): string {
+  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
 }

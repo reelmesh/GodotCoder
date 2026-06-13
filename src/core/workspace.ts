@@ -23,6 +23,7 @@ export function workspacePaths(projectRoot: string) {
     projectIndex: path.join(workspaceRoot, "project-index.json"),
     agentMemory: path.join(workspaceRoot, "agent-memory.json"),
     validationsDir: path.join(workspaceRoot, "validations"),
+    repairsDir: path.join(workspaceRoot, "repairs"),
     patchesDir: path.join(workspaceRoot, "patches"),
     runsDir: path.join(workspaceRoot, "runs"),
     cacheDir: path.join(workspaceRoot, "cache"),

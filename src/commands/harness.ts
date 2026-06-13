@@ -4,15 +4,16 @@ export async function runHarnessCommand(args: string[]): Promise<void> {
   const json = args.includes("--json");
   const apply = args.includes("--apply") || args.includes("--yes");
   const llm = args.includes("--llm") || args.includes("--model");
+  const repair = args.includes("--repair");
   const validate = !args.includes("--no-validate");
-  const goal = args.filter((arg) => !["--json", "--apply", "--yes", "--no-validate", "--llm", "--model"].includes(arg)).join(" ").trim();
+  const goal = args.filter((arg) => !["--json", "--apply", "--yes", "--no-validate", "--llm", "--model", "--repair"].includes(arg)).join(" ").trim();
 
   if (!goal) {
-    console.log("Usage: godotcoder harness <game goal> [--apply] [--json]");
+    console.log("Usage: godotcoder harness <game goal> [--apply] [--repair] [--json]");
     return;
   }
 
-  const result = await runHarness(process.cwd(), goal, { apply, validate, llm });
+  const result = await runHarness(process.cwd(), goal, { apply, validate, llm, repair });
 
   if (json) {
     console.log(JSON.stringify({ ok: result.run.validation ? result.run.validation.summary.errors === 0 : true, run: result.run, runPath: result.runPath }, null, 2));

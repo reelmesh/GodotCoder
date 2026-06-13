@@ -93,7 +93,7 @@ Usage:
   godotcoder runs
   godotcoder runs list|show <run-id>
   godotcoder ask <prompt> [--json]
-  godotcoder harness <game goal> [--apply] [--json]
+  godotcoder harness <game goal> [--apply] [--repair] [--json]
   godotcoder build [prompt] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
@@ -101,7 +101,7 @@ Usage:
   godotcoder inspect [--json]
   godotcoder validate [--json]
   godotcoder plan <game idea> [--json]
-  godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--json]
+  godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--no-repair] [--json]
   godotcoder play [--editor] [--json]
 
 Run without arguments to open the interactive GodotCoder session.

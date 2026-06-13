@@ -147,5 +147,5 @@ function parseGodotOutput(output: string): ValidationFinding[] {
 }
 
 function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "_");
+  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
 }

@@ -161,6 +161,7 @@ Pipeline mode:
 - applies the selected first-playable builder,
 - records a patch and harness run,
 - validates through the configured Godot runtime,
+- attempts bounded deterministic repair for known validation failures,
 - optionally launches the game with `--play`.
 
 Use preview mode when you want to inspect first:
@@ -169,11 +170,20 @@ Use preview mode when you want to inspect first:
 node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --preview
 ```
 
+Pipeline repair is enabled by default. The first repair rule creates missing `.gd`
+script placeholders for broken `res://...gd` references, records the repair under
+`.godotcoder/repairs/`, then re-runs Godot validation. Disable this with:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --no-repair
+```
+
 Harness workflow runs a BMAD-style Godot agent sequence:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins"
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --apply
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --apply --repair
 ```
 
 It writes:

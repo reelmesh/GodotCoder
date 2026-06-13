@@ -69,10 +69,14 @@ Core modules:
 - Interactive pending build approval with `/apply` and `/reject`.
 - Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations, unchanged-file detection, and hashes.
 - End-to-end pipeline command that creates greenfield projects, writes planning artifacts, runs the directed harness, applies a first playable, validates with Godot, and records the run.
-- `--preview`, `--llm`, `--play`, `--json`, and `--no-validate` pipeline flags.
+- `--preview`, `--llm`, `--play`, `--json`, `--no-validate`, and `--no-repair` pipeline flags.
 - Godot launch helper for running the current game or opening the editor through the configured runtime.
 - Home menu and run-history browser for the main CLI workflow.
 - Slash command completion and menu type-to-jump support.
+- Bounded deterministic repair loop after failed pipeline validation.
+- Repair records under `.godotcoder/repairs/<repair-id>.json`.
+- Missing `res://...gd` script repair rule that creates a minimal placeholder script, writes a repair patch record, and re-runs Godot validation.
+- Millisecond artifact IDs for run, patch, validation, and repair records to avoid collisions during fast pipeline loops.
 
 Note: in a greenfield folder, preview may create the minimal Godot scaffold first so there is a valid project context. It does not apply the larger build changes or write patch records until `--apply`.
 
@@ -183,6 +187,14 @@ node dist/cli.js pipeline "make a 2d platformer with coins" --json
 
 This created a greenfield Godot project, built a playable single-scene platformer, wrote patch/run/validation records, and Godot validation returned zero errors and zero warnings.
 
+A repair-loop pipeline under `/tmp/godotcoder-repair-smoke` verified:
+
+```bash
+node dist/cli.js pipeline "make a 2d asteroid shooter" --json
+```
+
+The project intentionally referenced a missing autoload script at `res://scripts/missing_service.gd`. Initial Godot validation reported three errors. The repair loop created a placeholder script, wrote a repair record and patch record, re-ran Godot validation, and finished with zero errors and zero warnings.
+
 Model provider flow verified without requiring live credentials:
 
 ```bash
@@ -215,5 +227,5 @@ Recommended next implementation slice:
 1. Add more first-playable builders and builder capability metadata.
 2. Promote provider/model layer from advisory output to controlled agent task execution.
 3. Add official Godot docs source interface.
-4. Add repair loop: validation error -> agent diagnosis -> patch proposal -> revalidate.
+4. Expand repair rules for parse errors, missing resources, scene load failures, and common Godot 4 API migrations.
 5. Improve `project.godot` parsing for nested sections and typed values.

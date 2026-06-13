@@ -7,6 +7,7 @@ import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js
 import { writePlanningArtifacts } from "./planning.js";
 import { previewGeneratedFiles, type BuildPreview } from "./preview.js";
 import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
+import { attemptRepair, type RepairAttempt } from "./repair.js";
 import { createRuntimeProfile } from "./runtime-profile.js";
 import { discoverRuntime } from "./runtime-discovery.js";
 import { runValidation, type ValidationReport } from "./validation.js";
@@ -34,10 +35,11 @@ export interface HarnessRun {
   steps: HarnessStep[];
   preview: BuildPreview | null;
   validation: ValidationReport | null;
+  repairs: RepairAttempt[];
   modelAdvisory: ModelReply | null;
 }
 
-export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; llm: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
+export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; llm: boolean; repair?: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
   const startedAt = new Date();
   const existingRoot = await tryFindGodotProjectRoot(startDir);
   const projectRoot = existingRoot ?? startDir;
@@ -50,6 +52,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   await mkdir(paths.runsDir, { recursive: true });
   await mkdir(paths.patchesDir, { recursive: true });
   await mkdir(paths.validationsDir, { recursive: true });
+  await mkdir(paths.repairsDir, { recursive: true });
 
   const rosterPath = await writeAgentRoster(projectRoot);
   steps.push({
@@ -107,6 +110,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   const builder = selectBuilder(goal);
   const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
   let validation: ValidationReport | null = null;
+  const repairs: RepairAttempt[] = [];
   let modelAdvisory: ModelReply | null = null;
 
   if (options.llm) {
@@ -182,6 +186,24 @@ export async function runHarness(startDir: string, goal: string, options: { appl
         artifacts: [reportPath, path.join(paths.patchesDir, record.id, "record.json")],
         gates: [`exit code: ${validation.exitCode ?? "not run"}`],
       });
+
+      if (options.repair && validation.summary.errors > 0) {
+        const repair = await attemptRepair(projectRoot, validation, runtimeProfile);
+        repairs.push(repair.attempt);
+        steps.push({
+          id: "qa-repair",
+          agent: "qa-validator+gameplay-engineer",
+          status: repair.attempt.status === "repaired" ? "done" : repair.attempt.status === "skipped" ? "skipped" : "failed",
+          summary: repair.attempt.summary,
+          artifacts: [repair.attemptPath],
+          gates: repair.attempt.validationAfter
+            ? [`post-repair errors: ${repair.attempt.validationAfter.summary.errors}`, `post-repair warnings: ${repair.attempt.validationAfter.summary.warnings}`]
+            : ["no post-repair validation"],
+        });
+        if (repair.attempt.validationAfter) {
+          validation = repair.attempt.validationAfter;
+        }
+      }
     }
   } else {
     steps.push({
@@ -206,6 +228,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     steps,
     preview,
     validation,
+    repairs,
     modelAdvisory,
   };
   const runPath = path.join(paths.runsDir, `${run.id}.json`);
@@ -248,5 +271,5 @@ ${goal}
 }
 
 function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "_");
+  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
 }
