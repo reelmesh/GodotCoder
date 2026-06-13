@@ -56,7 +56,12 @@ export async function startSession(): Promise<void> {
         break;
       }
 
-      await handleSessionLine(line, state);
+      rl.pause();
+      try {
+        await handleSessionLine(line, state);
+      } finally {
+        rl.resume();
+      }
     }
   } finally {
     rl.close();

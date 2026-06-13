@@ -26,6 +26,7 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
   }
 
   return await new Promise<string | null>((resolve) => {
+    rl.pause();
     emitKeypressEvents(input);
     const wasRaw = input.isRaw;
     input.setRawMode(true);
@@ -84,6 +85,7 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
       if (!wasRaw) {
         input.setRawMode(false);
       }
+      rl.resume();
       moveCursor(output, 0, renderedLines);
       output.write("\n");
       resolve(value);
