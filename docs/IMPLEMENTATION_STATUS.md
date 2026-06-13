@@ -253,6 +253,16 @@ node dist/cli.js models use --provider lmstudio --model local-model --json
 
 With no model provider configured, `build --llm` exits with `MODEL_CONFIG_MISSING`. LM Studio auth accepts local bearer tokens and `models use --provider lmstudio` records `apiKeyEnv: "LM_API_TOKEN"`.
 
+Controlled LLM build path verified with live LM Studio:
+
+```bash
+node dist/cli.js models use --provider lmstudio --model qwen/qwen3.6-27b --json
+node dist/cli.js ask "Say hello in one sentence" --json
+node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --preview --json
+```
+
+LM Studio chat uses typed `input` blocks, returns `output` arrays, and can include reasoning items. The provider parser extracts message content and ignores reasoning for controlled JSON parsing.
+
 ## Next Slice
 
 Recommended next implementation slice:

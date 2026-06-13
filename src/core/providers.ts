@@ -258,8 +258,8 @@ async function completeLmStudio(config: ModelConfig, messages: ModelMessage[], p
   const response = await fetchJson(`${baseUrl}/api/v1/chat`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ model: config.model, messages, temperature: 0.2, stream: false }),
-  });
+    body: JSON.stringify({ model: config.model, input: [{ type: "text", content: messagesToPrompt(messages) }], temperature: 0.2 }),
+  }, 180_000);
   return { provider: config.provider, model: config.model, content: extractChatContent(response, "LM Studio chat response") };
 }
 
@@ -294,6 +294,15 @@ function extractChatContent(value: unknown, label: string): string {
     const message = asObject(root.message, `${label} message`);
     if (typeof message.content === "string") return message.content;
   }
+  if (Array.isArray(root.output)) {
+    const outputItems = root.output.map((item) => asObject(item, `${label} output item`));
+    const message = outputItems.find((item) => item.type === "message" && typeof item.content === "string");
+    if (message) return message.content as string;
+    const nonReasoning = outputItems.find((item) => item.type !== "reasoning" && typeof item.content === "string");
+    if (nonReasoning) return nonReasoning.content as string;
+    const anyContent = outputItems.find((item) => typeof item.content === "string");
+    if (anyContent) return anyContent.content as string;
+  }
   const choices = Array.isArray(root.choices) ? root.choices : [];
   if (choices.length > 0) {
     const first = asObject(choices[0], `${label} choice`);
@@ -312,7 +321,13 @@ function extractModelIds(value: unknown, label: string): string[] {
   return data
     .map((item) => {
       const model = asObject(item, `${label} model`);
-      return asNullableString(model.id, `${label} model id`) ?? asNullableString(model.name, `${label} model name`) ?? asNullableString(model.model, `${label} model model`);
+      return (
+        asNullableString(model.id, `${label} model id`) ??
+        asNullableString(model.key, `${label} model key`) ??
+        asNullableString(model.name, `${label} model name`) ??
+        asNullableString(model.model, `${label} model model`) ??
+        asNullableString(model.display_name, `${label} model display_name`)
+      );
     })
     .filter((item): item is string => Boolean(item));
 }
@@ -321,9 +336,13 @@ function lmStudioBaseUrl(value: string): string {
   return trimSlash(value).replace(/\/(?:api\/)?v1$/, "");
 }
 
-async function fetchJson(url: string, init: RequestInit = {}): Promise<unknown> {
+function messagesToPrompt(messages: ModelMessage[]): string {
+  return messages.map((message) => `${message.role.toUpperCase()}:\n${message.content}`).join("\n\n");
+}
+
+async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 30_000): Promise<unknown> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     const text = await response.text();
