@@ -18,7 +18,6 @@ First TypeScript/Node CLI slice:
 - `godotcoder auth`
 - `godotcoder auth login --provider <provider> --api-key <key>`
 - `godotcoder auth logout --provider <provider>`
-- `godotcoder builders`
 - `godotcoder agents`
 - `godotcoder models`
 - `godotcoder models use --provider <provider> --model <model>`
@@ -64,10 +63,8 @@ Core modules:
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Harness-generated backlog and durable run records under `.godotcoder/runs/`.
-- Deterministic first playable builder for a single-scene 2D asteroid shooter prototype.
-- Deterministic first playable builder for a single-scene 2D platformer prototype.
-- Capability-based deterministic builder selection for supported prototype genres.
-- `godotcoder builders` command that lists builder templates, genre tags, and gameplay capabilities.
+- Internal deterministic bootstrap fallbacks for a single-scene 2D asteroid shooter prototype and a single-scene 2D platformer prototype.
+- Open-ended game synthesis remains LLM-driven; deterministic fallbacks are for bootstrap and validation only.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
@@ -247,8 +244,8 @@ Auth status redacts stored key and reports active model provider.
 
 Recommended next implementation slice:
 
-1. Add more first-playable builders for additional Godot genres.
-2. Promote provider/model layer from advisory output to controlled agent task execution.
+1. Promote provider/model layer from advisory output to controlled agent task execution.
+2. Expand open-ended game synthesis beyond bootstrap fallbacks.
 3. Add official Godot docs source interface.
 4. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
 5. Improve `project.godot` parsing for nested sections and typed values.

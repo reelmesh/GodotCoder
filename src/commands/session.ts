@@ -1,7 +1,6 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { authCommand } from "./auth.js";
-import { buildersCommand } from "./builders.js";
 import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
 import { homeCommand } from "./home.js";
@@ -116,10 +115,6 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await authCommand(command === "/login" ? ["login", ...args] : args);
         printStatusHint(state);
         return;
-      case "/builders":
-        await buildersCommand(args);
-        printStatusHint(state);
-        return;
       case "/agents":
         await showAgents(args);
         printStatusHint(state);
@@ -214,7 +209,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /builders  /help  /setup  /settings  /auth  /models  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /help  /setup  /settings  /auth  /models  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -238,7 +233,6 @@ function printSessionHelp(): void {
   console.log(`${color("/settings diffs", "cyan").padEnd(22)} Set compact/full diffs`);
   console.log(`${color("/auth", "cyan").padEnd(22)} Show local auth status`);
   console.log(`${color("/auth login", "cyan").padEnd(22)} Save provider API key locally`);
-  console.log(`${color("/builders", "cyan").padEnd(22)} Show playable builder templates`);
   console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);
   console.log(`${color("/models", "cyan").padEnd(22)} Show or configure model provider`);
   console.log(`${color("/runs", "cyan").padEnd(22)} Browse harness run history`);
@@ -257,7 +251,6 @@ function printSessionHelp(): void {
   console.log(`${color("/validate", "cyan").padEnd(22)} Run Godot-backed validation`);
   console.log(`${color("/check", "cyan").padEnd(22)} Alias for /validate`);
   console.log(`${color("/repair", "cyan").padEnd(22)} Validate, apply deterministic repair, and revalidate`);
-  console.log(`${color("/builders", "cyan").padEnd(22)} List supported first-playable builder templates`);
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);

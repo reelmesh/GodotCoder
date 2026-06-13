@@ -1,6 +1,5 @@
 import type { Interface } from "node:readline/promises";
 import { authCommand } from "./auth.js";
-import { buildersCommand } from "./builders.js";
 import { buildProject } from "./build.js";
 import { inspectProject } from "./inspect.js";
 import { modelsCommand } from "./models.js";
@@ -34,7 +33,6 @@ export async function homeCommand(args: string[] = []): Promise<void> {
         { value: "runs", label: "Run history", description: "inspect previous harness runs" },
         { value: "validate", label: "Validate", description: "Godot-backed project check" },
         { value: "repair", label: "Repair", description: "validate, repair, revalidate" },
-        { value: "builders", label: "Builders", description: "list playable template capabilities" },
         { value: "inspect", label: "Inspect project", description: "project.godot, scenes, scripts, exports" },
         { value: "models", label: "Models", description: "configure/test LLM provider" },
         { value: "auth", label: "Auth", description: "save/remove local API keys" },
@@ -56,7 +54,6 @@ export async function homeCommand(args: string[] = []): Promise<void> {
         if (choice === "runs") await runsCommand(["--embedded"]);
         if (choice === "validate") await validateProject([]);
         if (choice === "repair") await repairCommand([]);
-        if (choice === "builders") await buildersCommand([]);
         if (choice === "inspect") await inspectProject([]);
         if (choice === "models") await modelsCommand([]);
         if (choice === "auth") await authCommand([]);
