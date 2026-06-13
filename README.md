@@ -220,7 +220,7 @@ LLM providers are optional and can use cloud APIs or local HTTP servers:
 # Ollama
 node /path/to/GodotCoder/dist/cli.js models use --provider ollama --model llama3.1
 
-# LM Studio OpenAI-compatible local server
+# LM Studio local server (/api/v1)
 node /path/to/GodotCoder/dist/cli.js models use --provider lmstudio --model local-model
 node /path/to/GodotCoder/dist/cli.js auth login --provider lmstudio --api-key lm-studio-token
 
@@ -279,7 +279,7 @@ node /path/to/GodotCoder/dist/cli.js auth logout --provider openai
 ```
 
 Auth stores API keys in `.godotcoder.local/secrets.json`, ignored by git. Environment variables still win over local secrets when both exist.
-For LM Studio servers with authentication enabled, use `LM_API_TOKEN` or `auth login --provider lmstudio`.
+For LM Studio servers with authentication enabled, use `LM_API_TOKEN` or `auth login --provider lmstudio`. GodotCoder calls LM Studio through `/api/v1/models` and `/api/v1/chat`.
 
 Applied build runs record changes under:
 

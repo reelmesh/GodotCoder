@@ -200,6 +200,11 @@ godotcoder models use --provider anthropic --model your-model --api-key-env ANTH
 godotcoder models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
 ```
 
+LM Studio uses its native local API endpoints:
+
+- `GET /api/v1/models`
+- `POST /api/v1/chat`
+
 ### `godotcoder ask <prompt>`
 
 Runs one model prompt with GodotCoder system prompt.

@@ -74,6 +74,9 @@ export async function completeWithModel(config: ModelConfig, messages: ModelMess
   if (config.provider === "ollama") {
     return completeOllama(config, messages);
   }
+  if (config.provider === "lmstudio") {
+    return completeLmStudio(config, messages, projectRoot ?? null);
+  }
   return completeOpenAICompatible(config, messages, projectRoot ?? null);
 }
 
@@ -160,7 +163,7 @@ function configFromEnv(): ModelConfig | null {
     return { schemaVersion: 1, provider: "ollama", model: process.env.OLLAMA_MODEL, baseUrl: process.env.OLLAMA_BASE_URL ?? defaultBaseUrl("ollama"), apiKeyEnv: null };
   }
   if (process.env.LMSTUDIO_MODEL) {
-    return { schemaVersion: 1, provider: "lmstudio", model: process.env.LMSTUDIO_MODEL, baseUrl: process.env.LMSTUDIO_BASE_URL ?? defaultBaseUrl("lmstudio"), apiKeyEnv: null };
+    return { schemaVersion: 1, provider: "lmstudio", model: process.env.LMSTUDIO_MODEL, baseUrl: process.env.LMSTUDIO_BASE_URL ?? defaultBaseUrl("lmstudio"), apiKeyEnv: "LM_API_TOKEN" };
   }
   return null;
 }
@@ -169,7 +172,7 @@ function defaultBaseUrl(provider: ModelProviderKind): string | null {
   if (provider === "openai") return "https://api.openai.com/v1";
   if (provider === "anthropic") return "https://api.anthropic.com/v1";
   if (provider === "ollama") return "http://127.0.0.1:11434";
-  if (provider === "lmstudio") return "http://127.0.0.1:1234/v1";
+  if (provider === "lmstudio") return "http://127.0.0.1:1234";
   return process.env.GODOTCODER_BASE_URL ?? null;
 }
 
@@ -244,6 +247,22 @@ async function completeOllama(config: ModelConfig, messages: ModelMessage[]): Pr
   return { provider: config.provider, model: config.model, content: asString(message.content, "ollama response content") };
 }
 
+async function completeLmStudio(config: ModelConfig, messages: ModelMessage[], projectRoot: string | null): Promise<ModelReply> {
+  const baseUrl = lmStudioBaseUrl(config.baseUrl ?? defaultBaseUrl("lmstudio")!);
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv ?? "LM_API_TOKEN");
+  if (apiKey) {
+    headers.authorization = `Bearer ${apiKey}`;
+  }
+
+  const response = await fetchJson(`${baseUrl}/api/v1/chat`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ model: config.model, messages, temperature: 0.2, stream: false }),
+  });
+  return { provider: config.provider, model: config.model, content: extractChatContent(response, "LM Studio chat response") };
+}
+
 async function listModels(config: ModelConfig, projectRoot: string | null): Promise<string[]> {
   if (config.provider === "ollama") {
     const root = asObject(await fetchJson(`${trimSlash(config.baseUrl ?? defaultBaseUrl("ollama")!)}/api/tags`), "ollama tags");
@@ -253,14 +272,53 @@ async function listModels(config: ModelConfig, projectRoot: string | null): Prom
   if (config.provider === "anthropic") {
     return [];
   }
+  if (config.provider === "lmstudio") {
+    const headers: Record<string, string> = {};
+    const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv ?? "LM_API_TOKEN");
+    if (apiKey) headers.authorization = `Bearer ${apiKey}`;
+    return extractModelIds(await fetchJson(`${lmStudioBaseUrl(config.baseUrl ?? defaultBaseUrl("lmstudio")!)}/api/v1/models`, { headers }), "LM Studio models response");
+  }
   const baseUrl = config.baseUrl ?? defaultBaseUrl(config.provider);
   if (!baseUrl) return [];
   const headers: Record<string, string> = {};
   const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv);
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   const root = asObject(await fetchJson(`${trimSlash(baseUrl)}/models`, { headers }), "models response");
-  const data = Array.isArray(root.data) ? root.data : [];
-  return data.map((item) => asNullableString(asObject(item, "model").id, "model id")).filter((item): item is string => Boolean(item));
+  return extractModelIds(root, "models response");
+}
+
+function extractChatContent(value: unknown, label: string): string {
+  const root = asObject(value, label);
+  if (typeof root.content === "string") return root.content;
+  if (root.message) {
+    const message = asObject(root.message, `${label} message`);
+    if (typeof message.content === "string") return message.content;
+  }
+  const choices = Array.isArray(root.choices) ? root.choices : [];
+  if (choices.length > 0) {
+    const first = asObject(choices[0], `${label} choice`);
+    if (first.message) {
+      const message = asObject(first.message, `${label} choice message`);
+      if (typeof message.content === "string") return message.content;
+    }
+    if (typeof first.text === "string") return first.text;
+  }
+  throw new CliError("SCHEMA_INVALID", `${label} did not include text content.`);
+}
+
+function extractModelIds(value: unknown, label: string): string[] {
+  const root = Array.isArray(value) ? { data: value } : asObject(value, label);
+  const data = Array.isArray(root.data) ? root.data : Array.isArray(root.models) ? root.models : [];
+  return data
+    .map((item) => {
+      const model = asObject(item, `${label} model`);
+      return asNullableString(model.id, `${label} model id`) ?? asNullableString(model.name, `${label} model name`) ?? asNullableString(model.model, `${label} model model`);
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
+function lmStudioBaseUrl(value: string): string {
+  return trimSlash(value).replace(/\/(?:api\/)?v1$/, "");
 }
 
 async function fetchJson(url: string, init: RequestInit = {}): Promise<unknown> {

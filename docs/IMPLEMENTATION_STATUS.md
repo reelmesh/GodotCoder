@@ -42,6 +42,7 @@ Core modules:
 - Godot-specific agent roster with ownership boundaries and gates.
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
 - Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
+- LM Studio provider uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
 - Interactive menu-first settings UI in TTY sessions.
