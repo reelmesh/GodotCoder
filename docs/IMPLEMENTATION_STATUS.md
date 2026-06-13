@@ -47,6 +47,7 @@ Core modules:
 - Interactive menu-first settings UI in TTY sessions.
 - Bracketed `[*]` menu selection with arrow-key navigation and `space`/`enter` accept.
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
+- LM Studio bearer token support through `LM_API_TOKEN` or `auth login --provider lmstudio`.
 - Advisory LLM calls through `ask` and `harness --llm`.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
@@ -65,6 +66,7 @@ Core modules:
 - Harness-generated backlog and durable run records under `.godotcoder/runs/`.
 - Internal deterministic bootstrap fallbacks for a single-scene 2D asteroid shooter prototype and a single-scene 2D platformer prototype.
 - Open-ended game synthesis remains LLM-driven; deterministic fallbacks are for bootstrap and validation only.
+- `godotcoder build --llm` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
@@ -239,6 +241,16 @@ node dist/cli.js auth --json
 ```
 
 Auth status redacts stored key and reports active model provider.
+
+Controlled LLM build path verified without live model credentials:
+
+```bash
+node dist/cli.js build "make original puzzle game" --llm --preview --json
+node dist/cli.js auth login --provider lmstudio --api-key test-token --json
+node dist/cli.js models use --provider lmstudio --model local-model --json
+```
+
+With no model provider configured, `build --llm` exits with `MODEL_CONFIG_MISSING`. LM Studio auth accepts local bearer tokens and `models use --provider lmstudio` records `apiKeyEnv: "LM_API_TOKEN"`.
 
 ## Next Slice
 

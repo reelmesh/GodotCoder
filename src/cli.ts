@@ -96,7 +96,7 @@ Usage:
   godotcoder runs list|show <run-id>
   godotcoder ask <prompt> [--json]
   godotcoder harness <game goal> [--apply] [--repair] [--json]
-  godotcoder build [prompt] [--preview] [--apply] [--no-validate]
+  godotcoder build [prompt] [--llm] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
   godotcoder runtime use <godot command>

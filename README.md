@@ -222,6 +222,7 @@ node /path/to/GodotCoder/dist/cli.js models use --provider ollama --model llama3
 
 # LM Studio OpenAI-compatible local server
 node /path/to/GodotCoder/dist/cli.js models use --provider lmstudio --model local-model
+node /path/to/GodotCoder/dist/cli.js auth login --provider lmstudio --api-key lm-studio-token
 
 # OpenAI API
 node /path/to/GodotCoder/dist/cli.js models use --provider openai --model your-model --api-key-env OPENAI_API_KEY
@@ -240,9 +241,11 @@ Use configured model:
 ```bash
 node /path/to/GodotCoder/dist/cli.js ask "Review this Godot mechanic"
 node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --llm
+node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --preview
+node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --apply
 ```
 
-Model output is advisory in this slice. It does not directly write game files.
+Harness model output is advisory. `build --llm` can generate controlled Godot file changes, but writes still go through path validation, preview/apply gates, patch records, and optional Godot validation.
 
 LLM-driven game synthesis is the primary path. Deterministic prototype builders
 exist only as internal bootstrap fallbacks for smoke tests and initial
@@ -276,6 +279,7 @@ node /path/to/GodotCoder/dist/cli.js auth logout --provider openai
 ```
 
 Auth stores API keys in `.godotcoder.local/secrets.json`, ignored by git. Environment variables still win over local secrets when both exist.
+For LM Studio servers with authentication enabled, use `LM_API_TOKEN` or `auth login --provider lmstudio`.
 
 Applied build runs record changes under:
 
@@ -316,6 +320,7 @@ node /path/to/GodotCoder/dist/cli.js runtime use flatpak run org.godotengine.God
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
+node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply
 ```

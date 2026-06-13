@@ -190,5 +190,6 @@ function defaultBaseUrl(provider: ModelProviderKind): string | null {
 function defaultApiKeyEnv(provider: ModelProviderKind): string | null {
   if (provider === "openai") return "OPENAI_API_KEY";
   if (provider === "anthropic") return "ANTHROPIC_API_KEY";
+  if (provider === "lmstudio") return "LM_API_TOKEN";
   return null;
 }

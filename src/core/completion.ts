@@ -140,7 +140,7 @@ export function completeSessionLine(line: string): [string[], string] {
 
 function completeFlags(command: string, token: string, line: string): [string[], string] {
   const flagsByCommand: Record<string, readonly string[]> = {
-    "/build": ["--preview", "--apply", "--yes", "--no-validate"],
+    "/build": ["--llm", "--preview", "--apply", "--yes", "--no-validate"],
     "/preview": ["--no-validate"],
     "/harness": ["--apply", "--json", "--llm", "--repair"],
     "/run": ["--apply", "--json", "--llm", "--repair"],

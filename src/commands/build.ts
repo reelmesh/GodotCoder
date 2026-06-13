@@ -1,6 +1,7 @@
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
 import { tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { selectBuilder } from "../core/builders/index.js";
+import { applyLlmBuild, generateLlmBuild } from "../core/llm-build.js";
 import { validateProjectRoot } from "./validate.js";
 import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
 import { previewGeneratedFiles } from "../core/preview.js";
@@ -9,17 +10,21 @@ export async function buildProject(args: string[]): Promise<void> {
   const json = args.includes("--json");
   const preview = args.includes("--preview");
   const apply = args.includes("--apply") || args.includes("--yes");
+  const llm = args.includes("--llm");
   const shouldValidate = !args.includes("--no-validate");
-  const prompt = args.filter((arg) => !["--json", "--no-validate", "--preview", "--apply", "--yes"].includes(arg)).join(" ").trim();
+  const prompt = args.filter((arg) => !["--json", "--llm", "--no-validate", "--preview", "--apply", "--yes"].includes(arg)).join(" ").trim();
   const existingRoot = await tryFindGodotProjectRoot(process.cwd());
   const projectRoot = existingRoot ?? process.cwd();
   const scaffold = await ensureGreenfieldGodotProject(projectRoot, prompt || "GodotCoder Game");
   const builder = selectBuilder(prompt);
+  const plan = llm ? await generateLlmBuild(projectRoot, prompt || "build requested game feature") : null;
+  const summary = plan?.summary ?? builder.summary;
+  const files = plan?.files ?? builder.generateFiles();
 
   if (preview || !apply) {
-    const buildPreview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
+    const buildPreview = await previewGeneratedFiles(projectRoot, summary, files);
     if (json) {
-      console.log(JSON.stringify({ ok: true, mode: "preview", scaffold, preview: buildPreview }, null, 2));
+      console.log(JSON.stringify({ ok: true, mode: "preview", source: llm ? "llm" : "deterministic", scaffold, preview: buildPreview, model: plan?.reply ? { provider: plan.reply.provider, model: plan.reply.model } : null }, null, 2));
       return;
     }
 
@@ -31,7 +36,7 @@ export async function buildProject(args: string[]): Promise<void> {
     return;
   }
 
-  const result = await builder.build(projectRoot);
+  const result = plan ? await applyLlmBuild(projectRoot, plan) : await builder.build(projectRoot);
   let changeRecord = await writeChangeRecord(projectRoot, {
     kind: "build",
     status: "applied",
@@ -51,7 +56,7 @@ export async function buildProject(args: string[]): Promise<void> {
   }
 
   if (json) {
-    console.log(JSON.stringify({ ok: validationReport ? validationReport.summary.errors === 0 : true, scaffold, result, changeRecord, validationReport, validationReportPath }, null, 2));
+    console.log(JSON.stringify({ ok: validationReport ? validationReport.summary.errors === 0 : true, source: llm ? "llm" : "deterministic", scaffold, result, changeRecord, validationReport, validationReportPath }, null, 2));
   } else {
     if (scaffold.createdProjectFile) {
       console.log("No project.godot found. Created a minimal greenfield Godot project.");

@@ -254,14 +254,14 @@ function printSessionHelp(): void {
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);
-  console.log(`${color("/preview <task>", "cyan").padEnd(22)} Preview first playable changes`);
-  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes and store pending approval`);
+  console.log(`${color("/preview <task>", "cyan").padEnd(22)} Preview controlled build changes`);
+  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes; add --llm for model generation`);
   console.log(`${color("/apply", "cyan").padEnd(22)} Apply pending build preview`);
   console.log(`${color("/reject", "cyan").padEnd(22)} Reject pending build preview`);
   console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);
   console.log(`${color("/exit", "cyan").padEnd(22)} Quit`);
   console.log(separator());
-  console.log(color("Natural-language prompts in plan mode create/update planning artifacts. Model-backed generation is the next slice.", "gray"));
+  console.log(color("Natural-language prompts in build mode preview controlled patches. Add --llm to use configured model.", "gray"));
 }
 
 function printPlanningPlaceholder(idea: string): void {
@@ -330,7 +330,7 @@ function printPromptPlaceholder(prompt: string, state: SessionState): void {
   const label = state.mode === "build" ? color("Build prompt", "green") : color("Plan prompt", "yellow");
   console.log(label);
   console.log(`Captured prompt: ${prompt}`);
-  console.log(color("Model-backed build chat is not wired yet.", "gray"));
+  console.log(color("Use /build <task> --llm for controlled model-backed file generation.", "gray"));
   console.log(color("Use /status, /runtime doctor, /inspect, or /validate for implemented workflows.", "gray"));
 }
 

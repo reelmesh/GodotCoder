@@ -26,7 +26,7 @@ export async function homeCommand(args: string[] = []): Promise<void> {
         { value: "status", label: "Status", description: "workspace and runtime summary" },
         { value: "pipeline", label: "Make game", description: "idea to playable validated slice" },
         { value: "plan", label: "Plan game", description: "brief, GDD, tasks, risks" },
-        { value: "build", label: "Build preview", description: "greenfield or brownfield first playable" },
+        { value: "build", label: "Build preview", description: "greenfield or brownfield controlled patch" },
         { value: "apply", label: "Build and apply", description: "write files and validate" },
         { value: "play", label: "Play game", description: "launch with configured Godot runtime" },
         { value: "harness", label: "Agent harness", description: "directed multi-agent workflow" },

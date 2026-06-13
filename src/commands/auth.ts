@@ -47,6 +47,7 @@ async function loginFromMenu(rl: Interface, projectRoot: string): Promise<void> 
   const provider = (await chooseMenuOption(rl, "Provider", [
     { value: "openai", label: "OpenAI" },
     { value: "anthropic", label: "Anthropic" },
+    { value: "lmstudio", label: "LM Studio" },
     { value: "openai-compatible", label: "OpenAI-compatible" },
   ])) as ModelProviderKind | null;
   if (!provider) return;
@@ -64,6 +65,7 @@ async function logoutFromMenu(rl: Interface, projectRoot: string): Promise<void>
   const provider = (await chooseMenuOption(rl, "Provider", [
     { value: "openai", label: "OpenAI" },
     { value: "anthropic", label: "Anthropic" },
+    { value: "lmstudio", label: "LM Studio" },
     { value: "openai-compatible", label: "OpenAI-compatible" },
   ])) as ModelProviderKind | null;
   if (!provider) return;
@@ -101,7 +103,7 @@ async function login(args: string[]): Promise<void> {
   const provider = parseProvider(readFlag(args, "--provider"));
   const apiKey = readFlag(args, "--api-key");
   if (!provider || !apiKey) {
-    console.log("Usage: godotcoder auth login --provider <openai|anthropic|openai-compatible> --api-key <key>");
+    console.log("Usage: godotcoder auth login --provider <openai|anthropic|lmstudio|openai-compatible> --api-key <key>");
     return;
   }
 
@@ -120,7 +122,7 @@ async function logout(args: string[]): Promise<void> {
   const json = args.includes("--json");
   const provider = parseProvider(readFlag(args, "--provider"));
   if (!provider) {
-    console.log("Usage: godotcoder auth logout --provider <openai|anthropic|openai-compatible>");
+    console.log("Usage: godotcoder auth logout --provider <openai|anthropic|lmstudio|openai-compatible>");
     return;
   }
 
@@ -141,7 +143,7 @@ function readFlag(args: string[], flag: string): string | null {
 }
 
 function parseProvider(value: string | null): ModelProviderKind | null {
-  if (value === "openai" || value === "anthropic" || value === "openai-compatible") {
+  if (value === "openai" || value === "anthropic" || value === "lmstudio" || value === "openai-compatible") {
     return value;
   }
   return null;
