@@ -10,6 +10,7 @@ import { askModel, modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
 import { pipelineCommand } from "./pipeline.js";
 import { playCommand } from "./play.js";
+import { repairCommand } from "./repair.js";
 import { runtimeCommand, runtimeDoctor } from "./runtime.js";
 import { runsCommand } from "./runs.js";
 import { setupCommand } from "./setup.js";
@@ -164,6 +165,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await validateProject(args);
         printStatusHint(state);
         return;
+      case "/repair":
+        await repairCommand(args);
+        printStatusHint(state);
+        return;
       case "/preview":
         state.mode = "build";
         await runBuildPreview(args.join(" "), state);
@@ -204,7 +209,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /make  /play  /help  /setup  /settings  /auth  /models  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /help  /setup  /settings  /auth  /models  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -245,6 +250,7 @@ function printSessionHelp(): void {
   console.log(`${color("/inspect", "cyan").padEnd(22)} Inspect project.godot and project files`);
   console.log(`${color("/validate", "cyan").padEnd(22)} Run Godot-backed validation`);
   console.log(`${color("/check", "cyan").padEnd(22)} Alias for /validate`);
+  console.log(`${color("/repair", "cyan").padEnd(22)} Validate, apply deterministic repair, and revalidate`);
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);

@@ -15,6 +15,7 @@ This repository currently contains the first implementation slice:
 - Runtime override selection: `godotcoder runtime use <godot command>`
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
+- Standalone deterministic repair: `godotcoder repair`
 - Agent roster: `godotcoder agents`
 - Settings area: `godotcoder settings`
 - Local auth area: `godotcoder auth`
@@ -108,6 +109,7 @@ Available slash commands:
 /doctor
 /inspect
 /validate
+/repair
 /check
 /mode plan
 /mode build
@@ -184,6 +186,15 @@ types, `OS.get_ticks_*`, `deg2rad`, `rad2deg`, `linear2db`, `db2linear`,
 ```bash
 node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --no-repair
 ```
+
+You can also run the repair loop directly on an existing project:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js repair
+node /path/to/GodotCoder/dist/cli.js repair --json
+```
+
+Standalone repair validates the current Godot project, applies known deterministic fixes when possible, writes a repair record, and re-runs Godot validation. It is intended for brownfield cleanup as well as pipeline recovery.
 
 Harness workflow runs a BMAD-style Godot agent sequence:
 

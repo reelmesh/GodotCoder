@@ -28,6 +28,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder runtime use <godot command>`
 - `godotcoder inspect`
 - `godotcoder validate`
+- `godotcoder repair`
 - `godotcoder plan <idea>`
 - `godotcoder build <task>`
 - `godotcoder pipeline <game idea>`
@@ -75,6 +76,7 @@ Core modules:
 - Home menu and run-history browser for the main CLI workflow.
 - Slash command completion and menu type-to-jump support.
 - Bounded deterministic repair loop after failed pipeline validation.
+- Standalone repair command for validating, repairing, recording, and revalidating an existing Godot project.
 - Repair records under `.godotcoder/repairs/<repair-id>.json`.
 - Missing `res://...gd` script repair rule that creates a minimal placeholder script, writes a repair patch record, and re-runs Godot validation.
 - Godot 3 to Godot 4 GDScript migration repair rule for `export var`, `Pool*Array`, `OS.get_ticks_*`, `deg2rad`, `rad2deg`, `linear2db`, `db2linear`, `instance()`, and simple `yield(owner, "signal")` calls.
@@ -205,6 +207,14 @@ node dist/cli.js pipeline "make a 2d platformer with coins" --json
 ```
 
 The project intentionally had an autoload script using Godot 3 syntax and APIs: `export var`, `PoolVector2Array`, `OS.get_ticks_msec`, and `deg2rad`. Initial validation failed with parse/load errors. The repair loop migrated the script to Godot 4 equivalents and post-repair validation returned zero errors and zero warnings.
+
+A standalone repair command under `/tmp/godotcoder-repair-command-smoke` verified:
+
+```bash
+node dist/cli.js repair --json
+```
+
+The project intentionally had an autoload script using Godot 3 syntax and APIs: `export var`, `PoolVector2Array`, and `OS.get_ticks_msec`. Initial validation reported three errors. The standalone repair command migrated the script to Godot 4 equivalents, wrote a repair record, and post-repair validation returned zero errors and zero warnings.
 
 Model provider flow verified without requiring live credentials:
 

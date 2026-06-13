@@ -6,6 +6,7 @@ import { modelsCommand } from "./models.js";
 import { planProject } from "./plan.js";
 import { pipelineCommand } from "./pipeline.js";
 import { playCommand } from "./play.js";
+import { repairCommand } from "./repair.js";
 import { runHarnessCommand } from "./harness.js";
 import { runtimeCommand } from "./runtime.js";
 import { runsCommand } from "./runs.js";
@@ -31,6 +32,7 @@ export async function homeCommand(args: string[] = []): Promise<void> {
         { value: "harness", label: "Agent harness", description: "directed multi-agent workflow" },
         { value: "runs", label: "Run history", description: "inspect previous harness runs" },
         { value: "validate", label: "Validate", description: "Godot-backed project check" },
+        { value: "repair", label: "Repair", description: "validate, repair, revalidate" },
         { value: "inspect", label: "Inspect project", description: "project.godot, scenes, scripts, exports" },
         { value: "models", label: "Models", description: "configure/test LLM provider" },
         { value: "auth", label: "Auth", description: "save/remove local API keys" },
@@ -51,6 +53,7 @@ export async function homeCommand(args: string[] = []): Promise<void> {
         if (choice === "harness") await promptAndRun(rl, "Harness goal", (prompt) => runHarnessCommand(prompt.split(/\s+/).filter(Boolean)));
         if (choice === "runs") await runsCommand(["--embedded"]);
         if (choice === "validate") await validateProject([]);
+        if (choice === "repair") await repairCommand([]);
         if (choice === "inspect") await inspectProject([]);
         if (choice === "models") await modelsCommand([]);
         if (choice === "auth") await authCommand([]);
