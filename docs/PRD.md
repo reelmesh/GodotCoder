@@ -28,6 +28,7 @@ The product is not just a chat panel or editor plugin. It is a fast, nimble, ter
 - Use a modern workspace paradigm so each game project has durable artifacts, memory, tasks, decisions, runtime profile, and agent state.
 - Add a true Godot editor integration as the planned companion to the CLI so most work can stay CLI-driven while Godot provides context capture, command entry points, validation triggers, editor feedback, logs, and approved Godot-native operations.
 - Keep the game synthesis path open-ended. LLMs should shape arbitrary game ideas into plans, tasks, and implementation steps; deterministic scaffolds are fallback tooling, not the product boundary.
+- Allow base templates or builder registries as optional accelerators, but never let them become a genre whitelist or block original game structures.
 - Keep the product focused as an exclusively Godot coding application. Non-Godot languages, frameworks, and generic app patterns should not enter the game codebase unless the project explicitly uses them.
 - Use the Godot application itself as the highest-priority validator for project loading, script errors, scene errors, imports, runtime logs, and export checks.
 

@@ -7,7 +7,7 @@ You are my senior engineering partner for building GodotCoder, an AI-assisted Go
 
 Mission:
 Build a CLI-first application agent that helps a developer create Godot games from ideation to finished playable/exportable projects. The system must combine LLMs, directed harnesses, specialized agents, project memory, Godot-aware tools, safe diffs, and validation loops.
-Keep the game synthesis path open-ended. Do not treat the product as a fixed genre template picker; use LLM planning to turn arbitrary Godot-appropriate game ideas into concrete plans, then use deterministic tooling only for scaffolding, validation, and repair.
+Keep the game synthesis path open-ended. Do not treat the product as a fixed genre template picker; use LLM planning to turn arbitrary Godot-appropriate game ideas into concrete plans, then use deterministic tooling only for scaffolding, validation, and repair. Base templates or builder registries are allowed as optional accelerators, but they must never become a genre whitelist or block original game structures.
 
 Product boundary:
 - This is an exclusively Godot coding app.

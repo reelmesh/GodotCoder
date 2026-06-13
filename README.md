@@ -246,7 +246,8 @@ Model output is advisory in this slice. It does not directly write game files.
 
 LLM-driven game synthesis is the primary path. Deterministic prototype builders
 exist only as internal bootstrap fallbacks for smoke tests and initial
-scaffolding; they are not the product’s model for what games are allowed.
+scaffolding; they are optional accelerators, not a genre whitelist or limit on
+original game structures.
 
 Guided setup:
 
