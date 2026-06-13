@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathExists } from "./files.js";
 import { type RuntimeProfile } from "./runtime-profile.js";
@@ -7,7 +7,7 @@ import { workspacePaths } from "./workspace.js";
 import { updateChangeRecordValidation, writeChangeRecord, writeTrackedFile, type FileChange } from "./change-records.js";
 
 export interface RepairAction {
-  type: "create-missing-script" | "record-diagnosis";
+  type: "create-missing-script" | "apply-godot4-migration" | "record-diagnosis";
   status: "applied" | "skipped";
   finding: ValidationFinding;
   path: string | null;
@@ -36,6 +36,9 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
 
   const actions: RepairAction[] = [];
   const changes: FileChange[] = [];
+  const errorFindings = validation.findings.filter((item) => item.severity === "error");
+  const handledFindings = new Set<number>();
+  const createdMissingScripts = new Set<string>();
 
   if (validation.summary.errors === 0) {
     const attempt = createAttempt(id, validation.id, "not-needed", "Validation passed; no repair needed.", startedAt, actions, null, null);
@@ -43,18 +46,16 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
     return { attempt, attemptPath };
   }
 
-  for (const finding of validation.findings.filter((item) => item.severity === "error")) {
+  for (const [findingIndex, finding] of errorFindings.entries()) {
     const scriptPath = await missingScriptPath(projectRoot, finding);
     if (!scriptPath) {
-      actions.push({
-        type: "record-diagnosis",
-        status: "skipped",
-        finding,
-        path: finding.file,
-        summary: "No deterministic repair rule matched this finding.",
-      });
       continue;
     }
+    handledFindings.add(findingIndex);
+    if (createdMissingScripts.has(scriptPath)) {
+      continue;
+    }
+    createdMissingScripts.add(scriptPath);
 
     const relativePath = scriptPath.slice("res://".length);
     const change = await writeTrackedFile(projectRoot, relativePath, placeholderScript(scriptPath));
@@ -65,6 +66,39 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
       finding,
       path: scriptPath,
       summary: `Created missing GDScript placeholder at ${scriptPath}.`,
+    });
+  }
+
+  const migrationFinding = errorFindings.find((finding) => finding.file?.endsWith(".gd")) ?? errorFindings[0] ?? null;
+  if (migrationFinding) {
+    const migrations = await applyGodot4Migrations(projectRoot);
+    for (const migration of migrations) {
+      changes.push(migration.change);
+      actions.push({
+        type: "apply-godot4-migration",
+        status: "applied",
+        finding: migrationFinding,
+        path: migration.change.path,
+        summary: migration.summary,
+      });
+    }
+    for (const [findingIndex, finding] of errorFindings.entries()) {
+      if (migrations.some((migration) => findingMentionsPath(finding, migration.change.path)) || finding.subsystem === "script") {
+        handledFindings.add(findingIndex);
+      }
+    }
+  }
+
+  for (const [findingIndex, finding] of errorFindings.entries()) {
+    if (handledFindings.has(findingIndex)) {
+      continue;
+    }
+    actions.push({
+      type: "record-diagnosis",
+      status: "skipped",
+      finding,
+      path: finding.file,
+      summary: "No deterministic repair rule matched this finding.",
     });
   }
 
@@ -139,6 +173,103 @@ async function missingScriptPath(projectRoot: string, finding: ValidationFinding
     }
   }
   return null;
+}
+
+async function applyGodot4Migrations(projectRoot: string): Promise<Array<{ change: FileChange; summary: string }>> {
+  const migrated: Array<{ change: FileChange; summary: string }> = [];
+  const scripts = await collectGdScripts(projectRoot);
+
+  for (const relativePath of scripts) {
+    const absolutePath = path.join(projectRoot, relativePath);
+    const before = await readFile(absolutePath, "utf8");
+    const result = migrateGdscriptText(before);
+    if (result.contents === before) {
+      continue;
+    }
+
+    const change = await writeTrackedFile(projectRoot, relativePath, result.contents);
+    migrated.push({
+      change,
+      summary: `Applied Godot 4 migration fixes in res://${relativePath}: ${result.descriptions.join(", ")}.`,
+    });
+  }
+
+  return migrated;
+}
+
+async function collectGdScripts(projectRoot: string): Promise<string[]> {
+  const results: string[] = [];
+
+  async function walk(relativeDir: string): Promise<void> {
+    const absoluteDir = path.join(projectRoot, relativeDir);
+    let entries;
+    try {
+      entries = await readdir(absoluteDir, { withFileTypes: true });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "EACCES" || code === "EPERM" || code === "ENOENT") {
+        return;
+      }
+      throw error;
+    }
+
+    for (const entry of entries) {
+      if (entry.name === ".godot" || entry.name === ".godotcoder" || entry.name === ".godotcoder.local" || entry.name === ".git") {
+        continue;
+      }
+
+      const relativePath = path.join(relativeDir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(relativePath);
+      } else if (entry.name.endsWith(".gd")) {
+        results.push(relativePath.split(path.sep).join("/"));
+      }
+    }
+  }
+
+  await walk("");
+  return results.sort();
+}
+
+function migrateGdscriptText(source: string): { contents: string; descriptions: string[] } {
+  let contents = source;
+  const descriptions: string[] = [];
+
+  const replace = (pattern: RegExp, replacement: string, description: string) => {
+    const next = contents.replace(pattern, replacement);
+    if (next !== contents) {
+      contents = next;
+      descriptions.push(description);
+    }
+  };
+
+  replace(/\bPoolByteArray\b/g, "PackedByteArray", "PoolByteArray -> PackedByteArray");
+  replace(/\bPoolColorArray\b/g, "PackedColorArray", "PoolColorArray -> PackedColorArray");
+  replace(/\bPoolIntArray\b/g, "PackedInt32Array", "PoolIntArray -> PackedInt32Array");
+  replace(/\bPoolRealArray\b/g, "PackedFloat32Array", "PoolRealArray -> PackedFloat32Array");
+  replace(/\bPoolStringArray\b/g, "PackedStringArray", "PoolStringArray -> PackedStringArray");
+  replace(/\bPoolVector2Array\b/g, "PackedVector2Array", "PoolVector2Array -> PackedVector2Array");
+  replace(/\bPoolVector3Array\b/g, "PackedVector3Array", "PoolVector3Array -> PackedVector3Array");
+  replace(/\bOS\.get_ticks_msec\(\)/g, "Time.get_ticks_msec()", "OS.get_ticks_msec -> Time.get_ticks_msec");
+  replace(/\bOS\.get_ticks_usec\(\)/g, "Time.get_ticks_usec()", "OS.get_ticks_usec -> Time.get_ticks_usec");
+  replace(/\bdeg2rad\(/g, "deg_to_rad(", "deg2rad -> deg_to_rad");
+  replace(/\brad2deg\(/g, "rad_to_deg(", "rad2deg -> rad_to_deg");
+  replace(/\blinear2db\(/g, "linear_to_db(", "linear2db -> linear_to_db");
+  replace(/\bdb2linear\(/g, "db_to_linear(", "db2linear -> db_to_linear");
+  replace(/\.instance\(\)/g, ".instantiate()", "instance() -> instantiate()");
+  replace(/(^|\n)([ \t]*)export\s+var\s+/g, "$1$2@export var ", "export var -> @export var");
+  replace(/(^|\n)([ \t]*)export\([^)\n]+\)\s+var\s+/g, "$1$2@export var ", "export(...) var -> @export var");
+  replace(/\byield\(([^,\n]+),\s*"([A-Za-z0-9_]+)"\)/g, "await $1.$2", "yield(signal_owner, signal) -> await signal_owner.signal");
+
+  return {
+    contents,
+    descriptions: Array.from(new Set(descriptions)),
+  };
+}
+
+function findingMentionsPath(finding: ValidationFinding, resourcePath: string): boolean {
+  const haystack = `${finding.file ?? ""}\n${finding.message}\n${finding.raw}`;
+  return haystack.includes(resourcePath);
 }
 
 function placeholderScript(_resourcePath: string): string {

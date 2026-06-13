@@ -76,6 +76,7 @@ Core modules:
 - Bounded deterministic repair loop after failed pipeline validation.
 - Repair records under `.godotcoder/repairs/<repair-id>.json`.
 - Missing `res://...gd` script repair rule that creates a minimal placeholder script, writes a repair patch record, and re-runs Godot validation.
+- Godot 3 to Godot 4 GDScript migration repair rule for `export var`, `Pool*Array`, `OS.get_ticks_*`, `deg2rad`, `rad2deg`, `linear2db`, `db2linear`, `instance()`, and simple `yield(owner, "signal")` calls.
 - Millisecond artifact IDs for run, patch, validation, and repair records to avoid collisions during fast pipeline loops.
 
 Note: in a greenfield folder, preview may create the minimal Godot scaffold first so there is a valid project context. It does not apply the larger build changes or write patch records until `--apply`.
@@ -195,6 +196,14 @@ node dist/cli.js pipeline "make a 2d asteroid shooter" --json
 
 The project intentionally referenced a missing autoload script at `res://scripts/missing_service.gd`. Initial Godot validation reported three errors. The repair loop created a placeholder script, wrote a repair record and patch record, re-ran Godot validation, and finished with zero errors and zero warnings.
 
+A Godot 4 migration repair under `/tmp/godotcoder-migration-smoke` verified:
+
+```bash
+node dist/cli.js pipeline "make a 2d platformer with coins" --json
+```
+
+The project intentionally had an autoload script using Godot 3 syntax and APIs: `export var`, `PoolVector2Array`, `OS.get_ticks_msec`, and `deg2rad`. Initial validation failed with parse/load errors. The repair loop migrated the script to Godot 4 equivalents and post-repair validation returned zero errors and zero warnings.
+
 Model provider flow verified without requiring live credentials:
 
 ```bash
@@ -227,5 +236,5 @@ Recommended next implementation slice:
 1. Add more first-playable builders and builder capability metadata.
 2. Promote provider/model layer from advisory output to controlled agent task execution.
 3. Add official Godot docs source interface.
-4. Expand repair rules for parse errors, missing resources, scene load failures, and common Godot 4 API migrations.
+4. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
 5. Improve `project.godot` parsing for nested sections and typed values.

@@ -170,9 +170,16 @@ Use preview mode when you want to inspect first:
 node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --preview
 ```
 
-Pipeline repair is enabled by default. The first repair rule creates missing `.gd`
-script placeholders for broken `res://...gd` references, records the repair under
-`.godotcoder/repairs/`, then re-runs Godot validation. Disable this with:
+Pipeline repair is enabled by default. Current deterministic repair rules:
+
+- create missing `.gd` script placeholders for broken `res://...gd` references,
+- migrate common Godot 3 GDScript APIs to Godot 4 names,
+- record the repair under `.godotcoder/repairs/`,
+- re-run Godot validation.
+
+The Godot 4 migration pass currently covers old `export var` syntax, `Pool*Array`
+types, `OS.get_ticks_*`, `deg2rad`, `rad2deg`, `linear2db`, `db2linear`,
+`instance()`, and simple `yield(owner, "signal")` calls. Disable repair with:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --no-repair
