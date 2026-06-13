@@ -45,26 +45,22 @@ export async function startSession(): Promise<void> {
     return;
   }
 
-  const rl = readline.createInterface({ input, output, completer: sessionCompleter });
-
-  try {
-    while (true) {
-      const line = (await rl.question(promptLabel(state))).trim();
-      if (!line) continue;
-
-      if (line === "/exit" || line === "/quit") {
-        break;
-      }
-
-      rl.pause();
-      try {
-        await handleSessionLine(line, state);
-      } finally {
-        rl.resume();
-      }
+  while (true) {
+    const rl = readline.createInterface({ input, output, completer: sessionCompleter });
+    let line: string;
+    try {
+      line = (await rl.question(promptLabel(state))).trim();
+    } finally {
+      rl.close();
     }
-  } finally {
-    rl.close();
+
+    if (!line) continue;
+
+    if (line === "/exit" || line === "/quit") {
+      break;
+    }
+
+    await handleSessionLine(line, state);
   }
 }
 

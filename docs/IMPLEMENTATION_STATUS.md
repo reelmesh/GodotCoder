@@ -47,7 +47,7 @@ Core modules:
 - User settings in `.godotcoder.local/user-settings.json`.
 - Interactive menu-first settings UI in TTY sessions.
 - Bracketed `[*]` menu selection with arrow-key navigation and `space`/`enter` accept.
-- Nested menu text prompts use isolated readline input so typed characters are not echoed twice.
+- Nested menu text prompts keep one active readline owner so typed characters are not echoed twice.
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - LM Studio bearer token support through `LM_API_TOKEN` or `auth login --provider lmstudio`.
 - LM Studio base URLs accept either full URLs or bare `host:port` values, normalizing bare values to `http://host:port`.
