@@ -30,16 +30,29 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
 
   const projectIndex = await inspectGodotProject(projectRoot);
   const artifacts = await readPlanningContext(projectRoot);
-  const reply = await completeWithModel(config, [
-    { role: "system", content: `${modelSystemPrompt()}\n\nReturn only JSON. No markdown fences. No prose outside JSON.` },
+  const messages = [
+    { role: "system" as const, content: `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.` },
     {
-      role: "user",
+      role: "user" as const,
       content: buildPrompt({ prompt, projectIndex, artifacts }),
     },
-  ], projectRoot);
-
-  const parsed = parseLlmBuildReply(reply.content);
-  return { ...parsed, reply };
+  ];
+  let reply = await completeWithModel(config, messages, projectRoot);
+  let parsed = parseLlmBuildReply(reply.content);
+  if (!parsed.ok) {
+    reply = await completeWithModel(config, [
+      { role: "system", content: "Return only valid JSON. No prose. No markdown. First character must be { and last character must be }." },
+      {
+        role: "user",
+        content: buildRetryPrompt({ prompt, projectIndex, parseError: parsed.error }),
+      },
+    ], projectRoot);
+    parsed = parseLlmBuildReply(reply.content);
+  }
+  if (!parsed.ok) {
+    throw new CliError("MODEL_OUTPUT_INVALID", parsed.error);
+  }
+  return { summary: parsed.summary, files: parsed.files, reply };
 }
 
 export async function applyLlmBuild(projectRoot: string, plan: LlmBuildPlan): Promise<LlmBuildResult> {
@@ -56,34 +69,50 @@ export async function applyLlmBuild(projectRoot: string, plan: LlmBuildPlan): Pr
   };
 }
 
-function parseLlmBuildReply(content: string): Omit<LlmBuildPlan, "reply"> {
+function parseLlmBuildReply(content: string): { ok: true; summary: string; files: GeneratedFile[] } | { ok: false; error: string } {
   let json: unknown;
   try {
-    json = JSON.parse(extractJson(content));
+    json = parseJsonObject(content);
   } catch (error) {
-    throw new CliError("MODEL_OUTPUT_INVALID", `LLM build reply was not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+    return { ok: false, error: `LLM build reply was not valid JSON: ${error instanceof Error ? error.message : String(error)}` };
   }
-  const root = asObject(json, "LLM build reply");
-  const summary = asString(root.summary, "LLM build reply summary");
-  const rawFiles = Array.isArray(root.files) ? root.files : [];
-  if (rawFiles.length === 0) {
-    throw new CliError("MODEL_OUTPUT_INVALID", "LLM build reply must include at least one file.");
-  }
-  if (rawFiles.length > 16) {
-    throw new CliError("MODEL_OUTPUT_INVALID", "LLM build reply may include at most 16 files.");
-  }
-
-  const files = rawFiles.map((value, index) => {
-    const file = asObject(value, `LLM build reply files[${index}]`);
-    const relativePath = normalizeGeneratedPath(asString(file.path, `LLM build reply files[${index}].path`));
-    const contents = asString(file.contents, `LLM build reply files[${index}].contents`);
-    if (contents.length > 160_000) {
-      throw new CliError("MODEL_OUTPUT_INVALID", `${relativePath} is too large for one controlled build step.`);
+  try {
+    const root = asObject(json, "LLM build reply");
+    const summary = asString(root.summary, "LLM build reply summary");
+    const rawFiles = Array.isArray(root.files) ? root.files : [];
+    if (rawFiles.length === 0) {
+      throw new CliError("MODEL_OUTPUT_INVALID", "LLM build reply must include at least one file.");
     }
-    return { path: relativePath, contents };
-  });
+    if (rawFiles.length > 16) {
+      throw new CliError("MODEL_OUTPUT_INVALID", "LLM build reply may include at most 16 files.");
+    }
 
-  return { summary, files };
+    const files = rawFiles.map((value, index) => {
+      const file = asObject(value, `LLM build reply files[${index}]`);
+      const relativePath = normalizeGeneratedPath(asString(file.path, `LLM build reply files[${index}].path`));
+      const contents = readGeneratedContents(file, index);
+      if (contents.length > 160_000) {
+        throw new CliError("MODEL_OUTPUT_INVALID", `${relativePath} is too large for one controlled build step.`);
+      }
+      return { path: relativePath, contents };
+    });
+
+    return { ok: true, summary, files };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+function readGeneratedContents(file: Record<string, unknown>, index: number): string {
+  if (typeof file.contents === "string") {
+    return file.contents;
+  }
+
+  if (Array.isArray(file.lines)) {
+    return file.lines.map((line, lineIndex) => asString(line, `LLM build reply files[${index}].lines[${lineIndex}]`)).join("\n") + "\n";
+  }
+
+  throw new CliError("MODEL_OUTPUT_INVALID", `LLM build reply files[${index}] must include contents string or lines array.`);
 }
 
 function extractJson(content: string): string {
@@ -98,6 +127,27 @@ function extractJson(content: string): string {
   }
 
   return trimmed;
+}
+
+function parseJsonObject(content: string): unknown {
+  const extracted = extractJson(content);
+  try {
+    return JSON.parse(extracted);
+  } catch (firstError) {
+    try {
+      return JSON.parse(repairLooseJson(extracted));
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
+function repairLooseJson(value: string): string {
+  return value
+    .replace(/,\s*([}\]])/g, "$1")
+    .replace(/([{,]\s*)(summary|files|path|contents|lines)\s*:/g, '$1"$2":')
+    .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
+    .replace(/:\s*'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_match, inner: string) => `: "${inner.replace(/"/g, '\\"')}"`);
 }
 
 function normalizeGeneratedPath(value: string): string {
@@ -157,17 +207,62 @@ Return JSON exactly matching this shape:
   "files": [
     {
       "path": "scripts/example.gd",
-      "contents": "full file contents"
+      "lines": [
+        "extends Node2D",
+        "",
+        "func _ready() -> void:",
+        "\\tprint(\\"ready\\")"
+      ]
     }
   ]
 }
 
 Rules:
-- Return full file contents, not partial patches.
+- Return full file contents as a JSON array named "lines", one source line per JSON string.
+- Escape tabs as \\t and quotes as \\" inside JSON strings.
+- Do not put raw newline characters inside a JSON string.
+- Do not use markdown fences.
+- Do not return partial patches.
 - Use only Godot-native project files: .gd, .tscn, .tres, .gdshader, project.godot, export_presets.cfg, or small project metadata files.
 - Keep patch small enough to review.
 - Prefer GDScript.
 - No external dependencies.
 - No files under .godot, .godotcoder, .godotcoder.local, node_modules, or absolute paths.
 - Use Godot 4.3+ APIs.`;
+}
+
+function buildRetryPrompt(input: { prompt: string; projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>; parseError: string }): string {
+  return `Previous response failed validation: ${input.parseError}
+
+Generate a small Godot 4.3+ implementation for:
+${input.prompt}
+
+Current project:
+- Main scene: ${input.projectIndex.mainScene ?? "unknown"}
+- Scripts: ${input.projectIndex.scripts.join(", ") || "none"}
+
+Return exactly this JSON shape and nothing else:
+{
+  "summary": "short patch summary",
+  "files": [
+    {
+      "path": "scripts/main.gd",
+      "lines": [
+        "extends Node2D",
+        "",
+        "func _ready() -> void:",
+        "\\tprint(\\"ready\\")"
+      ]
+    }
+  ]
+}
+
+Rules:
+- First character of final answer must be {.
+- Last character of final answer must be }.
+- Use "lines", not "contents".
+- One source line per JSON string.
+- No markdown.
+- No explanation.
+- No reasoning in final message.`;
 }

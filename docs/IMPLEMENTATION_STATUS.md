@@ -42,6 +42,7 @@ Core modules:
 - Godot-specific agent roster with ownership boundaries and gates.
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
 - Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
+- Provider policy: GodotCoder uses the configured API/model exactly as provided; it does not load, download, unload, or manage local model lifecycle.
 - LM Studio provider defaults to `http://10.0.0.9:1234` and uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
@@ -266,6 +267,16 @@ node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game rea
 ```
 
 LM Studio chat uses typed `input` blocks, returns `output` arrays, and can include reasoning items. The provider parser extracts message content and ignores reasoning for controlled JSON parsing.
+
+Real LM Studio testing with `qwen/qwen3.6-27b` verified:
+
+```bash
+node dist/cli.js models use --provider lmstudio --model qwen/qwen3.6-27b --base-url 10.0.0.9:1234 --json
+node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --preview --json
+node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --apply --json
+```
+
+The small controlled build path generated model output, wrote `res://scripts/main.gd`, created a patch record, and Godot validation returned zero errors and zero warnings. Larger `pipeline --llm --preview` requests against the same model still fell back to the deterministic builder because the model did not return valid JSON for the full game request. The parser now accepts either `contents` strings or `lines` arrays, retries once with a stricter JSON-only prompt, and repairs common loose JSON shape errors before falling back.
 
 Controlled LLM harness/pipeline path verified with an LM Studio-compatible local server:
 

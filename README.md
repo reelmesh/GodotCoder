@@ -247,6 +247,8 @@ node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --l
 
 `harness --llm`, `pipeline --llm`, and `build --llm` can generate controlled Godot file changes. Writes still go through path validation, preview/apply gates, patch records, and optional Godot validation. If a configured model is unavailable during harness or pipeline runs, GodotCoder records the failed model step and falls back to the deterministic bootstrap builder.
 
+GodotCoder does not load, download, or unload local models. For local providers such as LM Studio or Ollama, start/load the model in that tool first, then point GodotCoder at the running API endpoint and model name.
+
 LLM-driven game synthesis is the primary path. Deterministic prototype builders
 exist only as internal bootstrap fallbacks for smoke tests and initial
 scaffolding; they are optional accelerators, not a genre whitelist or limit on
