@@ -4,6 +4,9 @@ import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
 import { asLiteral, asNullableNumber, asNullableString, asObject, asString, asStringArray } from "./schema.js";
 
+export type GodotConfigValue = string | number | boolean | null | string[] | Record<string, unknown>;
+type GodotConfig = Record<string, Record<string, GodotConfigValue>>;
+
 export interface ProjectIndex {
   schemaVersion: 1;
   projectRoot: string;
@@ -13,6 +16,14 @@ export interface ProjectIndex {
     runtimeVersion: string | null;
   };
   mainScene: string | null;
+  applicationName: string | null;
+  renderingMethod: string | null;
+  display: {
+    width: number | null;
+    height: number | null;
+    stretchMode: string | null;
+    stretchAspect: string | null;
+  };
   inputMap: string[];
   autoloads: string[];
   plugins: string[];
@@ -65,11 +76,17 @@ export async function inspectGodotProject(projectRoot: string): Promise<ProjectI
       runtimeVersion: null,
     },
     mainScene: stringValue(project.application?.run_main_scene),
+    applicationName: stringValue(project.application?.config_name),
+    renderingMethod: stringValue(project.rendering?.renderer_rendering_method),
+    display: {
+      width: numberValue(project.display?.window_size_viewport_width),
+      height: numberValue(project.display?.window_size_viewport_height),
+      stretchMode: stringValue(project.display?.window_stretch_mode),
+      stretchAspect: stringValue(project.display?.window_stretch_aspect),
+    },
     inputMap: Object.keys(project.input ?? {}),
     autoloads: Object.keys(project.autoload ?? {}),
-    plugins: Object.entries(project.editor_plugins ?? {})
-      .filter(([, value]) => String(value).includes("enabled"))
-      .map(([name]) => name),
+    plugins: arrayValue(project.editor_plugins?.enabled),
     scripts: files.filter((file) => file.endsWith(".gd")),
     scenes: files.filter((file) => file.endsWith(".tscn") || file.endsWith(".scn")),
     resources: files.filter((file) => file.endsWith(".tres") || file.endsWith(".res")),
@@ -131,6 +148,9 @@ export function parseProjectIndex(value: unknown): ProjectIndex {
       runtimeVersion: asNullableString(signals.runtimeVersion, "project index godotVersionSignals.runtimeVersion"),
     },
     mainScene: asNullableString(root.mainScene, "project index mainScene"),
+    applicationName: asNullableString(root.applicationName, "project index applicationName"),
+    renderingMethod: asNullableString(root.renderingMethod, "project index renderingMethod"),
+    display: parseProjectDisplay(root.display),
     inputMap: asStringArray(root.inputMap, "project index inputMap"),
     autoloads: asStringArray(root.autoloads, "project index autoloads"),
     plugins: asStringArray(root.plugins, "project index plugins"),
@@ -142,12 +162,24 @@ export function parseProjectIndex(value: unknown): ProjectIndex {
   };
 }
 
-function parseGodotConfig(text: string): Record<string, Record<string, string>> {
-  const sections: Record<string, Record<string, string>> = {};
+function parseProjectDisplay(value: unknown): ProjectIndex["display"] {
+  const display = asObject(value ?? {}, "project index display");
+  return {
+    width: asNullableNumber(display.width, "project index display.width"),
+    height: asNullableNumber(display.height, "project index display.height"),
+    stretchMode: asNullableString(display.stretchMode, "project index display.stretchMode"),
+    stretchAspect: asNullableString(display.stretchAspect, "project index display.stretchAspect"),
+  };
+}
+
+export function parseGodotConfig(text: string): GodotConfig {
+  const sections: GodotConfig = {};
   let currentSection = "root";
   sections[currentSection] = {};
 
-  for (const rawLine of text.split(/\r?\n/)) {
+  const lines = text.split(/\r?\n/);
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const rawLine = lines[lineIndex]!;
     const line = rawLine.trim();
     if (!line || line.startsWith(";")) {
       continue;
@@ -166,7 +198,12 @@ function parseGodotConfig(text: string): Record<string, Record<string, string>> 
     }
 
     const key = normalizeKey(line.slice(0, separator));
-    sections[currentSection]![key] = line.slice(separator + 1).trim();
+    let rawValue = line.slice(separator + 1).trim();
+    while (!isBalancedGodotValue(rawValue) && lineIndex + 1 < lines.length) {
+      lineIndex += 1;
+      rawValue += `\n${lines[lineIndex]!.trim()}`;
+    }
+    sections[currentSection]![key] = parseGodotValue(rawValue);
   }
 
   return sections;
@@ -214,24 +251,126 @@ function normalizeKey(key: string): string {
   return key.trim().replace(/\//g, "_");
 }
 
-function stringValue(value: string | undefined): string | null {
-  if (!value) return null;
-  return value.replace(/^"|"$/g, "");
+function stringValue(value: GodotConfigValue | undefined): string | null {
+  if (typeof value !== "string") return null;
+  return value;
 }
 
-function numberValue(value: string | undefined): number | null {
-  if (!value) return null;
-  const parsed = Number(value.replace(/^"|"$/g, ""));
+function numberValue(value: GodotConfigValue | undefined): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function arrayValue(value: string | undefined): string[] {
-  if (!value) return [];
+function arrayValue(value: GodotConfigValue | undefined): string[] {
+  if (Array.isArray(value)) return value;
+  return [];
+}
+
+function parseGodotValue(value: string): GodotConfigValue {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null") return null;
+
+  const numberMatch = value.match(/^-?\d+(?:\.\d+)?$/);
+  if (numberMatch) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  const packedStringArray = value.match(/^PackedStringArray\((.*)\)$/);
+  if (packedStringArray) {
+    return parseStringList(packedStringArray[1] ?? "");
+  }
+
+  const array = value.match(/^Array\((.*)\)$/);
+  if (array) {
+    return parseStringList(array[1] ?? "");
+  }
+
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return unquoteGodotString(value);
+  }
+
+  if (value.startsWith("{") && value.endsWith("}")) {
+    return parseGodotDictionary(value);
+  }
+
+  return value;
+}
+
+function isBalancedGodotValue(value: string): boolean {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of value) {
+    if (inString) {
+      escaped = char === "\\" && !escaped;
+      if (char === '"' && !escaped) inString = false;
+      if (char !== "\\") escaped = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === "{" || char === "[" || char === "(") depth += 1;
+    if (char === "}" || char === "]" || char === ")") depth -= 1;
+  }
+  return depth <= 0 && !inString;
+}
+
+function parseGodotDictionary(value: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const inner = value.slice(1, -1).trim();
+  for (const part of splitTopLevel(inner, ",")) {
+    const separator = part.indexOf(":");
+    if (separator === -1) continue;
+    const key = unquoteGodotString(part.slice(0, separator).trim());
+    result[key] = parseGodotValue(part.slice(separator + 1).trim());
+  }
+  return result;
+}
+
+function parseStringList(value: string): string[] {
+  return splitTopLevel(value, ",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => (item.startsWith('"') && item.endsWith('"') ? unquoteGodotString(item) : item));
+}
+
+function splitTopLevel(value: string, separator: string): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index]!;
+    if (inString) {
+      escaped = char === "\\" && !escaped;
+      if (char === '"' && !escaped) inString = false;
+      if (char !== "\\") escaped = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === "(" || char === "[" || char === "{") depth += 1;
+    if (char === ")" || char === "]" || char === "}") depth -= 1;
+    if (char === separator && depth === 0) {
+      parts.push(value.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parts.push(value.slice(start));
+  return parts;
+}
+
+function unquoteGodotString(value: string): string {
   const trimmed = value.trim();
-  if (!trimmed.startsWith("PackedStringArray(")) return [];
-  const inside = trimmed.slice("PackedStringArray(".length, -1);
-  return inside
-    .split(",")
-    .map((item) => item.trim().replace(/^"|"$/g, ""))
-    .filter(Boolean);
+  const raw = trimmed.startsWith('"') && trimmed.endsWith('"') ? trimmed.slice(1, -1) : trimmed;
+  return raw.replace(/\\"/g, '"').replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\\\/g, "\\");
 }

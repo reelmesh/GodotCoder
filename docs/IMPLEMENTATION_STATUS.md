@@ -57,7 +57,7 @@ Core modules:
 - Controlled LLM implementation through `build --llm`, `harness --llm`, and `pipeline --llm`.
 - Failed controlled harness/pipeline model attempts are recorded under `.godotcoder/model-failures/` with parse error, provider/model, and truncated raw model output for debugging.
 - Godot project root discovery.
-- Basic `project.godot` parsing.
+- Typed `project.godot` parsing for strings, numbers, booleans, dictionaries, `PackedStringArray`, slash keys, feature tags, main scene, app name, renderer, display settings, input map, autoloads, and enabled editor plugins.
 - Project index generation.
 - Export preset extraction from `export_presets.cfg` when present.
 - Runtime discovery for Flatpak and native Godot binaries.
@@ -298,4 +298,4 @@ Recommended next implementation slice:
 1. Expand open-ended game synthesis quality with stronger agent prompts and acceptance gates.
 2. Expand official Godot documentation retrieval beyond source metadata.
 3. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
-4. Improve `project.godot` parsing for nested sections and typed values.
+4. Add project.godot mutation helpers for safe input-map/project-setting edits.

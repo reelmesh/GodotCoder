@@ -405,7 +405,7 @@ Common local config files:
 Next implementation slices:
 
 1. Stronger LLM agent prompts and acceptance gates for open-ended game synthesis.
-2. Improved `project.godot` parsing.
+2. Safe project.godot mutation helpers for input maps and project settings.
 3. Expand official Godot documentation retrieval beyond source metadata.
 4. Godot editor integration prototype using subprocess JSON.
 5. Schema guards for change records and validation reports.
