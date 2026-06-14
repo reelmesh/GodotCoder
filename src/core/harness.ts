@@ -4,6 +4,7 @@ import { selectBuilder } from "./builders/index.js";
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
+import { writeDocsContext } from "./godot-docs.js";
 import { applyLlmBuild, generateLlmBuild, LlmBuildError, type LlmBuildPlan } from "./llm-build.js";
 import { writePlanningArtifacts } from "./planning.js";
 import { previewGeneratedFiles, type BuildPreview } from "./preview.js";
@@ -57,6 +58,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   await mkdir(paths.validationsDir, { recursive: true });
   await mkdir(paths.repairsDir, { recursive: true });
   await mkdir(paths.modelFailuresDir, { recursive: true });
+  await mkdir(paths.cacheDocsDir, { recursive: true });
 
   const rosterPath = await writeAgentRoster(projectRoot);
   steps.push({
@@ -87,6 +89,16 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     summary: "Updated brief, GDD, technical plan, tasks, decisions, and risks.",
     artifacts: planning.filesWritten,
     gates: ["core loop defined", "Godot 4.3+ + GDScript-first rule recorded", "validation requirement recorded"],
+  });
+
+  const docsContext = await writeDocsContext(projectRoot, goal);
+  steps.push({
+    id: "docs-context",
+    agent: "docs-librarian",
+    status: "done",
+    summary: `Selected ${docsContext.matches.length} official Godot docs sources for this run.`,
+    artifacts: [docsContext.path],
+    gates: ["official docs preferred", "docs sources labeled by URL"],
   });
 
   await writeBacklog(projectRoot, goal);

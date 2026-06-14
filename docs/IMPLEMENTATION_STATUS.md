@@ -43,6 +43,7 @@ Core modules:
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
 - Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
 - Provider policy: GodotCoder uses the configured API/model exactly as provided; it does not load, download, unload, or manage local model lifecycle.
+- Official Godot docs source interface with `docs search`, `docs list`, and explicit `docs cache <doc-id>`.
 - LM Studio provider defaults to `http://10.0.0.9:1234` and uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
@@ -70,6 +71,7 @@ Core modules:
 - Greenfield scaffolding for `project.godot`, `scenes/main.tscn`, and `scripts/main.gd`.
 - Deterministic planning artifact generation for brief, GDD, technical plan, tasks, decisions, and risk log.
 - Harness-generated backlog and durable run records under `.godotcoder/runs/`.
+- Harness-generated docs context under `.godotcoder/cache/docs/context.json`, with official Godot docs URLs and summaries selected by run goal.
 - Internal deterministic bootstrap fallbacks for a single-scene 2D asteroid shooter prototype and a single-scene 2D platformer prototype.
 - Open-ended game synthesis remains LLM-driven; deterministic fallbacks are for bootstrap and validation only.
 - `godotcoder build --llm` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
@@ -294,6 +296,6 @@ The preview run recorded `model-implementation` as done, `implementationSource: 
 Recommended next implementation slice:
 
 1. Expand open-ended game synthesis quality with stronger agent prompts and acceptance gates.
-2. Add official Godot docs source interface.
+2. Expand official Godot documentation retrieval beyond source metadata.
 3. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
 4. Improve `project.godot` parsing for nested sections and typed values.

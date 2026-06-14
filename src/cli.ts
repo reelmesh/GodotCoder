@@ -2,6 +2,7 @@
 
 import { buildProject } from "./commands/build.js";
 import { authCommand } from "./commands/auth.js";
+import { docsCommand } from "./commands/docs.js";
 import { showAgents } from "./commands/agents.js";
 import { runHarnessCommand } from "./commands/harness.js";
 import { homeCommand } from "./commands/home.js";
@@ -28,6 +29,7 @@ const commands: Record<string, CommandHandler> = {
   home: homeCommand,
   menu: homeCommand,
   auth: authCommand,
+  docs: docsCommand,
   setup: setupCommand,
   settings: settingsCommand,
   agents: showAgents,
@@ -89,6 +91,7 @@ Usage:
   godotcoder auth [--json]
   godotcoder auth login --provider <provider> --api-key <key>
   godotcoder auth logout --provider <provider>
+  godotcoder docs [search <query>|list|cache <doc-id>] [--json]
   godotcoder agents [--json]
   godotcoder models [--json]
   godotcoder models use --provider <provider> --model <model> [--base-url <url>] [--api-key-env <ENV>]

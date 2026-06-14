@@ -29,5 +29,6 @@ export function workspacePaths(projectRoot: string) {
     runsDir: path.join(workspaceRoot, "runs"),
     cacheDir: path.join(workspaceRoot, "cache"),
     cacheDocsDir: path.join(workspaceRoot, "cache", "docs"),
+    docsContext: path.join(workspaceRoot, "cache", "docs", "context.json"),
   };
 }

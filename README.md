@@ -20,12 +20,13 @@ This repository currently contains the first implementation slice:
 - Settings area: `godotcoder settings`
 - Local auth area: `godotcoder auth`
 - Model provider support: `godotcoder models`, `godotcoder ask`
+- Official Godot docs search/cache: `godotcoder docs`
 - Directed multi-agent harness: `godotcoder harness <game goal>`
 - First playable prototype build: `godotcoder build`
 - End-to-end playable pipeline: `godotcoder pipeline <game idea>`
 - Godot launch helper: `godotcoder play`
 
-Model-backed code generation is not trusted to write files yet. Current LLM support is advisory through configured providers; edits still go through deterministic preview/apply boundaries and Godot validation.
+Model-backed code generation can write controlled Godot files through preview/apply boundaries. All writes still go through path validation, patch records, and optional Godot validation.
 
 ## Design Direction
 
@@ -249,6 +250,16 @@ node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --l
 
 GodotCoder does not load, download, or unload local models. For local providers such as LM Studio or Ollama, start/load the model in that tool first, then point GodotCoder at the running API endpoint and model name.
 
+Use official Godot docs sources:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js docs search input
+node /path/to/GodotCoder/dist/cli.js docs list --json
+node /path/to/GodotCoder/dist/cli.js docs cache class-input
+```
+
+Harness and pipeline runs write a docs context artifact from trusted official Godot documentation sources. LLM build prompts include matching official docs links and summaries as primary grounding.
+
 LLM-driven game synthesis is the primary path. Deterministic prototype builders
 exist only as internal bootstrap fallbacks for smoke tests and initial
 scaffolding; they are optional accelerators, not a genre whitelist or limit on
@@ -359,6 +370,7 @@ Durable project artifacts:
   agent-memory.json
   runs/
   model-failures/
+  cache/docs/context.json
 ```
 
 Generated/local artifacts are ignored by default:
@@ -394,6 +406,6 @@ Next implementation slices:
 
 1. Stronger LLM agent prompts and acceptance gates for open-ended game synthesis.
 2. Improved `project.godot` parsing.
-3. Official Godot documentation source interface.
+3. Expand official Godot documentation retrieval beyond source metadata.
 4. Godot editor integration prototype using subprocess JSON.
 5. Schema guards for change records and validation reports.

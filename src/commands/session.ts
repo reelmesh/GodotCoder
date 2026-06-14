@@ -1,6 +1,7 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { authCommand } from "./auth.js";
+import { docsCommand } from "./docs.js";
 import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
 import { homeCommand } from "./home.js";
@@ -120,6 +121,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await showAgents(args);
         printStatusHint(state);
         return;
+      case "/docs":
+        await docsCommand(args);
+        printStatusHint(state);
+        return;
       case "/models":
         await modelsCommand(args);
         printStatusHint(state);
@@ -210,7 +215,7 @@ function printWelcome(state: SessionState): void {
   console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
   console.log(separator());
   console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /help  /setup  /settings  /auth  /models  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /help  /setup  /settings  /auth  /models  /docs  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -235,6 +240,7 @@ function printSessionHelp(): void {
   console.log(`${color("/auth", "cyan").padEnd(22)} Show local auth status`);
   console.log(`${color("/auth login", "cyan").padEnd(22)} Save provider API key locally`);
   console.log(`${color("/agents", "cyan").padEnd(22)} Show Godot-specific agent roster`);
+  console.log(`${color("/docs <query>", "cyan").padEnd(22)} Search trusted official Godot docs sources`);
   console.log(`${color("/models", "cyan").padEnd(22)} Show or configure model provider`);
   console.log(`${color("/runs", "cyan").padEnd(22)} Browse harness run history`);
   console.log(`${color("/history", "cyan").padEnd(22)} Alias for /runs`);

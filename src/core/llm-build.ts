@@ -3,6 +3,7 @@ import path from "node:path";
 import { writeTrackedFile, type FileChange } from "./change-records.js";
 import { CliError } from "./errors.js";
 import type { GeneratedFile } from "./builders/types.js";
+import { docsPromptContext } from "./godot-docs.js";
 import { inspectGodotProject } from "./godot-project.js";
 import { pathExists } from "./files.js";
 import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
@@ -229,6 +230,9 @@ Project:
 
 Planning artifacts:
 ${Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none"}
+
+Official Godot docs sources to prefer:
+${docsPromptContext(input.prompt)}
 
 Return JSON exactly matching this shape:
 {

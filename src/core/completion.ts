@@ -12,6 +12,7 @@ const commandNames = [
   "/auth",
   "/login",
   "/agents",
+  "/docs",
   "/models",
   "/runs",
   "/history",
@@ -46,6 +47,7 @@ const runtimeCommands = ["doctor", "use"] as const;
 const authCommands = ["login", "logout"] as const;
 const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "diffs", "init", "help"] as const;
 const modelsCommands = ["use"] as const;
+const docsCommands = ["search", "list", "cache"] as const;
 const runsCommands = ["list", "show", "help"] as const;
 
 export function completeSessionLine(line: string): [string[], string] {
@@ -120,6 +122,13 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(modelsCommands, currentToken, line);
   }
 
+  if (first === "/docs") {
+    if (parts.length === 2 && !endsWithSpace) {
+      return completeToken(docsCommands, second, line);
+    }
+    return completeToken(docsCommands, currentToken, line);
+  }
+
   if (first === "/runs" || first === "/history") {
     if (parts.length === 2 && !endsWithSpace) {
       return completeToken(runsCommands, second, line);
@@ -153,6 +162,7 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/chat": ["--json"],
     "/settings": ["--json"],
     "/auth": ["--json"],
+    "/docs": ["--json"],
     "/models": ["--json"],
     "/runs": ["--json"],
     "/history": ["--json"],
