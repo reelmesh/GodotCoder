@@ -370,6 +370,10 @@ node /path/to/GodotCoder/dist/cli.js build "build the first playable" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply
 ```
 
+Minimal Godot editor plugin scaffold lives under `addons/godotcoder/`. Add that
+folder to a Godot project, enable plugin in Project Settings, and point `Command`
+to the `godotcoder` binary or absolute CLI path.
+
 Machine-readable output:
 
 ```bash

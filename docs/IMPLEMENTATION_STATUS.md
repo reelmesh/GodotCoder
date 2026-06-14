@@ -36,6 +36,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder runs`
 - `godotcoder menu`
 - `godotcoder rpc <method>`
+- Minimal Godot editor plugin scaffold under `addons/godotcoder/` that shells out to `godotcoder rpc`.
 
 Core modules:
 - Godot 4.3+ runtime policy; Godot 4.2 and older are unsupported.
