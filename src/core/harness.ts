@@ -4,7 +4,7 @@ import { selectBuilder } from "./builders/index.js";
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
-import { applyLlmBuild, generateLlmBuild, type LlmBuildPlan } from "./llm-build.js";
+import { applyLlmBuild, generateLlmBuild, LlmBuildError, type LlmBuildPlan } from "./llm-build.js";
 import { writePlanningArtifacts } from "./planning.js";
 import { previewGeneratedFiles, type BuildPreview } from "./preview.js";
 import { loadModelConfig, type ModelReply } from "./providers.js";
@@ -56,6 +56,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   await mkdir(paths.patchesDir, { recursive: true });
   await mkdir(paths.validationsDir, { recursive: true });
   await mkdir(paths.repairsDir, { recursive: true });
+  await mkdir(paths.modelFailuresDir, { recursive: true });
 
   const rosterPath = await writeAgentRoster(projectRoot);
   steps.push({
@@ -138,12 +139,16 @@ export async function runHarness(startDir: string, goal: string, options: { appl
           gates: ["JSON parsed", "paths and extensions allowed", "preview/apply gates still active"],
         });
       } catch (error) {
+        const artifacts: string[] = [];
+        if (error instanceof LlmBuildError) {
+          artifacts.push(await writeModelFailure(projectRoot, goal, error, startedAt));
+        }
         steps.push({
           id: "model-implementation",
           agent: "orchestrator+gameplay-engineer",
           status: "failed",
           summary: `Controlled model implementation failed: ${error instanceof Error ? error.message : String(error)}`,
-          artifacts: [],
+          artifacts,
           gates: ["harness fell back to deterministic builder"],
         });
       }
@@ -243,6 +248,27 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   const runPath = path.join(paths.runsDir, `${run.id}.json`);
   await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
   return { run, runPath };
+}
+
+async function writeModelFailure(projectRoot: string, goal: string, error: LlmBuildError, startedAt: Date): Promise<string> {
+  const paths = workspacePaths(projectRoot);
+  await mkdir(paths.modelFailuresDir, { recursive: true });
+  const failurePath = path.join(paths.modelFailuresDir, `model_failure_${timestampId(startedAt)}.json`);
+  await writeFile(
+    failurePath,
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        goal,
+        createdAt: new Date().toISOString(),
+        error: error.message,
+        attempts: error.attempts,
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+  return failurePath;
 }
 
 async function writeBacklog(projectRoot: string, goal: string): Promise<void> {

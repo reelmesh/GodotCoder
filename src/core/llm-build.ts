@@ -22,6 +22,20 @@ export interface LlmBuildResult {
   reply: ModelReply;
 }
 
+export interface LlmBuildAttempt {
+  stage: "initial" | "retry";
+  provider: string | null;
+  model: string | null;
+  error: string;
+  content: string | null;
+}
+
+export class LlmBuildError extends CliError {
+  constructor(message: string, public readonly attempts: LlmBuildAttempt[]) {
+    super("MODEL_OUTPUT_INVALID", message);
+  }
+}
+
 export async function generateLlmBuild(projectRoot: string, prompt: string): Promise<LlmBuildPlan> {
   const config = await loadModelConfig(projectRoot);
   if (!config) {
@@ -37,9 +51,11 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
       content: buildPrompt({ prompt, projectIndex, artifacts }),
     },
   ];
+  const attempts: LlmBuildAttempt[] = [];
   let reply = await completeWithModel(config, messages, projectRoot);
   let parsed = parseLlmBuildReply(reply.content);
   if (!parsed.ok) {
+    attempts.push(createAttempt("initial", reply, parsed.error));
     reply = await completeWithModel(config, [
       { role: "system", content: "Return only valid JSON. No prose. No markdown. First character must be { and last character must be }." },
       {
@@ -48,9 +64,12 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
       },
     ], projectRoot);
     parsed = parseLlmBuildReply(reply.content);
+    if (!parsed.ok) {
+      attempts.push(createAttempt("retry", reply, parsed.error));
+    }
   }
   if (!parsed.ok) {
-    throw new CliError("MODEL_OUTPUT_INVALID", parsed.error);
+    throw new LlmBuildError(parsed.error, attempts);
   }
   return { summary: parsed.summary, files: parsed.files, reply };
 }
@@ -113,6 +132,16 @@ function readGeneratedContents(file: Record<string, unknown>, index: number): st
   }
 
   throw new CliError("MODEL_OUTPUT_INVALID", `LLM build reply files[${index}] must include contents string or lines array.`);
+}
+
+function createAttempt(stage: LlmBuildAttempt["stage"], reply: ModelReply, error: string): LlmBuildAttempt {
+  return {
+    stage,
+    provider: reply.provider,
+    model: reply.model,
+    error,
+    content: reply.content.slice(0, 40_000),
+  };
 }
 
 function extractJson(content: string): string {

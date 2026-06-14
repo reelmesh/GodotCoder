@@ -358,6 +358,7 @@ Durable project artifacts:
   project-index.json
   agent-memory.json
   runs/
+  model-failures/
 ```
 
 Generated/local artifacts are ignored by default:

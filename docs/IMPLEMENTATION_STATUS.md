@@ -54,6 +54,7 @@ Core modules:
 - LM Studio base URLs accept either full URLs or bare `host:port` values, normalizing bare values to `http://host:port`.
 - Advisory LLM calls through `ask`.
 - Controlled LLM implementation through `build --llm`, `harness --llm`, and `pipeline --llm`.
+- Failed controlled harness/pipeline model attempts are recorded under `.godotcoder/model-failures/` with parse error, provider/model, and truncated raw model output for debugging.
 - Godot project root discovery.
 - Basic `project.godot` parsing.
 - Project index generation.
@@ -276,7 +277,7 @@ node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game rea
 node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --apply --json
 ```
 
-The small controlled build path generated model output, wrote `res://scripts/main.gd`, created a patch record, and Godot validation returned zero errors and zero warnings. Larger `pipeline --llm --preview` requests against the same model still fell back to the deterministic builder because the model did not return valid JSON for the full game request. The parser now accepts either `contents` strings or `lines` arrays, retries once with a stricter JSON-only prompt, and repairs common loose JSON shape errors before falling back.
+The small controlled build path generated model output, wrote `res://scripts/main.gd`, created a patch record, and Godot validation returned zero errors and zero warnings. Larger `pipeline --llm --preview` requests against the same model still fell back to the deterministic builder because the model did not return valid JSON for the full game request. The parser now accepts either `contents` strings or `lines` arrays, retries once with a stricter JSON-only prompt, repairs common loose JSON shape errors, and records failed attempt artifacts before falling back.
 
 Controlled LLM harness/pipeline path verified with an LM Studio-compatible local server:
 
