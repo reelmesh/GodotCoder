@@ -30,6 +30,7 @@ const commandNames = [
   "/validate",
   "/check",
   "/repair",
+  "/rpc",
   "/preview",
   "/build",
   "/apply",
@@ -47,8 +48,9 @@ const runtimeCommands = ["doctor", "use"] as const;
 const authCommands = ["login", "logout"] as const;
 const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "diffs", "init", "help"] as const;
 const modelsCommands = ["use"] as const;
-const docsCommands = ["search", "list", "cache"] as const;
+const docsCommands = ["search", "list", "cache", "show"] as const;
 const runsCommands = ["list", "show", "help"] as const;
+const rpcMethods = ["workspace.status", "project.inspect", "runtime.doctor", "validation.run", "docs.search", "build.preview"] as const;
 
 export function completeSessionLine(line: string): [string[], string] {
   const endsWithSpace = /\s$/.test(line);
@@ -136,6 +138,13 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(runsCommands, currentToken, line);
   }
 
+  if (first === "/rpc") {
+    if (parts.length === 2 && !endsWithSpace) {
+      return completeToken(rpcMethods, second, line);
+    }
+    return completeToken(rpcMethods, currentToken, line);
+  }
+
   if (currentToken.startsWith("--")) {
     return completeFlags(first, currentToken, line);
   }
@@ -171,6 +180,7 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/validate": ["--json"],
     "/check": ["--json"],
     "/repair": ["--json"],
+    "/rpc": ["--json", "--query", "--prompt"],
     "/runtime": ["--json"],
     "/doctor": ["--json"],
   };

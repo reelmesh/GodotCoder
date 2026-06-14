@@ -1,5 +1,5 @@
 import { tryFindGodotProjectRoot } from "../core/godot-project.js";
-import { cacheGodotDoc, officialGodotDocs, searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
+import { cacheGodotDoc, loadCachedGodotDoc, officialGodotDocs, searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 
 export async function docsCommand(args: string[]): Promise<void> {
   const json = args.includes("--json");
@@ -41,11 +41,38 @@ export async function docsCommand(args: string[]): Promise<void> {
     }
     console.log(`Cached ${result.source.title}`);
     console.log(`HTML: ${result.htmlPath}`);
+    console.log(`Text: ${result.textPath}`);
     console.log(`Meta: ${result.metaPath}`);
     return;
   }
 
-  console.log("Usage: godotcoder docs [search <query>|list|cache <doc-id>] [--json]");
+  if (subcommand === "show") {
+    const id = rest[0];
+    if (!id) {
+      console.log("Usage: godotcoder docs show <doc-id>");
+      return;
+    }
+    const cached = await loadCachedGodotDoc(projectRoot, id);
+    if (!cached) {
+      console.log(`Doc ${id} is not cached. Run: godotcoder docs cache ${id}`);
+      return;
+    }
+    if (json) {
+      console.log(JSON.stringify({ ok: true, doc: cached }, null, 2));
+      return;
+    }
+    console.log(`${cached.source.title}`);
+    console.log(cached.source.url);
+    console.log(`Cached: ${cached.cachedAt}`);
+    console.log(`Text: ${cached.textPath}`);
+    for (const excerpt of cached.excerpts) {
+      console.log("");
+      console.log(excerpt);
+    }
+    return;
+  }
+
+  console.log("Usage: godotcoder docs [search <query>|list|cache <doc-id>|show <doc-id>] [--json]");
 }
 
 function printMatches(query: string, matches: Array<{ id: string; title: string; url: string; summary: string; score: number }>): void {

@@ -13,6 +13,7 @@ import { planProject } from "./commands/plan.js";
 import { pipelineCommand } from "./commands/pipeline.js";
 import { playCommand } from "./commands/play.js";
 import { repairCommand } from "./commands/repair.js";
+import { rpcCommand } from "./commands/rpc.js";
 import { runtimeCommand } from "./commands/runtime.js";
 import { runsCommand } from "./commands/runs.js";
 import { setupCommand } from "./commands/setup.js";
@@ -46,6 +47,7 @@ const commands: Record<string, CommandHandler> = {
   pipeline: pipelineCommand,
   play: playCommand,
   repair: repairCommand,
+  rpc: rpcCommand,
 };
 
 async function main(argv: string[]): Promise<void> {
@@ -91,7 +93,7 @@ Usage:
   godotcoder auth [--json]
   godotcoder auth login --provider <provider> --api-key <key>
   godotcoder auth logout --provider <provider>
-  godotcoder docs [search <query>|list|cache <doc-id>] [--json]
+  godotcoder docs [search <query>|list|cache <doc-id>|show <doc-id>] [--json]
   godotcoder agents [--json]
   godotcoder models [--json]
   godotcoder models use --provider <provider> --model <model> [--base-url <url>] [--api-key-env <ENV>]
@@ -106,6 +108,7 @@ Usage:
   godotcoder inspect [--json]
   godotcoder validate [--json]
   godotcoder repair [--json]
+  godotcoder rpc <method> [--json]
   godotcoder plan <game idea> [--json]
   godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--no-repair] [--json]
   godotcoder play [--editor] [--json]

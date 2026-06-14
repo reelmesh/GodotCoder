@@ -25,6 +25,7 @@ This repository currently contains the first implementation slice:
 - First playable prototype build: `godotcoder build`
 - End-to-end playable pipeline: `godotcoder pipeline <game idea>`
 - Godot launch helper: `godotcoder play`
+- Editor-integration JSON envelope: `godotcoder rpc <method>`
 
 Model-backed code generation can write controlled Godot files through preview/apply boundaries. All writes still go through path validation, patch records, and optional Godot validation.
 
@@ -72,7 +73,13 @@ For local development, you can also run:
 
 ```bash
 npm run dev
+npm run check
+npm run test:smoke
 ```
+
+`test:smoke` builds the CLI and runs repeatable Node tests, including a local
+mock OpenAI-compatible provider for model config, ask, LLM build retry, and
+harness fallback behavior.
 
 ## Usage
 
@@ -111,6 +118,7 @@ Available slash commands:
 /inspect
 /validate
 /repair
+/rpc <method>
 /check
 /mode plan
 /mode build
@@ -176,13 +184,16 @@ node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --pre
 Pipeline repair is enabled by default. Current deterministic repair rules:
 
 - create missing `.gd` script placeholders for broken `res://...gd` references,
+- create minimal `.tscn` scene and `.tres` resource placeholders for broken text resource references,
 - migrate common Godot 3 GDScript APIs to Godot 4 names,
 - record the repair under `.godotcoder/repairs/`,
 - re-run Godot validation.
 
 The Godot 4 migration pass currently covers old `export var` syntax, `Pool*Array`
 types, `OS.get_ticks_*`, `deg2rad`, `rad2deg`, `linear2db`, `db2linear`,
-`instance()`, and simple `yield(owner, "signal")` calls. Disable repair with:
+`instance()`, `tool`, `onready var`, common renamed node classes, simple
+`yield(owner, "signal")` calls, and simple `connect("signal", target, "method")`
+calls. Disable repair with:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --no-repair
@@ -196,6 +207,19 @@ node /path/to/GodotCoder/dist/cli.js repair --json
 ```
 
 Standalone repair validates the current Godot project, applies known deterministic fixes when possible, writes a repair record, and re-runs Godot validation. It is intended for brownfield cleanup as well as pipeline recovery.
+
+Editor integration and external tools can use stable RPC-style JSON envelopes:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js rpc workspace.status --json
+node /path/to/GodotCoder/dist/cli.js rpc project.inspect --json
+node /path/to/GodotCoder/dist/cli.js rpc runtime.doctor --json
+node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
+node /path/to/GodotCoder/dist/cli.js rpc docs.search --query input --json
+node /path/to/GodotCoder/dist/cli.js rpc build.preview --prompt "make a 2d platformer" --json
+```
+
+Responses use `{ ok, method, result, error, diagnostics }`.
 
 Harness workflow runs a BMAD-style Godot agent sequence:
 
@@ -248,6 +272,10 @@ node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --l
 
 `harness --llm`, `pipeline --llm`, and `build --llm` can generate controlled Godot file changes. Writes still go through path validation, preview/apply gates, patch records, and optional Godot validation. If a configured model is unavailable during harness or pipeline runs, GodotCoder records the failed model step and falls back to the deterministic bootstrap builder.
 
+For open-ended game creation prompts, controlled model output must pass first
+playable acceptance gates: scene/script presence, input or frame processing,
+visible feedback, an objective/fail/restart loop, and Godot 4.3+ API syntax.
+
 GodotCoder does not load, download, or unload local models. For local providers such as LM Studio or Ollama, start/load the model in that tool first, then point GodotCoder at the running API endpoint and model name.
 
 Use official Godot docs sources:
@@ -256,9 +284,13 @@ Use official Godot docs sources:
 node /path/to/GodotCoder/dist/cli.js docs search input
 node /path/to/GodotCoder/dist/cli.js docs list --json
 node /path/to/GodotCoder/dist/cli.js docs cache class-input
+node /path/to/GodotCoder/dist/cli.js docs show class-input
 ```
 
-Harness and pipeline runs write a docs context artifact from trusted official Godot documentation sources. LLM build prompts include matching official docs links and summaries as primary grounding.
+`docs cache` stores raw HTML, extracted text, and short excerpts under
+`.godotcoder/cache/docs/`. Harness and pipeline runs write a docs context
+artifact from trusted official Godot documentation sources. LLM build prompts
+include matching official docs links and summaries as primary grounding.
 
 LLM-driven game synthesis is the primary path. Deterministic prototype builders
 exist only as internal bootstrap fallbacks for smoke tests and initial

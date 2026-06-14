@@ -1,6 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
+import { pathExists } from "./files.js";
 import { workspacePaths } from "./workspace.js";
 
 export interface GodotDocSource {
@@ -13,6 +14,15 @@ export interface GodotDocSource {
 
 export interface GodotDocMatch extends GodotDocSource {
   score: number;
+  excerpts?: string[];
+}
+
+export interface CachedGodotDoc {
+  schemaVersion: 1;
+  cachedAt: string;
+  source: GodotDocSource;
+  textPath: string;
+  excerpts: string[];
 }
 
 export const officialGodotDocs: GodotDocSource[] = [
@@ -120,13 +130,13 @@ export function searchGodotDocs(query: string, limit = 8): GodotDocMatch[] {
 
 export async function writeDocsContext(projectRoot: string, query: string, limit = 8): Promise<{ path: string; matches: GodotDocMatch[] }> {
   const paths = workspacePaths(projectRoot);
-  const matches = searchGodotDocs(query, limit);
+  const matches = await withCachedExcerpts(projectRoot, searchGodotDocs(query, limit));
   await mkdir(paths.cacheDocsDir, { recursive: true });
   await writeFile(paths.docsContext, JSON.stringify({ schemaVersion: 1, query, matches }, null, 2) + "\n");
   return { path: paths.docsContext, matches };
 }
 
-export async function cacheGodotDoc(projectRoot: string, id: string): Promise<{ source: GodotDocSource; htmlPath: string; metaPath: string }> {
+export async function cacheGodotDoc(projectRoot: string, id: string): Promise<{ source: GodotDocSource; htmlPath: string; textPath: string; metaPath: string; excerpts: string[] }> {
   const source = officialGodotDocs.find((candidate) => candidate.id === id);
   if (!source) {
     throw new CliError("DOC_NOT_FOUND", `Unknown Godot doc source: ${id}`);
@@ -140,10 +150,36 @@ export async function cacheGodotDoc(projectRoot: string, id: string): Promise<{ 
   const paths = workspacePaths(projectRoot);
   await mkdir(paths.cacheDocsDir, { recursive: true });
   const htmlPath = path.join(paths.cacheDocsDir, `${source.id}.html`);
+  const textPath = path.join(paths.cacheDocsDir, `${source.id}.txt`);
   const metaPath = path.join(paths.cacheDocsDir, `${source.id}.json`);
-  await writeFile(htmlPath, await response.text());
-  await writeFile(metaPath, JSON.stringify({ schemaVersion: 1, cachedAt: new Date().toISOString(), source }, null, 2) + "\n");
-  return { source, htmlPath, metaPath };
+  const html = await response.text();
+  const text = extractDocTextFromHtml(html);
+  const excerpts = createDocExcerpts(text, source);
+  await writeFile(htmlPath, html);
+  await writeFile(textPath, text + "\n");
+  await writeFile(metaPath, JSON.stringify({ schemaVersion: 1, cachedAt: new Date().toISOString(), source, textPath, excerpts }, null, 2) + "\n");
+  return { source, htmlPath, textPath, metaPath, excerpts };
+}
+
+export async function loadCachedGodotDoc(projectRoot: string, id: string): Promise<CachedGodotDoc | null> {
+  const source = officialGodotDocs.find((candidate) => candidate.id === id);
+  if (!source) {
+    throw new CliError("DOC_NOT_FOUND", `Unknown Godot doc source: ${id}`);
+  }
+
+  const metaPath = path.join(workspacePaths(projectRoot).cacheDocsDir, `${id}.json`);
+  if (!(await pathExists(metaPath))) {
+    return null;
+  }
+
+  const parsed = JSON.parse(await readFile(metaPath, "utf8")) as CachedGodotDoc;
+  return {
+    schemaVersion: 1,
+    cachedAt: String(parsed.cachedAt),
+    source: parsed.source,
+    textPath: String(parsed.textPath),
+    excerpts: Array.isArray(parsed.excerpts) ? parsed.excerpts.filter((item): item is string => typeof item === "string") : [],
+  };
 }
 
 export function docsPromptContext(query: string, limit = 5): string {
@@ -171,4 +207,75 @@ function scoreSource(source: GodotDocSource, terms: string[]): number {
     if (summary.includes(term)) score += 1;
   }
   return score;
+}
+
+async function withCachedExcerpts(projectRoot: string, matches: GodotDocMatch[]): Promise<GodotDocMatch[]> {
+  const enriched: GodotDocMatch[] = [];
+  for (const match of matches) {
+    const cached = await loadCachedGodotDoc(projectRoot, match.id);
+    enriched.push(cached ? { ...match, excerpts: cached.excerpts.slice(0, 4) } : match);
+  }
+  return enriched;
+}
+
+export function extractDocTextFromHtml(html: string): string {
+  const withoutBlocks = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/gi, " ")
+    .replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi, " ");
+  const withBreaks = withoutBlocks
+    .replace(/<\/(h[1-6]|p|li|dt|dd|pre|div|section|article)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n");
+  return decodeHtmlEntities(withBreaks.replace(/<[^>]+>/g, " "))
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function createDocExcerpts(text: string, source: GodotDocSource, limit = 8): string[] {
+  const lines = text.split(/\r?\n/).filter((line) => line.length >= 40 && !line.includes("Edit on GitHub"));
+  const excerpts: string[] = [];
+  for (const line of lines.slice(0, 3)) {
+    excerpts.push(truncateExcerpt(line));
+  }
+
+  const terms = new Set([...tokenize(source.title), ...source.tags.flatMap(tokenize)]);
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    if (![...terms].some((term) => lower.includes(term))) {
+      continue;
+    }
+    const excerpt = truncateExcerpt(line);
+    if (!excerpts.includes(excerpt)) {
+      excerpts.push(excerpt);
+    }
+    if (excerpts.length >= limit) {
+      break;
+    }
+  }
+
+  return excerpts.slice(0, limit);
+}
+
+function truncateExcerpt(value: string, maxLength = 420): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
+function decodeHtmlEntities(value: string): string {
+  const named: Record<string, string> = {
+    amp: "&",
+    gt: ">",
+    lt: "<",
+    quot: '"',
+    apos: "'",
+    nbsp: " ",
+  };
+  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (entity, body: string) => {
+    if (body.startsWith("#x")) return String.fromCodePoint(Number.parseInt(body.slice(2), 16));
+    if (body.startsWith("#")) return String.fromCodePoint(Number.parseInt(body.slice(1), 10));
+    return named[body.toLowerCase()] ?? entity;
+  });
 }

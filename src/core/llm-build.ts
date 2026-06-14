@@ -23,6 +23,11 @@ export interface LlmBuildResult {
   reply: ModelReply;
 }
 
+export interface GameAcceptanceProjectState {
+  scenes: string[];
+  scripts: string[];
+}
+
 export interface LlmBuildAttempt {
   stage: "initial" | "retry";
   provider: string | null;
@@ -55,6 +60,12 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
   const attempts: LlmBuildAttempt[] = [];
   let reply = await completeWithModel(config, messages, projectRoot);
   let parsed = parseLlmBuildReply(reply.content);
+  if (parsed.ok) {
+    const gates = evaluateGeneratedGameGates(prompt, projectIndex, parsed.files);
+    if (!gates.passed) {
+      parsed = { ok: false, error: `Generated game slice missed acceptance gates: ${gates.missing.join("; ")}` };
+    }
+  }
   if (!parsed.ok) {
     attempts.push(createAttempt("initial", reply, parsed.error));
     reply = await completeWithModel(config, [
@@ -65,6 +76,12 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
       },
     ], projectRoot);
     parsed = parseLlmBuildReply(reply.content);
+    if (parsed.ok) {
+      const gates = evaluateGeneratedGameGates(prompt, projectIndex, parsed.files);
+      if (!gates.passed) {
+        parsed = { ok: false, error: `Generated game slice missed acceptance gates: ${gates.missing.join("; ")}` };
+      }
+    }
     if (!parsed.ok) {
       attempts.push(createAttempt("retry", reply, parsed.error));
     }
@@ -234,6 +251,14 @@ ${Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).j
 Official Godot docs sources to prefer:
 ${docsPromptContext(input.prompt)}
 
+Open-ended game request acceptance gates:
+- If the task asks to make, create, build, or prototype a game, produce a first playable vertical slice, not a placeholder.
+- Include or update a main scene and at least one GDScript gameplay script.
+- Include input handling through Input actions, _input, _process, or _physics_process.
+- Include visible player feedback such as movement, score, health, labels, animation, color, spawning, or collision response.
+- Include a simple objective, fail state, restart path, collectible, enemy, timer, score target, or win condition.
+- Use Godot 4.3+ APIs only; do not use yield(...), Pool*Array, KinematicBody*, export var, onready var, or .instance().
+
 Return JSON exactly matching this shape:
 {
   "summary": "one sentence describing the patch",
@@ -295,7 +320,54 @@ Rules:
 - Last character of final answer must be }.
 - Use "lines", not "contents".
 - One source line per JSON string.
+- For open-ended game creation, include playable input, visible feedback, and an objective/fail/restart loop.
+- Use Godot 4.3+ APIs only.
 - No markdown.
 - No explanation.
 - No reasoning in final message.`;
+}
+
+function evaluateGeneratedGameGates(
+  prompt: string,
+  projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>,
+  files: GeneratedFile[],
+): { passed: true } | { passed: false; missing: string[] } {
+  return evaluateGeneratedGameAcceptance(prompt, projectIndex, files);
+}
+
+export function evaluateGeneratedGameAcceptance(
+  prompt: string,
+  projectState: GameAcceptanceProjectState,
+  files: GeneratedFile[],
+): { passed: true } | { passed: false; missing: string[] } {
+  if (!isOpenEndedGameRequest(prompt)) {
+    return { passed: true };
+  }
+
+  const missing: string[] = [];
+  const allText = files.map((file) => file.contents).join("\n");
+  const paths = files.map((file) => file.path);
+  const hasScene = projectState.scenes.length > 0 || paths.some((filePath) => filePath.endsWith(".tscn") || filePath === "project.godot");
+  const hasScript = projectState.scripts.length > 0 || paths.some((filePath) => filePath.endsWith(".gd"));
+  const hasInputLoop = /\b(Input\.|_input\s*\(|_process\s*\(|_physics_process\s*\(|move_and_slide\s*\()/.test(allText);
+  const hasFeedback = /\b(score|health|label|hud|animation|modulate|visible|spawn|collision|collect|damage|print\s*\(|queue_redraw\s*\()/.test(allText.toLowerCase());
+  const hasObjective = /\b(win|lose|game_over|restart|reload_current_scene|score|goal|timer|enemy|collect|coin|hazard|lives|health\s*[<=>])/.test(allText.toLowerCase());
+  const bannedGodot3 = /\byield\s*\(|\bPool[A-Za-z0-9]*Array\b|\bKinematicBody[23]D\b|(^|\n)[ \t]*export\s+var\b|(^|\n)[ \t]*onready\s+var\b|\.instance\s*\(/.test(allText);
+
+  if (!hasScene) missing.push("main scene or scene update");
+  if (!hasScript) missing.push("gameplay script");
+  if (!hasInputLoop) missing.push("input or frame-processing loop");
+  if (!hasFeedback) missing.push("visible feedback");
+  if (!hasObjective) missing.push("objective, fail state, restart path, enemy, collectible, or score loop");
+  if (bannedGodot3) missing.push("Godot 4.3+ syntax/API compliance");
+
+  return missing.length === 0 ? { passed: true } : { passed: false, missing };
+}
+
+function isOpenEndedGameRequest(prompt: string): boolean {
+  const normalized = prompt.toLowerCase();
+  if (/\b(change|fix|repair|refactor|rename|explain|inspect|validate|cache|show|list)\b/.test(normalized)) {
+    return false;
+  }
+  return /\b(make|create|build|prototype|generate)\b/.test(normalized) && /\b(game|platformer|shooter|puzzle|rpg|roguelike|runner|arcade|sim|metroidvania|tower defense)\b/.test(normalized);
 }
