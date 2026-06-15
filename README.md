@@ -379,6 +379,7 @@ The dock captures editor context, keeps recent RPC history in
 `user://godotcoder/plugin-history.json`, and can round-trip editor context
 through `godotcoder rpc editor.context --json`. RPC output is parsed into a
 structured envelope view, with raw text kept below for debugging.
+Regular dock RPC calls also attach captured editor context when available.
 
 Machine-readable output:
 

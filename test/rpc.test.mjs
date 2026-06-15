@@ -24,6 +24,11 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(statusPayload.result.projectRoot, projectRoot);
   assert.equal(statusPayload.result.projectIndexExists, true);
 
+  const statusWithContext = await runRpc(projectRoot, ["workspace.status", "--context", JSON.stringify({ source: "editor" }), "--json"]);
+  const statusWithContextPayload = JSON.parse(statusWithContext.stdout);
+  assert.equal(statusWithContextPayload.ok, true);
+  assert.equal(statusWithContextPayload.result.editorContext.source, "editor");
+
   const docs = await runRpc(projectRoot, ["docs.search", "--query", "input", "--json"]);
   const docsPayload = JSON.parse(docs.stdout);
   assert.equal(docsPayload.ok, true);

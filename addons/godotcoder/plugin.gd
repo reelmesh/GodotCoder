@@ -96,7 +96,7 @@ func _build_dock() -> void:
 func _on_capture_pressed() -> void:
 	var context := _capture_editor_context()
 	context_view.text = JSON.stringify(context, "\t")
-	_run_rpc("editor.context", ["--context", JSON.stringify(context)], context)
+	_run_rpc("editor.context", PackedStringArray(["--context", JSON.stringify(context)]), context)
 
 func _on_status_pressed() -> void:
 	_run_rpc("workspace.status")
@@ -135,8 +135,11 @@ func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(
 		cli = "godotcoder"
 
 	var args := ["rpc", method, "--json"]
+	var captured_context := context if context != null else _capture_editor_context()
+	if method != "editor.context" and captured_context is Dictionary and not captured_context.is_empty():
+		args.append_array(["--context", JSON.stringify(captured_context)])
 	args.append_array(extra_args)
-	_run_cli_args(method, cli, args, context)
+	_run_cli_args(method, cli, args, captured_context)
 
 func _run_cli_args(method: String, cli: String, args: Array, context: Variant, append_history := true) -> void:
 	var output: Array = []

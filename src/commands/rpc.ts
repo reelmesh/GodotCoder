@@ -36,36 +36,38 @@ export async function rpcCommand(args: string[]): Promise<void> {
 }
 
 async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
+  const editorContext = readJsonFlag(args, "--context") ?? readJsonFlag(args, "--payload");
+  const filteredArgs = stripFlags(args, ["--context", "--payload"]);
   if (method === "workspace.status") {
-    return workspaceStatus();
+    return attachContext(await workspaceStatus(), editorContext);
   }
   if (method === "project.inspect") {
-    return projectInspect();
+    return attachContext(await projectInspect(), editorContext);
   }
   if (method === "runtime.doctor") {
-    return runtimeDoctorRpc();
+    return attachContext(await runtimeDoctorRpc(), editorContext);
   }
   if (method === "validation.run") {
-    return validateProjectRoot(await findGodotProjectRoot(process.cwd()));
+    return attachContext(await validateProjectRoot(await findGodotProjectRoot(process.cwd())), editorContext);
   }
   if (method === "docs.search") {
-    const query = readFlag(args, "--query") ?? args.join(" ").trim();
+    const query = readFlag(filteredArgs, "--query") ?? filteredArgs.join(" ").trim();
     const projectRoot = await tryProjectRootOrCwd();
     const context = await writeDocsContext(projectRoot, query);
-    return { query, matches: searchGodotDocs(query), contextPath: context.path };
+    return attachContext({ query, matches: searchGodotDocs(query), contextPath: context.path }, editorContext);
   }
   if (method === "build.preview") {
-    const prompt = readFlag(args, "--prompt") ?? args.join(" ").trim();
+    const prompt = readFlag(filteredArgs, "--prompt") ?? filteredArgs.join(" ").trim();
     if (!prompt) {
       throw new CliError("RPC_USAGE", "build.preview requires --prompt <task>.");
     }
     const projectRoot = await findGodotProjectRoot(process.cwd());
     const builder = selectBuilder(prompt);
     const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
-    return { source: "deterministic", prompt, preview };
+    return attachContext({ source: "deterministic", prompt, preview }, editorContext);
   }
   if (method === "editor.context") {
-    const payload = readFlag(args, "--context") ?? readFlag(args, "--payload");
+    const payload = editorContext ?? readJsonFlag(args, "--context") ?? readJsonFlag(args, "--payload");
     if (!payload) {
       throw new CliError("RPC_USAGE", "editor.context requires --context <json>.");
     }
@@ -129,6 +131,34 @@ function readFlag(args: string[], flag: string): string | null {
   const index = args.indexOf(flag);
   if (index === -1) return null;
   return args[index + 1] ?? null;
+}
+
+function readJsonFlag(args: string[], flag: string): string | null {
+  const value = readFlag(args, flag);
+  return value ? value : null;
+}
+
+function stripFlags(args: string[], flags: string[]): string[] {
+  const result: string[] = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]!;
+    if (flags.includes(arg)) {
+      index += 1;
+      continue;
+    }
+    result.push(arg);
+  }
+  return result;
+}
+
+function attachContext(result: unknown, context: string | null): unknown {
+  if (!context) {
+    return result;
+  }
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    return { ...(result as Record<string, unknown>), editorContext: parseJsonPayload(context) };
+  }
+  return { value: result, editorContext: parseJsonPayload(context) };
 }
 
 function parseJsonPayload(value: string): unknown {
