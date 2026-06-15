@@ -67,6 +67,8 @@ func _build_dock() -> void:
 	buttons.add_child(_make_button("Status", "_on_status_pressed"))
 	buttons.add_child(_make_button("Inspect", "_on_inspect_pressed"))
 	buttons.add_child(_make_button("Validate", "_on_validate_pressed"))
+	buttons.add_child(_make_button("Replay Last", "_on_replay_last_pressed"))
+	buttons.add_child(_make_button("Clear", "_on_clear_pressed"))
 	buttons.add_child(_make_button("Run", "_on_run_pressed"))
 	dock.add_child(buttons)
 
@@ -114,6 +116,19 @@ func _on_run_pressed() -> void:
 		extra.append_array(["--prompt", prompt_field.text])
 	_run_rpc(method, extra)
 
+func _on_replay_last_pressed() -> void:
+	if history.is_empty():
+		output_view.text = "No RPC history to replay."
+		return
+	var last := history[history.size() - 1]
+	_run_cli_args(str(last.get("method", "")), last.get("cli", "godotcoder"), last.get("args", []), last.get("context", null), true)
+
+func _on_clear_pressed() -> void:
+	history.clear()
+	_save_history()
+	output_view.text = "RPC history cleared."
+	_refresh_history_view()
+
 func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(), context: Variant = null) -> void:
 	var cli := command_field.text.strip_edges()
 	if cli.is_empty():
@@ -121,7 +136,9 @@ func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(
 
 	var args := ["rpc", method, "--json"]
 	args.append_array(extra_args)
+	_run_cli_args(method, cli, args, context)
 
+func _run_cli_args(method: String, cli: String, args: Array, context: Variant, append_history := true) -> void:
 	var output: Array = []
 	var exit_code := OS.execute(cli, args, output, true)
 	var text := ""
@@ -129,8 +146,9 @@ func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(
 		text = str(output[0])
 
 	output_view.text = "Command: %s %s\nExit: %s\n\n%s" % [cli, " ".join(args), exit_code, text]
-	_append_history(method, cli, args, exit_code, text, context)
-	_refresh_history_view()
+	if append_history:
+		_append_history(method, cli, args, exit_code, text, context)
+		_refresh_history_view()
 
 func _append_history(method: String, cli: String, args: Array, exit_code: int, output: String, context: Variant) -> void:
 	var entry := {

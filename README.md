@@ -217,6 +217,7 @@ node /path/to/GodotCoder/dist/cli.js rpc runtime.doctor --json
 node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
 node /path/to/GodotCoder/dist/cli.js rpc docs.search --query input --json
 node /path/to/GodotCoder/dist/cli.js rpc build.preview --prompt "make a 2d platformer" --json
+node /path/to/GodotCoder/dist/cli.js rpc editor.context --context '{"current_path":"res://scenes/main.tscn"}' --json
 ```
 
 Responses use `{ ok, method, result, error, diagnostics }`.
