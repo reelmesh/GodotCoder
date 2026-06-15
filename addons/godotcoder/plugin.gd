@@ -11,6 +11,7 @@ const RPC_METHODS := [
 	"project.inspect",
 	"runtime.doctor",
 	"validation.run",
+	"validation.scene",
 	"docs.search",
 	"build.preview",
 	"debug.current",
@@ -87,6 +88,7 @@ func _build_dock() -> void:
 	buttons.add_child(_make_button("Status", "_on_status_pressed"))
 	buttons.add_child(_make_button("Inspect", "_on_inspect_pressed"))
 	buttons.add_child(_make_button("Validate", "_on_validate_pressed"))
+	buttons.add_child(_make_button("Scene", "_on_scene_pressed"))
 	buttons.add_child(_make_button("Explain", "_on_explain_pressed"))
 	buttons.add_child(_make_button("Review", "_on_review_pressed"))
 	buttons.add_child(_make_button("Debug", "_on_debug_pressed"))
@@ -146,6 +148,9 @@ func _on_inspect_pressed() -> void:
 
 func _on_validate_pressed() -> void:
 	_run_rpc("validation.run")
+
+func _on_scene_pressed() -> void:
+	_run_rpc("validation.scene")
 
 func _on_explain_pressed() -> void:
 	_run_rpc("editor.explain")

@@ -42,6 +42,7 @@ First TypeScript/Node CLI slice:
 - Editor plugin exposes preview-only build review through `godotcoder rpc build.preview`, including compact file counts and changed paths.
 - Editor plugin exposes `Explain` for selected scene/node/script context through `godotcoder rpc editor.explain`.
 - Editor plugin exposes `Review` for read-only git workspace summaries through `godotcoder rpc workspace.changes`.
+- Editor plugin exposes `Scene` for current-scene prechecks through `godotcoder rpc validation.scene`.
 - `docs/EDITOR_PLUGIN_TEST_PLAN.md` records the plugin round-trip acceptance checks.
 
 Core modules:
@@ -88,7 +89,7 @@ Core modules:
 - Open-ended LLM game synthesis prompts require a first playable vertical slice with scene/script presence, input or frame processing, visible feedback, an objective/fail/restart loop, and Godot 4.3+ API syntax.
 - Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
 - Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --llm --preview` retry parsing, and harness fallback/model-failure artifacts.
-- RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
+- RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
 - `build.preview` RPC returns both raw preview data and a compact `previewSummary` for editor clients.
 - Stable RPC envelope shape: `{ ok, method, result, error, diagnostics }`.
 - Build preview mode before applying generated files.

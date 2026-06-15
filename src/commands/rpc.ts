@@ -54,6 +54,15 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
   if (method === "validation.run") {
     return attachContext(await validateProjectRoot(await findGodotProjectRoot(process.cwd())), editorContext);
   }
+  if (method === "validation.scene") {
+    const scene = readFlag(filteredArgs, "--scene") ?? sceneFromEditorContext(editorContext);
+    if (!scene) {
+      throw new CliError("RPC_USAGE", "validation.scene requires --scene <res://path> or editor context with current_path.");
+    }
+    const projectRoot = await findGodotProjectRoot(process.cwd());
+    const projectIndex = await inspectGodotProject(projectRoot);
+    return attachContext(validateSceneScope(scene, projectIndex, editorContext), editorContext);
+  }
   if (method === "docs.search") {
     const query = readFlag(filteredArgs, "--query") ?? filteredArgs.join(" ").trim();
     const projectRoot = await tryProjectRootOrCwd();
@@ -304,6 +313,50 @@ function explainEditorContext(context: unknown, projectIndex: ProjectIndex): unk
     },
     suggestedNextCommands: suggestedEditorCommands(currentPath, currentScriptPath, selectedNodePaths),
   };
+}
+
+function sceneFromEditorContext(context: string | null): string | null {
+  if (!context) return null;
+  const parsed = parseJsonPayload(context);
+  const currentPath = asStringValue(asRecord(parsed).current_path);
+  return currentPath?.endsWith(".tscn") || currentPath?.endsWith(".scn") ? currentPath : null;
+}
+
+function validateSceneScope(scene: string, projectIndex: ProjectIndex, context: string | null): unknown {
+  const normalized = normalizeResPath(scene);
+  const scenes = projectIndex.scenes.map((scenePath) => normalizeResPath(scenePath));
+  const exists = scenes.includes(normalized);
+  const editorContext = context ? asRecord(parseJsonPayload(context)) : {};
+  const sceneRoot = asRecord(editorContext.scene_root);
+  const selectedNodes = Array.isArray(editorContext.selected_nodes) ? editorContext.selected_nodes.map(asRecord).filter((node) => Object.keys(node).length > 0) : [];
+
+  return {
+    scenePath: scene.startsWith("res://") ? scene : `res://${normalized}`,
+    normalizedPath: normalized,
+    existsInProject: exists,
+    isMainScene: normalizeResPath(projectIndex.mainScene ?? "") === normalized,
+    sceneRoot: {
+      name: asStringValue(sceneRoot.name),
+      class: asStringValue(sceneRoot.class),
+      path: asStringValue(sceneRoot.path),
+    },
+    selectedNodes: selectedNodes.map((node) => ({
+      name: asStringValue(node.name),
+      class: asStringValue(node.class),
+      path: asStringValue(node.path),
+    })),
+    projectSceneCount: projectIndex.scenes.length,
+    summary: exists ? `Scene ${scene} is present in the inspected project.` : `Scene ${scene} was not found in the inspected project index.`,
+    suggestedNextCommands: [
+      "godotcoder rpc validation.run --json",
+      `godotcoder rpc project.inspect --json`,
+      exists ? `godotcoder rpc editor.explain --context '<captured editor context>' --json` : `godotcoder repair --json`,
+    ],
+  };
+}
+
+function normalizeResPath(value: string): string {
+  return value.replace(/^res:\/\//, "").replace(/^\/+/, "");
 }
 
 function parseGitStatus(stdout: string): Array<{ path: string; indexStatus: string; worktreeStatus: string; status: string }> {

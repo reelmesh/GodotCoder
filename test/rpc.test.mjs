@@ -40,6 +40,14 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(changesPayload.result.files.some((file) => file.path === "project.godot"), true);
   assert.equal(changesPayload.result.editorContext.source, "editor");
 
+  const scene = await runRpc(projectRoot, ["validation.scene", "--scene", "res://scenes/main.tscn", "--json"]);
+  const scenePayload = JSON.parse(scene.stdout);
+  assert.equal(scenePayload.ok, true);
+  assert.equal(scenePayload.method, "validation.scene");
+  assert.equal(scenePayload.result.existsInProject, true);
+  assert.equal(scenePayload.result.isMainScene, true);
+  assert.equal(scenePayload.result.normalizedPath, "scenes/main.tscn");
+
   const docs = await runRpc(projectRoot, ["docs.search", "--query", "input", "--json"]);
   const docsPayload = JSON.parse(docs.stdout);
   assert.equal(docsPayload.ok, true);
@@ -88,6 +96,12 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(explainPayload.result.project.applicationName, "RPC Test");
   assert.equal(explainPayload.result.project.sceneCount, 1);
   assert.equal(explainPayload.result.suggestedNextCommands.some((command) => command.includes("validation.run")), true);
+
+  const sceneFromContext = await runRpc(projectRoot, ["validation.scene", "--context", JSON.stringify(explainContext), "--json"]);
+  const sceneFromContextPayload = JSON.parse(sceneFromContext.stdout);
+  assert.equal(sceneFromContextPayload.ok, true);
+  assert.equal(sceneFromContextPayload.result.existsInProject, true);
+  assert.equal(sceneFromContextPayload.result.selectedNodes[0].name, "Player");
 });
 
 test("rpc emits stable error envelopes", async () => {

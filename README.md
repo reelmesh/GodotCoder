@@ -216,6 +216,7 @@ node /path/to/GodotCoder/dist/cli.js rpc workspace.changes --json
 node /path/to/GodotCoder/dist/cli.js rpc project.inspect --json
 node /path/to/GodotCoder/dist/cli.js rpc runtime.doctor --json
 node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
+node /path/to/GodotCoder/dist/cli.js rpc validation.scene --scene res://scenes/main.tscn --json
 node /path/to/GodotCoder/dist/cli.js rpc docs.search --query input --json
 node /path/to/GodotCoder/dist/cli.js rpc build.preview --prompt "make a 2d platformer" --json
 node /path/to/GodotCoder/dist/cli.js rpc debug.current --error "Parse Error at res://scripts/player.gd:12" --json
@@ -390,7 +391,8 @@ a `Debug` action that sends pasted console/error text to `debug.current`, and a
 preview action that summarizes `build.preview` file counts and changed paths
 without applying edits. `Explain` summarizes the selected scene/node/script
 context against the inspected project. `Review` summarizes current git changes
-without modifying the project.
+without modifying the project. `Scene` resolves the current scene against the
+project index before running broader validation.
 
 Machine-readable output:
 
