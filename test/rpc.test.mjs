@@ -40,6 +40,9 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(previewPayload.ok, true);
   assert.equal(previewPayload.result.source, "deterministic");
   assert.equal(previewPayload.result.preview.files.length > 0, true);
+  assert.equal(previewPayload.result.previewSummary.fileCount, previewPayload.result.preview.files.length);
+  assert.equal(previewPayload.result.previewSummary.hasChanges, true);
+  assert.equal(previewPayload.result.previewSummary.changedPaths.some((filePath) => filePath.startsWith("res://")), true);
 
   const debugError = "Parse Error: Expected expression at res://scripts/player.gd:12:5";
   const debug = await runRpc(projectRoot, ["debug.current", "--error", debugError, "--context", JSON.stringify({ current_path: "res://scenes/main.tscn" }), "--json"]);

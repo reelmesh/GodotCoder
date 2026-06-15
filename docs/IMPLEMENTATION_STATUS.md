@@ -39,6 +39,7 @@ First TypeScript/Node CLI slice:
 - Minimal Godot editor plugin scaffold under `addons/godotcoder/` that shells out to `godotcoder rpc`.
 - Editor plugin captures scene, selection, script, and open-scene context, auto-attaches context to regular RPC calls, supports replay/selected replay/clear controls, persists recent RPC history under `user://godotcoder/plugin-history.json`, and surfaces separate stdout/stderr/exit-state output for RPC runs.
 - Editor plugin exposes `Debug` for pasted console/error text through `godotcoder rpc debug.current`.
+- Editor plugin exposes preview-only build review through `godotcoder rpc build.preview`, including compact file counts and changed paths.
 - `docs/EDITOR_PLUGIN_TEST_PLAN.md` records the plugin round-trip acceptance checks.
 
 Core modules:
@@ -86,6 +87,7 @@ Core modules:
 - Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
 - Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --llm --preview` retry parsing, and harness fallback/model-failure artifacts.
 - RPC-style JSON command for editor integration prep: `workspace.status`, `project.inspect`, `runtime.doctor`, `validation.run`, `docs.search`, `build.preview`, `debug.current`, and `editor.context`.
+- `build.preview` RPC returns both raw preview data and a compact `previewSummary` for editor clients.
 - Stable RPC envelope shape: `{ ok, method, result, error, diagnostics }`.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.

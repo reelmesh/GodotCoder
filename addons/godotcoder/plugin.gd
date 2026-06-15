@@ -86,6 +86,7 @@ func _build_dock() -> void:
 	buttons.add_child(_make_button("Inspect", "_on_inspect_pressed"))
 	buttons.add_child(_make_button("Validate", "_on_validate_pressed"))
 	buttons.add_child(_make_button("Debug", "_on_debug_pressed"))
+	buttons.add_child(_make_button("Preview", "_on_preview_pressed"))
 	buttons.add_child(_make_button("Replay Last", "_on_replay_last_pressed"))
 	buttons.add_child(_make_button("Replay Selected", "_on_replay_selected_pressed"))
 	buttons.add_child(_make_button("Clear", "_on_clear_pressed"))
@@ -144,6 +145,9 @@ func _on_validate_pressed() -> void:
 
 func _on_debug_pressed() -> void:
 	_run_rpc("debug.current", PackedStringArray(["--error", error_field.text]))
+
+func _on_preview_pressed() -> void:
+	_run_rpc("build.preview", PackedStringArray(["--prompt", prompt_field.text]))
 
 func _on_run_pressed() -> void:
 	var method := method_picker.get_item_text(method_picker.selected)
@@ -271,6 +275,11 @@ func _format_envelope_output(cli: String, args: Array, exit_code: int, envelope:
 	lines.append("  error: %s" % _jsonish(envelope.get("error", null)))
 	lines.append("  diagnostics: %s" % _jsonish(envelope.get("diagnostics", [])))
 	lines.append("  result: %s" % _jsonish(envelope.get("result", null)))
+	var preview_summary := _preview_summary_text(envelope)
+	if not preview_summary.is_empty():
+		lines.append("")
+		lines.append("Preview:")
+		lines.append(preview_summary)
 	lines.append("")
 	lines.append("Raw:")
 	lines.append(raw)
@@ -281,6 +290,31 @@ func _jsonish(value: Variant) -> String:
 	if typeof(data) == TYPE_STRING:
 		return data
 	return str(value)
+
+func _preview_summary_text(envelope: Dictionary) -> String:
+	var result := envelope.get("result", {})
+	if typeof(result) != TYPE_DICTIONARY:
+		return ""
+	if not result.has("previewSummary"):
+		return ""
+	var summary = result.get("previewSummary", {})
+	if typeof(summary) != TYPE_DICTIONARY:
+		return ""
+	var counts = summary.get("counts", {})
+	var changed_paths = summary.get("changedPaths", [])
+	var lines: PackedStringArray = []
+	lines.append("  files: %s | create: %s | modify: %s | unchanged: %s" % [
+		str(summary.get("fileCount", 0)),
+		str(counts.get("create", 0) if typeof(counts) == TYPE_DICTIONARY else 0),
+		str(counts.get("modify", 0) if typeof(counts) == TYPE_DICTIONARY else 0),
+		str(counts.get("unchanged", 0) if typeof(counts) == TYPE_DICTIONARY else 0),
+	])
+	lines.append("  lines: +%s -%s" % [str(summary.get("addedLines", 0)), str(summary.get("removedLines", 0))])
+	if typeof(changed_paths) == TYPE_ARRAY and not changed_paths.is_empty():
+		lines.append("  changed:")
+		for path in changed_paths:
+			lines.append("    %s" % str(path))
+	return "\n".join(lines)
 
 func _capture_editor_context() -> Dictionary:
 	var editor := get_editor_interface()

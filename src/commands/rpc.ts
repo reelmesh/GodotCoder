@@ -64,7 +64,7 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
     const projectRoot = await findGodotProjectRoot(process.cwd());
     const builder = selectBuilder(prompt);
     const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
-    return attachContext({ source: "deterministic", prompt, preview }, editorContext);
+    return attachContext({ source: "deterministic", prompt, preview, previewSummary: summarizeBuildPreview(preview) }, editorContext);
   }
   if (method === "debug.current") {
     const errorText = readFlag(filteredArgs, "--error") ?? filteredArgs.join(" ").trim();
@@ -187,6 +187,39 @@ function debugCurrent(errorText: string): unknown {
     rootCauseHypothesis: rootCauseHypothesis(lower, likelySubsystem),
     suggestedNextSteps: suggestedDebugSteps(likelySubsystem, sourceFile, line),
     rawError: errorText,
+  };
+}
+
+function summarizeBuildPreview(preview: Awaited<ReturnType<typeof previewGeneratedFiles>>): unknown {
+  const counts = {
+    create: 0,
+    modify: 0,
+    unchanged: 0,
+  };
+  let addedLines = 0;
+  let removedLines = 0;
+  const changedPaths: string[] = [];
+  const unchangedPaths: string[] = [];
+
+  for (const file of preview.files) {
+    counts[file.operation] += 1;
+    addedLines += file.addedLines;
+    removedLines += file.removedLines;
+    if (file.operation === "unchanged") {
+      unchangedPaths.push(file.path);
+    } else {
+      changedPaths.push(file.path);
+    }
+  }
+
+  return {
+    fileCount: preview.files.length,
+    counts,
+    addedLines,
+    removedLines,
+    changedPaths,
+    unchangedPaths,
+    hasChanges: changedPaths.length > 0,
   };
 }
 

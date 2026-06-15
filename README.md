@@ -384,7 +384,9 @@ through `godotcoder rpc editor.context --json`. RPC output is parsed into a
 structured envelope view, stdout and stderr are shown separately, exit codes
 are surfaced, and raw stdout stays visible for debugging. Regular dock RPC
 calls also attach captured editor context when available. The dock also exposes
-a `Debug` action that sends pasted console/error text to `debug.current`.
+a `Debug` action that sends pasted console/error text to `debug.current`, and a
+preview action that summarizes `build.preview` file counts and changed paths
+without applying edits.
 
 Machine-readable output:
 
