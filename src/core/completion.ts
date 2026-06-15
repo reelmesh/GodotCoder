@@ -50,7 +50,7 @@ const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "d
 const modelsCommands = ["use"] as const;
 const docsCommands = ["search", "list", "cache", "show"] as const;
 const runsCommands = ["list", "show", "help"] as const;
-const rpcMethods = ["workspace.status", "project.inspect", "runtime.doctor", "validation.run", "docs.search", "build.preview"] as const;
+const rpcMethods = ["workspace.status", "project.inspect", "runtime.doctor", "validation.run", "docs.search", "build.preview", "editor.context"] as const;
 
 export function completeSessionLine(line: string): [string[], string] {
   const endsWithSpace = /\s$/.test(line);
@@ -180,7 +180,7 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/validate": ["--json"],
     "/check": ["--json"],
     "/repair": ["--json"],
-    "/rpc": ["--json", "--query", "--prompt"],
+    "/rpc": ["--json", "--query", "--prompt", "--context"],
     "/runtime": ["--json"],
     "/doctor": ["--json"],
   };

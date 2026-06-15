@@ -374,6 +374,10 @@ Minimal Godot editor plugin scaffold lives under `addons/godotcoder/`. Add that
 folder to a Godot project, enable plugin in Project Settings, and point `Command`
 to the `godotcoder` binary or absolute CLI path.
 
+The dock captures editor context, keeps recent RPC history in
+`user://godotcoder/plugin-history.json`, and can round-trip editor context
+through `godotcoder rpc editor.context --json`.
+
 Machine-readable output:
 
 ```bash

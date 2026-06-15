@@ -35,6 +35,13 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(previewPayload.ok, true);
   assert.equal(previewPayload.result.source, "deterministic");
   assert.equal(previewPayload.result.preview.files.length > 0, true);
+
+  const context = { current_path: "res://scenes/main.tscn", selected_nodes: [{ name: "Main", path: "/root/Main" }] };
+  const editorContext = await runRpc(projectRoot, ["editor.context", "--context", JSON.stringify(context), "--json"]);
+  const editorContextPayload = JSON.parse(editorContext.stdout);
+  assert.equal(editorContextPayload.ok, true);
+  assert.equal(editorContextPayload.result.context.current_path, context.current_path);
+  assert.equal(editorContextPayload.result.context.selected_nodes[0].name, "Main");
 });
 
 test("rpc emits stable error envelopes", async () => {

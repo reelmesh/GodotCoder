@@ -64,6 +64,13 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
     const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
     return { source: "deterministic", prompt, preview };
   }
+  if (method === "editor.context") {
+    const payload = readFlag(args, "--context") ?? readFlag(args, "--payload");
+    if (!payload) {
+      throw new CliError("RPC_USAGE", "editor.context requires --context <json>.");
+    }
+    return { capturedAt: new Date().toISOString(), context: parseJsonPayload(payload) };
+  }
 
   throw new CliError("RPC_METHOD_NOT_FOUND", `Unknown RPC method: ${method}`);
 }
@@ -122,6 +129,14 @@ function readFlag(args: string[], flag: string): string | null {
   const index = args.indexOf(flag);
   if (index === -1) return null;
   return args[index + 1] ?? null;
+}
+
+function parseJsonPayload(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    throw new CliError("RPC_BAD_PAYLOAD", `Invalid JSON payload: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function printEnvelope(envelope: RpcEnvelope): void {
