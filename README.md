@@ -217,6 +217,7 @@ node /path/to/GodotCoder/dist/cli.js rpc runtime.doctor --json
 node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
 node /path/to/GodotCoder/dist/cli.js rpc docs.search --query input --json
 node /path/to/GodotCoder/dist/cli.js rpc build.preview --prompt "make a 2d platformer" --json
+node /path/to/GodotCoder/dist/cli.js rpc debug.current --error "Parse Error at res://scripts/player.gd:12" --json
 node /path/to/GodotCoder/dist/cli.js rpc editor.context --context '{"current_path":"res://scenes/main.tscn"}' --json
 ```
 
@@ -382,7 +383,8 @@ The dock captures editor context, keeps recent RPC history in
 through `godotcoder rpc editor.context --json`. RPC output is parsed into a
 structured envelope view, stdout and stderr are shown separately, exit codes
 are surfaced, and raw stdout stays visible for debugging. Regular dock RPC
-calls also attach captured editor context when available.
+calls also attach captured editor context when available. The dock also exposes
+a `Debug` action that sends pasted console/error text to `debug.current`.
 
 Machine-readable output:
 

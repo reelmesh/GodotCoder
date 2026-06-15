@@ -12,6 +12,7 @@ const RPC_METHODS := [
 	"validation.run",
 	"docs.search",
 	"build.preview",
+	"debug.current",
 	"editor.context",
 ]
 
@@ -25,6 +26,7 @@ var history_view: TextEdit
 var history_picker: OptionButton
 var query_field: LineEdit
 var prompt_field: LineEdit
+var error_field: TextEdit
 var command_field: LineEdit
 var history: Array = []
 
@@ -73,11 +75,17 @@ func _build_dock() -> void:
 	prompt_field.placeholder_text = "build.preview prompt"
 	dock.add_child(prompt_field)
 
+	error_field = TextEdit.new()
+	error_field.custom_minimum_size = Vector2(0, 90)
+	error_field.placeholder_text = "debug.current error text"
+	dock.add_child(error_field)
+
 	var buttons := HBoxContainer.new()
 	buttons.add_child(_make_button("Capture", "_on_capture_pressed"))
 	buttons.add_child(_make_button("Status", "_on_status_pressed"))
 	buttons.add_child(_make_button("Inspect", "_on_inspect_pressed"))
 	buttons.add_child(_make_button("Validate", "_on_validate_pressed"))
+	buttons.add_child(_make_button("Debug", "_on_debug_pressed"))
 	buttons.add_child(_make_button("Replay Last", "_on_replay_last_pressed"))
 	buttons.add_child(_make_button("Replay Selected", "_on_replay_selected_pressed"))
 	buttons.add_child(_make_button("Clear", "_on_clear_pressed"))
@@ -134,6 +142,9 @@ func _on_inspect_pressed() -> void:
 func _on_validate_pressed() -> void:
 	_run_rpc("validation.run")
 
+func _on_debug_pressed() -> void:
+	_run_rpc("debug.current", PackedStringArray(["--error", error_field.text]))
+
 func _on_run_pressed() -> void:
 	var method := method_picker.get_item_text(method_picker.selected)
 	var extra := PackedStringArray()
@@ -141,6 +152,8 @@ func _on_run_pressed() -> void:
 		extra.append_array(["--query", query_field.text])
 	elif method == "build.preview":
 		extra.append_array(["--prompt", prompt_field.text])
+	elif method == "debug.current":
+		extra.append_array(["--error", error_field.text])
 	_run_rpc(method, extra)
 
 func _on_replay_last_pressed() -> void:
