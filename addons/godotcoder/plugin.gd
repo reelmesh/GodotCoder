@@ -145,7 +145,11 @@ func _run_cli_args(method: String, cli: String, args: Array, context: Variant, a
 	if output.size() > 0:
 		text = str(output[0])
 
-	output_view.text = "Command: %s %s\nExit: %s\n\n%s" % [cli, " ".join(args), exit_code, text]
+	var envelope := _parse_envelope(text)
+	if envelope.is_empty():
+		output_view.text = "Command: %s %s\nExit: %s\n\n%s" % [cli, " ".join(args), exit_code, text]
+	else:
+		output_view.text = _format_envelope_output(cli, args, exit_code, envelope, text)
 	if append_history:
 		_append_history(method, cli, args, exit_code, text, context)
 		_refresh_history_view()
@@ -171,6 +175,35 @@ func _refresh_history_view() -> void:
 		var line := "%s | %s | exit=%s" % [entry.get("captured_at", ""), entry.get("method", ""), str(entry.get("exit_code", -1))]
 		lines.append(line)
 	history_view.text = "\n".join(lines)
+
+func _parse_envelope(text: String) -> Dictionary:
+	var parsed := JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	if not parsed.has("ok") or not parsed.has("method"):
+		return {}
+	return parsed
+
+func _format_envelope_output(cli: String, args: Array, exit_code: int, envelope: Dictionary, raw: String) -> String:
+	var lines: PackedStringArray = []
+	lines.append("Command: %s %s" % [cli, " ".join(args)])
+	lines.append("Exit: %s" % exit_code)
+	lines.append("Envelope:")
+	lines.append("  ok: %s" % str(envelope.get("ok", false)))
+	lines.append("  method: %s" % str(envelope.get("method", "")))
+	lines.append("  error: %s" % _jsonish(envelope.get("error", null)))
+	lines.append("  diagnostics: %s" % _jsonish(envelope.get("diagnostics", [])))
+	lines.append("  result: %s" % _jsonish(envelope.get("result", null)))
+	lines.append("")
+	lines.append("Raw:")
+	lines.append(raw)
+	return "\n".join(lines)
+
+func _jsonish(value: Variant) -> String:
+	var data := JSON.stringify(value, "\t")
+	if typeof(data) == TYPE_STRING:
+		return data
+	return str(value)
 
 func _capture_editor_context() -> Dictionary:
 	var editor := get_editor_interface()

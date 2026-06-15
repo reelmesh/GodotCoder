@@ -377,7 +377,8 @@ to the `godotcoder` binary or absolute CLI path.
 
 The dock captures editor context, keeps recent RPC history in
 `user://godotcoder/plugin-history.json`, and can round-trip editor context
-through `godotcoder rpc editor.context --json`.
+through `godotcoder rpc editor.context --json`. RPC output is parsed into a
+structured envelope view, with raw text kept below for debugging.
 
 Machine-readable output:
 
