@@ -220,6 +220,8 @@ node /path/to/GodotCoder/dist/cli.js rpc build.preview --prompt "make a 2d platf
 node /path/to/GodotCoder/dist/cli.js rpc editor.context --context '{"current_path":"res://scenes/main.tscn"}' --json
 ```
 
+The bundled Godot editor plugin captures scene, selection, script, and open-scene context, auto-attaches that context to regular RPC calls, and keeps a selectable replay history in the dock.
+
 Responses use `{ ok, method, result, error, diagnostics }`.
 
 Harness workflow runs a BMAD-style Godot agent sequence:
@@ -378,8 +380,9 @@ to the `godotcoder` binary or absolute CLI path.
 The dock captures editor context, keeps recent RPC history in
 `user://godotcoder/plugin-history.json`, and can round-trip editor context
 through `godotcoder rpc editor.context --json`. RPC output is parsed into a
-structured envelope view, with raw text kept below for debugging.
-Regular dock RPC calls also attach captured editor context when available.
+structured envelope view, stdout and stderr are shown separately, exit codes
+are surfaced, and raw stdout stays visible for debugging. Regular dock RPC
+calls also attach captured editor context when available.
 
 Machine-readable output:
 

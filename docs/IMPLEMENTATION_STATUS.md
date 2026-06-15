@@ -1,6 +1,6 @@
 # Implementation Status
 
-Date: 2026-06-14
+Date: 2026-06-15
 
 ## Implemented
 
@@ -37,7 +37,7 @@ First TypeScript/Node CLI slice:
 - `godotcoder menu`
 - `godotcoder rpc <method>`
 - Minimal Godot editor plugin scaffold under `addons/godotcoder/` that shells out to `godotcoder rpc`.
-- Editor plugin captures scene, selection, script, and open-scene context, auto-attaches context to regular RPC calls, supports replay/clear controls, parses RPC envelopes for display, and persists recent RPC history under `user://godotcoder/plugin-history.json`.
+- Editor plugin captures scene, selection, script, and open-scene context, auto-attaches context to regular RPC calls, supports replay/selected replay/clear controls, persists recent RPC history under `user://godotcoder/plugin-history.json`, and surfaces separate stdout/stderr/exit-state output for RPC runs.
 - `docs/EDITOR_PLUGIN_TEST_PLAN.md` records the plugin round-trip acceptance checks.
 
 Core modules:

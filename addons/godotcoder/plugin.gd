@@ -3,6 +3,8 @@ extends EditorPlugin
 
 const HISTORY_DIR := "user://godotcoder"
 const HISTORY_FILE := HISTORY_DIR + "/plugin-history.json"
+const SETTINGS_CLI_PATH := "godotcoder/plugin/cli_path"
+const TEMP_DIR := "user://godotcoder/tmp"
 const RPC_METHODS := [
 	"workspace.status",
 	"project.inspect",
@@ -15,9 +17,12 @@ const RPC_METHODS := [
 
 var dock: VBoxContainer
 var method_picker: OptionButton
+var status_view: Label
 var output_view: TextEdit
+var stderr_view: TextEdit
 var context_view: TextEdit
 var history_view: TextEdit
+var history_picker: OptionButton
 var query_field: LineEdit
 var prompt_field: LineEdit
 var command_field: LineEdit
@@ -50,9 +55,15 @@ func _build_dock() -> void:
 	dock.add_child(method_picker)
 
 	command_field = LineEdit.new()
-	command_field.placeholder_text = "godotcoder command"
-	command_field.text = "godotcoder"
+	command_field.placeholder_text = "godotcoder CLI path"
+	command_field.text = _load_cli_path()
+	command_field.text_changed.connect(_on_command_field_changed)
 	dock.add_child(command_field)
+
+	status_view = Label.new()
+	status_view.text = "CLI ready."
+	status_view.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dock.add_child(status_view)
 
 	query_field = LineEdit.new()
 	query_field.placeholder_text = "docs.search query"
@@ -68,9 +79,14 @@ func _build_dock() -> void:
 	buttons.add_child(_make_button("Inspect", "_on_inspect_pressed"))
 	buttons.add_child(_make_button("Validate", "_on_validate_pressed"))
 	buttons.add_child(_make_button("Replay Last", "_on_replay_last_pressed"))
+	buttons.add_child(_make_button("Replay Selected", "_on_replay_selected_pressed"))
 	buttons.add_child(_make_button("Clear", "_on_clear_pressed"))
 	buttons.add_child(_make_button("Run", "_on_run_pressed"))
 	dock.add_child(buttons)
+
+	history_picker = OptionButton.new()
+	history_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dock.add_child(history_picker)
 
 	context_view = TextEdit.new()
 	context_view.editable = false
@@ -85,6 +101,17 @@ func _build_dock() -> void:
 	output_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	output_view.placeholder_text = "Latest RPC output"
 	dock.add_child(output_view)
+
+	var stderr_label := Label.new()
+	stderr_label.text = "Stderr"
+	dock.add_child(stderr_label)
+
+	stderr_view = TextEdit.new()
+	stderr_view.editable = false
+	stderr_view.custom_minimum_size = Vector2(0, 120)
+	stderr_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stderr_view.placeholder_text = "Latest process stderr"
+	dock.add_child(stderr_view)
 
 	history_view = TextEdit.new()
 	history_view.editable = false
@@ -123,10 +150,19 @@ func _on_replay_last_pressed() -> void:
 	var last := history[history.size() - 1]
 	_run_cli_args(str(last.get("method", "")), last.get("cli", "godotcoder"), last.get("args", []), last.get("context", null), true)
 
+func _on_replay_selected_pressed() -> void:
+	var selected := _selected_history_entry()
+	if selected.is_empty():
+		output_view.text = "No selected history entry to replay."
+		return
+	_run_cli_args(str(selected.get("method", "")), selected.get("cli", "godotcoder"), selected.get("args", []), selected.get("context", null), true)
+
 func _on_clear_pressed() -> void:
 	history.clear()
 	_save_history()
 	output_view.text = "RPC history cleared."
+	stderr_view.text = ""
+	status_view.text = "RPC history cleared."
 	_refresh_history_view()
 
 func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(), context: Variant = null) -> void:
@@ -142,22 +178,24 @@ func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(
 	_run_cli_args(method, cli, args, captured_context)
 
 func _run_cli_args(method: String, cli: String, args: Array, context: Variant, append_history := true) -> void:
-	var output: Array = []
-	var exit_code := OS.execute(cli, args, output, true)
-	var text := ""
-	if output.size() > 0:
-		text = str(output[0])
+	var execution := _execute_cli(cli, args)
+	var exit_code := int(execution.get("exit_code", -1))
+	var stdout_text := str(execution.get("stdout", ""))
+	var stderr_text := str(execution.get("stderr", ""))
+	var command_line := str(execution.get("command_line", "%s %s" % [cli, " ".join(args)]))
 
-	var envelope := _parse_envelope(text)
+	var envelope := _parse_envelope(stdout_text)
 	if envelope.is_empty():
-		output_view.text = "Command: %s %s\nExit: %s\n\n%s" % [cli, " ".join(args), exit_code, text]
+		output_view.text = _format_command_output(cli, args, exit_code, stdout_text)
 	else:
-		output_view.text = _format_envelope_output(cli, args, exit_code, envelope, text)
+		output_view.text = _format_envelope_output(cli, args, exit_code, envelope, stdout_text)
+	stderr_view.text = _format_stderr_output(exit_code, stderr_text)
+	status_view.text = _format_status_message(method, command_line, exit_code, stdout_text, stderr_text)
 	if append_history:
-		_append_history(method, cli, args, exit_code, text, context)
+		_append_history(method, cli, args, exit_code, stdout_text, stderr_text, context)
 		_refresh_history_view()
 
-func _append_history(method: String, cli: String, args: Array, exit_code: int, output: String, context: Variant) -> void:
+func _append_history(method: String, cli: String, args: Array, exit_code: int, output: String, stderr: String, context: Variant) -> void:
 	var entry := {
 		"captured_at": Time.get_datetime_string_from_system(),
 		"method": method,
@@ -165,6 +203,7 @@ func _append_history(method: String, cli: String, args: Array, exit_code: int, o
 		"args": args,
 		"exit_code": exit_code,
 		"output": output,
+		"stderr": stderr,
 		"context": context,
 	}
 	history.append(entry)
@@ -174,10 +213,32 @@ func _append_history(method: String, cli: String, args: Array, exit_code: int, o
 
 func _refresh_history_view() -> void:
 	var lines: PackedStringArray = []
+	if history_picker:
+		history_picker.clear()
 	for entry in history:
 		var line := "%s | %s | exit=%s" % [entry.get("captured_at", ""), entry.get("method", ""), str(entry.get("exit_code", -1))]
 		lines.append(line)
+		if history_picker:
+			history_picker.add_item(_history_label(entry))
+	if history_picker and history_picker.item_count > 0:
+		history_picker.select(history_picker.item_count - 1)
 	history_view.text = "\n".join(lines)
+
+func _selected_history_entry() -> Dictionary:
+	if history.is_empty() or history_picker == null:
+		return {}
+	var index := history_picker.selected
+	if index < 0 or index >= history.size():
+		return {}
+	var entry := history[index]
+	if typeof(entry) != TYPE_DICTIONARY:
+		return {}
+	return entry
+
+func _history_label(entry: Dictionary) -> String:
+	var method := str(entry.get("method", ""))
+	var stamp := str(entry.get("captured_at", ""))
+	return "%s | %s" % [stamp, method]
 
 func _parse_envelope(text: String) -> Dictionary:
 	var parsed := JSON.parse_string(text)
@@ -272,3 +333,94 @@ func _make_button(label_text: String, callback: String) -> Button:
 	button.text = label_text
 	button.pressed.connect(Callable(self, callback))
 	return button
+
+func _load_cli_path() -> String:
+	var settings := EditorSettings.get_singleton()
+	if settings and settings.has_setting(SETTINGS_CLI_PATH):
+		var value := str(settings.get_setting(SETTINGS_CLI_PATH)).strip_edges()
+		if not value.is_empty():
+			return value
+	return "godotcoder"
+
+func _on_command_field_changed(value: String) -> void:
+	var cli := value.strip_edges()
+	if cli.is_empty():
+		cli = "godotcoder"
+	var settings := EditorSettings.get_singleton()
+	if settings:
+		settings.set_setting(SETTINGS_CLI_PATH, cli)
+		settings.save()
+
+func _execute_cli(cli: String, args: Array) -> Dictionary:
+	_ensure_temp_dir()
+	var stamp := "%s-%s-%s" % [str(OS.get_process_id()), str(Time.get_ticks_msec()), str(randi())]
+	var stdout_path := ProjectSettings.globalize_path("%s/%s.stdout" % [TEMP_DIR, stamp])
+	var stderr_path := ProjectSettings.globalize_path("%s/%s.stderr" % [TEMP_DIR, stamp])
+	var command_line := _build_shell_command(cli, args)
+	var shell_command := "%s 1>%s 2>%s" % [
+		command_line,
+		_shell_escape(stdout_path),
+		_shell_escape(stderr_path),
+	]
+	var shell_output: Array = []
+	var exit_code := OS.execute("sh", ["-lc", shell_command], shell_output, true)
+	var stdout_text := _read_text_file(stdout_path)
+	var stderr_text := _read_text_file(stderr_path)
+	_cleanup_temp_file(stdout_path)
+	_cleanup_temp_file(stderr_path)
+	if exit_code != 0 and stdout_text.strip_edges().is_empty() and stderr_text.strip_edges().is_empty():
+		stderr_text = "Command exited with code %s and produced no output." % exit_code
+	return {
+		"exit_code": exit_code,
+		"stdout": stdout_text,
+		"stderr": stderr_text,
+		"command_line": command_line,
+	}
+
+func _build_shell_command(cli: String, args: Array) -> String:
+	var parts: PackedStringArray = []
+	parts.append(_shell_escape(cli))
+	for arg in args:
+		parts.append(_shell_escape(str(arg)))
+	return " ".join(parts)
+
+func _shell_escape(value: String) -> String:
+	if value.is_empty():
+		return "''"
+	return "'" + value.replace("'", "'\"'\"'") + "'"
+
+func _read_text_file(path: String) -> String:
+	if not FileAccess.file_exists(path):
+		return ""
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	return file.get_as_text()
+
+func _cleanup_temp_file(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+
+func _ensure_temp_dir() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(TEMP_DIR))
+
+func _format_command_output(cli: String, args: Array, exit_code: int, stdout_text: String) -> String:
+	var lines: PackedStringArray = []
+	lines.append("Command: %s %s" % [cli, " ".join(args)])
+	lines.append("Exit: %s" % exit_code)
+	lines.append("")
+	lines.append(stdout_text)
+	return "\n".join(lines)
+
+func _format_stderr_output(exit_code: int, stderr_text: String) -> String:
+	var text := stderr_text.strip_edges()
+	if text.is_empty():
+		return "Exit: %s\nNo stderr captured." % exit_code
+	return "Exit: %s\n%s" % [exit_code, text]
+
+func _format_status_message(method: String, command_line: String, exit_code: int, stdout_text: String, stderr_text: String) -> String:
+	if exit_code == 0:
+		return "%s via %s completed successfully." % [method, command_line]
+	if stdout_text.strip_edges().is_empty() and stderr_text.strip_edges().is_empty():
+		return "%s via %s failed without output." % [method, command_line]
+	return "%s via %s exited with code %s." % [method, command_line, exit_code]
