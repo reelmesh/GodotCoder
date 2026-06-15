@@ -61,6 +61,22 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(editorContextPayload.ok, true);
   assert.equal(editorContextPayload.result.context.current_path, context.current_path);
   assert.equal(editorContextPayload.result.context.selected_nodes[0].name, "Main");
+
+  const explainContext = {
+    current_path: "res://scenes/main.tscn",
+    scene_root: { name: "Main", class: "Node2D", path: "/root/Main" },
+    selected_nodes: [{ name: "Player", class: "CharacterBody2D", path: "/root/Main/Player" }],
+    current_script: { class: "GDScript", path: "res://scripts/player.gd" },
+  };
+  const explain = await runRpc(projectRoot, ["editor.explain", "--context", JSON.stringify(explainContext), "--json"]);
+  const explainPayload = JSON.parse(explain.stdout);
+  assert.equal(explainPayload.ok, true);
+  assert.equal(explainPayload.method, "editor.explain");
+  assert.equal(explainPayload.result.focus.currentPath, explainContext.current_path);
+  assert.equal(explainPayload.result.focus.selectedNodes[0].name, "Player");
+  assert.equal(explainPayload.result.project.applicationName, "RPC Test");
+  assert.equal(explainPayload.result.project.sceneCount, 1);
+  assert.equal(explainPayload.result.suggestedNextCommands.some((command) => command.includes("validation.run")), true);
 });
 
 test("rpc emits stable error envelopes", async () => {

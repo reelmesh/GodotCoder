@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { selectBuilder } from "../core/builders/index.js";
 import { CliError, formatError } from "../core/errors.js";
 import { pathExists } from "../core/files.js";
-import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { previewGeneratedFiles } from "../core/preview.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
@@ -72,6 +72,14 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
       throw new CliError("RPC_USAGE", "debug.current requires --error <message>.");
     }
     return attachContext(debugCurrent(errorText), editorContext);
+  }
+  if (method === "editor.explain") {
+    if (!editorContext) {
+      throw new CliError("RPC_USAGE", "editor.explain requires --context <json>.");
+    }
+    const projectRoot = await findGodotProjectRoot(process.cwd());
+    const projectIndex = await inspectGodotProject(projectRoot);
+    return explainEditorContext(parseJsonPayload(editorContext), projectIndex);
   }
   if (method === "editor.context") {
     const payload = editorContext ?? readJsonFlag(args, "--context") ?? readJsonFlag(args, "--payload");
@@ -221,6 +229,77 @@ function summarizeBuildPreview(preview: Awaited<ReturnType<typeof previewGenerat
     unchangedPaths,
     hasChanges: changedPaths.length > 0,
   };
+}
+
+function explainEditorContext(context: unknown, projectIndex: ProjectIndex): unknown {
+  const ctx = asRecord(context);
+  const sceneRoot = asRecord(ctx.scene_root);
+  const currentScript = asRecord(ctx.current_script);
+  const selectedNodes = Array.isArray(ctx.selected_nodes) ? ctx.selected_nodes.map(asRecord).filter((node) => Object.keys(node).length > 0) : [];
+  const currentPath = asStringValue(ctx.current_path);
+  const currentScriptPath = asStringValue(currentScript.path);
+  const selectedNodeNames = selectedNodes.map((node) => asStringValue(node.name)).filter((value): value is string => Boolean(value));
+  const selectedNodePaths = selectedNodes.map((node) => asStringValue(node.path)).filter((value): value is string => Boolean(value));
+  const focus = currentPath ?? currentScriptPath ?? asStringValue(sceneRoot.path) ?? projectIndex.mainScene;
+
+  return {
+    summary: summarizeEditorFocus(focus, selectedNodeNames, currentScriptPath, projectIndex),
+    focus: {
+      currentPath,
+      sceneRoot: {
+        name: asStringValue(sceneRoot.name),
+        class: asStringValue(sceneRoot.class),
+        path: asStringValue(sceneRoot.path),
+      },
+      selectedNodes: selectedNodes.map((node) => ({
+        name: asStringValue(node.name),
+        class: asStringValue(node.class),
+        path: asStringValue(node.path),
+      })),
+      currentScript: {
+        class: asStringValue(currentScript.class),
+        path: currentScriptPath,
+      },
+    },
+    project: {
+      applicationName: projectIndex.applicationName,
+      mainScene: projectIndex.mainScene,
+      scriptCount: projectIndex.scripts.length,
+      sceneCount: projectIndex.scenes.length,
+      resourceCount: projectIndex.resources.length,
+      inputActions: projectIndex.inputMap,
+      autoloads: projectIndex.autoloads,
+      plugins: projectIndex.plugins,
+    },
+    suggestedNextCommands: suggestedEditorCommands(currentPath, currentScriptPath, selectedNodePaths),
+  };
+}
+
+function summarizeEditorFocus(focus: string | null, selectedNodeNames: string[], currentScriptPath: string | null, projectIndex: ProjectIndex): string {
+  const target = focus ?? "the current editor selection";
+  const selected = selectedNodeNames.length > 0 ? ` Selected nodes: ${selectedNodeNames.join(", ")}.` : "";
+  const script = currentScriptPath ? ` Current script: ${currentScriptPath}.` : "";
+  const project = projectIndex.applicationName ? ` Project: ${projectIndex.applicationName}.` : "";
+  return `Editor focus is ${target}.${selected}${script}${project}`;
+}
+
+function suggestedEditorCommands(currentPath: string | null, currentScriptPath: string | null, selectedNodePaths: string[]): string[] {
+  const commands = ["godotcoder rpc validation.run --json", "godotcoder rpc project.inspect --json"];
+  if (currentPath || currentScriptPath || selectedNodePaths.length > 0) {
+    commands.unshift("godotcoder rpc editor.explain --context '<captured editor context>' --json");
+  }
+  if (currentScriptPath) {
+    commands.push(`godotcoder rpc docs.search --query "${currentScriptPath.endsWith(".gd") ? "GDScript" : "script"}" --json`);
+  }
+  return commands;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function asStringValue(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 function classifyDebugSubsystem(lower: string): string {

@@ -14,6 +14,7 @@ const RPC_METHODS := [
 	"build.preview",
 	"debug.current",
 	"editor.context",
+	"editor.explain",
 ]
 
 var dock: VBoxContainer
@@ -85,6 +86,7 @@ func _build_dock() -> void:
 	buttons.add_child(_make_button("Status", "_on_status_pressed"))
 	buttons.add_child(_make_button("Inspect", "_on_inspect_pressed"))
 	buttons.add_child(_make_button("Validate", "_on_validate_pressed"))
+	buttons.add_child(_make_button("Explain", "_on_explain_pressed"))
 	buttons.add_child(_make_button("Debug", "_on_debug_pressed"))
 	buttons.add_child(_make_button("Preview", "_on_preview_pressed"))
 	buttons.add_child(_make_button("Replay Last", "_on_replay_last_pressed"))
@@ -142,6 +144,9 @@ func _on_inspect_pressed() -> void:
 
 func _on_validate_pressed() -> void:
 	_run_rpc("validation.run")
+
+func _on_explain_pressed() -> void:
+	_run_rpc("editor.explain")
 
 func _on_debug_pressed() -> void:
 	_run_rpc("debug.current", PackedStringArray(["--error", error_field.text]))
