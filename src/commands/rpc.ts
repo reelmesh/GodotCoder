@@ -5,6 +5,7 @@ import { pathExists } from "../core/files.js";
 import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { previewGeneratedFiles } from "../core/preview.js";
+import { runProcess } from "../core/process.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
 import { validateProjectRoot } from "./validate.js";
@@ -43,6 +44,9 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
   }
   if (method === "project.inspect") {
     return attachContext(await projectInspect(), editorContext);
+  }
+  if (method === "workspace.changes") {
+    return attachContext(await workspaceChanges(), editorContext);
   }
   if (method === "runtime.doctor") {
     return attachContext(await runtimeDoctorRpc(), editorContext);
@@ -118,6 +122,33 @@ async function projectInspect(): Promise<unknown> {
   await mkdir(paths.workspaceRoot, { recursive: true });
   await writeFile(paths.projectIndex, JSON.stringify(index, null, 2) + "\n");
   return { projectIndex: index };
+}
+
+async function workspaceChanges(): Promise<unknown> {
+  const projectRoot = await findGodotProjectRoot(process.cwd());
+  const status = await runProcess(["git", "status", "--porcelain=v1"], { cwd: projectRoot, timeoutMs: 5000 });
+  if (status.exitCode !== 0) {
+    return {
+      vcs: "git",
+      available: false,
+      clean: null,
+      files: [],
+      counts: { added: 0, modified: 0, deleted: 0, renamed: 0, untracked: 0, other: 0 },
+      summary: status.stderr.trim() || "Git status is unavailable for this project.",
+    };
+  }
+
+  const files = parseGitStatus(status.stdout);
+  const counts = summarizeGitStatus(files);
+  const changed = files.length;
+  return {
+    vcs: "git",
+    available: true,
+    clean: changed === 0,
+    files,
+    counts,
+    summary: changed === 0 ? "Workspace is clean." : `${changed} changed file${changed === 1 ? "" : "s"} in git status.`,
+  };
 }
 
 async function runtimeDoctorRpc(): Promise<unknown> {
@@ -273,6 +304,50 @@ function explainEditorContext(context: unknown, projectIndex: ProjectIndex): unk
     },
     suggestedNextCommands: suggestedEditorCommands(currentPath, currentScriptPath, selectedNodePaths),
   };
+}
+
+function parseGitStatus(stdout: string): Array<{ path: string; indexStatus: string; worktreeStatus: string; status: string }> {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter(Boolean)
+    .map((line) => {
+      const indexStatus = line.slice(0, 1);
+      const worktreeStatus = line.slice(1, 2);
+      const rawPath = line.slice(3);
+      return {
+        path: normalizeGitStatusPath(rawPath),
+        indexStatus,
+        worktreeStatus,
+        status: classifyGitStatus(indexStatus, worktreeStatus),
+      };
+    });
+}
+
+function normalizeGitStatusPath(pathText: string): string {
+  const renamed = pathText.split(" -> ");
+  return renamed[renamed.length - 1] ?? pathText;
+}
+
+function summarizeGitStatus(files: Array<{ status: string }>): Record<string, number> {
+  const counts = { added: 0, modified: 0, deleted: 0, renamed: 0, untracked: 0, other: 0 };
+  for (const file of files) {
+    if (file.status in counts) {
+      counts[file.status as keyof typeof counts] += 1;
+    } else {
+      counts.other += 1;
+    }
+  }
+  return counts;
+}
+
+function classifyGitStatus(indexStatus: string, worktreeStatus: string): string {
+  if (indexStatus === "?" && worktreeStatus === "?") return "untracked";
+  if (indexStatus === "R" || worktreeStatus === "R") return "renamed";
+  if (indexStatus === "D" || worktreeStatus === "D") return "deleted";
+  if (indexStatus === "A" || worktreeStatus === "A") return "added";
+  if (indexStatus === "M" || worktreeStatus === "M") return "modified";
+  return "other";
 }
 
 function summarizeEditorFocus(focus: string | null, selectedNodeNames: string[], currentScriptPath: string | null, projectIndex: ProjectIndex): string {

@@ -212,6 +212,7 @@ Editor integration and external tools can use stable RPC-style JSON envelopes:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js rpc workspace.status --json
+node /path/to/GodotCoder/dist/cli.js rpc workspace.changes --json
 node /path/to/GodotCoder/dist/cli.js rpc project.inspect --json
 node /path/to/GodotCoder/dist/cli.js rpc runtime.doctor --json
 node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
@@ -388,7 +389,8 @@ calls also attach captured editor context when available. The dock also exposes
 a `Debug` action that sends pasted console/error text to `debug.current`, and a
 preview action that summarizes `build.preview` file counts and changed paths
 without applying edits. `Explain` summarizes the selected scene/node/script
-context against the inspected project.
+context against the inspected project. `Review` summarizes current git changes
+without modifying the project.
 
 Machine-readable output:
 

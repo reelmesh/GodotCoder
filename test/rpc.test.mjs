@@ -29,6 +29,17 @@ test("rpc emits stable success envelopes", async () => {
   assert.equal(statusWithContextPayload.ok, true);
   assert.equal(statusWithContextPayload.result.editorContext.source, "editor");
 
+  const gitInit = await runCommand(projectRoot, ["git", "init"]);
+  assert.equal(gitInit.status, 0, gitInit.stderr);
+  const changes = await runRpc(projectRoot, ["workspace.changes", "--context", JSON.stringify({ source: "editor" }), "--json"]);
+  const changesPayload = JSON.parse(changes.stdout);
+  assert.equal(changesPayload.ok, true);
+  assert.equal(changesPayload.method, "workspace.changes");
+  assert.equal(changesPayload.result.available, true);
+  assert.equal(changesPayload.result.clean, false);
+  assert.equal(changesPayload.result.files.some((file) => file.path === "project.godot"), true);
+  assert.equal(changesPayload.result.editorContext.source, "editor");
+
   const docs = await runRpc(projectRoot, ["docs.search", "--query", "input", "--json"]);
   const docsPayload = JSON.parse(docs.stdout);
   assert.equal(docsPayload.ok, true);
@@ -105,6 +116,28 @@ config/features=PackedStringArray("4.x")
   );
   await writeFile(path.join(projectRoot, "scenes/main.tscn"), `[gd_scene format=3]\n\n[node name="Main" type="Node2D"]\n`);
   return projectRoot;
+}
+
+function runCommand(cwd, command) {
+  return new Promise((resolve) => {
+    const child = spawn(command[0], command.slice(1), {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (status) => {
+      resolve({ status, stdout, stderr });
+    });
+  });
 }
 
 function runRpc(cwd, args) {
