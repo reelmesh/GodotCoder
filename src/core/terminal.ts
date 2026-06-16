@@ -30,18 +30,22 @@ export function logo(): string {
     return color("  GodotCoder", "bold");
   }
   const c = (t: string, code: keyof typeof codes) => `${codes[code]}${t}${codes.reset}`;
-  const B = c("█", "cyan");
-  const S = c(" ", "cyan");
+  const cyan = (t: string) => c(t, "cyan");
+  const green = (t: string) => c(t, "green");
+  const gray = (t: string) => c(t, "gray");
+  const bold = (t: string) => c(t, "bold");
 
-  // G O D O T      C O D E R
-  const lines = [
-    `${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B}   ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B}`,
-    `${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${S}${S} ${B}${S}${B}`,
-    `${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${B}${S} ${B}${B}${S}`,
-    `${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${S}${S} ${B}${B}${S}`,
-    `${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${S}${B}`,
-    `${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${S}${B}${S}   ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${S}${B}`,
-    `${c("   LLM-driven Godot game builder · Linux-first · GDScript-first", "gray")}`,
-  ];
-  return lines.join("\n");
+  return [
+    cyan("      ▄▄▄▄▄▄▄"),
+    cyan("     █▀     ▀█"),
+    cyan("    █  ▄▄▄▄▄  █"),
+    cyan("    █ █ █ █ █ █"),
+    cyan("    █  ▀▀▀▀▀  █"),
+    cyan("     █▄     ▄█"),
+    cyan("      ▀▀▀▀▀▀▀"),
+    "",
+    bold("     Godot") + green("Coder"),
+    "",
+    gray("  LLM-driven Godot game builder · Linux-first · GDScript-first"),
+  ].join("\n");
 }
