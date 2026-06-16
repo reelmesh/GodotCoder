@@ -4,10 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { extractDocTextFromHtml, loadCachedGodotDoc, officialGodotDocs, writeDocsContext } from "../dist/core/godot-docs.js";
+import { extractDocTextFromHtml, loadCachedGodotDoc, officialGodotDocs, writeDocsContext, docsPromptContextWithExcerpts } from "../dist/core/godot-docs.js";
 import { updateGodotConfigText, parseGodotConfig } from "../dist/core/godot-project.js";
-import { evaluateGeneratedGameAcceptance } from "../dist/core/llm-build.js";
+import { evaluateGeneratedGameAcceptance, parseLlmBuildReply } from "../dist/core/llm-build.js";
 import { attemptRepair } from "../dist/core/repair.js";
+import { runSmokeValidation, runExportValidation } from "../dist/core/validation.js";
 
 test("project.godot helpers update slash keys and input-map dictionaries", () => {
   const source = `config_version=5
@@ -179,3 +180,156 @@ function fakeValidation(projectRoot, findings) {
     },
   };
 }
+
+test("runSmokeValidation handles timeout as success and parses script errors on premature exit", async () => {
+  const projectRoot = await mkdtemp(path.join(tmpdir(), "godotcoder-smoke-run-"));
+  const scriptPath = path.join(projectRoot, "mock_godot.js");
+
+  // 1. Success on timeout (simulating a game loop running continuously)
+  await writeFile(scriptPath, "setTimeout(() => {}, 10000);");
+  const profileSuccess = {
+    executable: ["node", scriptPath],
+    detectedGodotVersion: "4.3.0",
+    installType: "native",
+  };
+  const reportSuccess = await runSmokeValidation(projectRoot, profileSuccess, 200);
+  assert.equal(reportSuccess.summary.errors, 0);
+  assert.equal(reportSuccess.findings.length, 0);
+
+  // 2. Failure on crash with script error
+  await writeFile(
+    scriptPath,
+    "console.error('SCRIPT ERROR: Invalid get index on base Nil\\n  at res://scripts/player.gd:12'); process.exit(1);",
+  );
+  const profileCrash = {
+    executable: ["node", scriptPath],
+    detectedGodotVersion: "4.3.0",
+    installType: "native",
+  };
+  const reportCrash = await runSmokeValidation(projectRoot, profileCrash, 2000);
+  assert.equal(reportCrash.summary.errors, 1);
+  assert.equal(reportCrash.findings[0].severity, "error");
+  assert.equal(reportCrash.findings[0].subsystem, "script");
+  assert.equal(reportCrash.findings[0].file, "res://scripts/player.gd");
+  assert.equal(reportCrash.findings[0].line, 12);
+  assert.match(reportCrash.findings[0].message, /Invalid get index/);
+
+  // 3. Failure on premature exit without explicit logs
+  await writeFile(scriptPath, "process.exit(127);");
+  const profileExit = {
+    executable: ["node", scriptPath],
+    detectedGodotVersion: "4.3.0",
+    installType: "native",
+  };
+  const reportExit = await runSmokeValidation(projectRoot, profileExit, 2000);
+  assert.equal(reportExit.summary.errors, 1);
+  assert.equal(reportExit.findings[0].severity, "error");
+  assert.equal(reportExit.findings[0].subsystem, "runtime");
+  assert.match(reportExit.findings[0].message, /prematurely/);
+});
+
+test("runExportValidation handles missing presets, success, and failures", async () => {
+  const projectRoot = await mkdtemp(path.join(tmpdir(), "godotcoder-export-run-"));
+
+  // 1. Missing presets file
+  const profile = {
+    executable: ["node"],
+    detectedGodotVersion: "4.3.0",
+    installType: "native",
+  };
+  const reportMissing = await runExportValidation(projectRoot, profile);
+  assert.equal(reportMissing.summary.warnings, 1);
+  assert.match(reportMissing.findings[0].message, /No export_presets.cfg found/);
+
+  // 2. Presets file with no presets
+  await writeFile(path.join(projectRoot, "export_presets.cfg"), "[not_a_preset]\nkey=value");
+  const reportEmpty = await runExportValidation(projectRoot, profile);
+  assert.equal(reportEmpty.summary.warnings, 1);
+  assert.match(reportEmpty.findings[0].message, /No presets defined/);
+
+  // 3. Successful export
+  await writeFile(
+    path.join(projectRoot, "export_presets.cfg"),
+    `[preset.0]\nname="Linux"\nplatform="Linux/X11"\n`,
+  );
+  const scriptPath = path.join(projectRoot, "mock_godot_export.js");
+  await writeFile(scriptPath, "console.log('Exporting resources...'); process.exit(0);");
+  const profileSuccess = {
+    executable: ["node", scriptPath],
+    detectedGodotVersion: "4.3.0",
+    installType: "native",
+  };
+  const reportSuccess = await runExportValidation(projectRoot, profileSuccess);
+  assert.equal(reportSuccess.summary.errors, 0);
+  assert.equal(reportSuccess.findings.length, 0);
+
+  // 4. Failed export
+  await writeFile(
+    scriptPath,
+    "console.error('ERROR: No export template found for the selected platform.'); process.exit(1);",
+  );
+  const reportFail = await runExportValidation(projectRoot, profileSuccess);
+  assert.equal(reportFail.summary.errors, 1);
+  assert.match(reportFail.findings[0].message, /No export template found/);
+  assert.equal(reportFail.findings[0].severity, "error");
+});
+
+test("docsPromptContextWithExcerpts includes cached excerpts and parseLlmBuildReply handles thinking blocks/tabs", async () => {
+  const projectRoot = await mkdtemp(path.join(tmpdir(), "godotcoder-hardening-run-"));
+
+  // 1. Check docsPromptContextWithExcerpts with cached docs
+  const docsDir = path.join(projectRoot, ".godotcoder/cache/docs");
+  await mkdir(docsDir, { recursive: true });
+  await writeFile(
+    path.join(docsDir, "class-input.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      cachedAt: "2026-06-14T00:00:00.000Z",
+      source: {
+        id: "class-input",
+        title: "Input Class Reference",
+        url: "https://docs.godotengine.org/en/stable/classes/class_input.html",
+        summary: "Official API reference for polling input state.",
+        tags: ["input"],
+      },
+      textPath: path.join(docsDir, "class-input.txt"),
+      excerpts: ["Excerpt 1: Polling input events.", "Excerpt 2: Input actions."],
+    }),
+  );
+
+  const docsContext = await docsPromptContextWithExcerpts(projectRoot, "input", 1);
+  assert.match(docsContext, /Input Class Reference/);
+  assert.match(docsContext, /Excerpt 1: Polling input events/);
+  assert.match(docsContext, /Excerpt 2: Input actions/);
+
+  // 2. parseLlmBuildReply strips think tags and repairs tabs
+  const replyWithThink = `
+  Some extra chat prose here.
+  <think>
+  Thinking about how to do this.
+  I need to output a JSON object.
+  </think>
+  {
+    "summary": "Implement input handling",
+    "files": [
+      {
+        "path": "scripts/main.gd",
+        "lines": [
+          "extends Node2D",
+          "\tfunc _ready():",
+          "\t\tprint(\\"hello\\")"
+        ]
+      }
+    ]
+  }
+  More trailing prose.
+  `;
+  const result = parseLlmBuildReply(replyWithThink);
+  assert.equal(result.ok, true);
+  assert.equal(result.summary, "Implement input handling");
+  assert.equal(result.files[0].path, "scripts/main.gd");
+  assert.equal(result.files[0].contents.includes("\t"), true);
+});
+
+
+

@@ -28,6 +28,8 @@ First TypeScript/Node CLI slice:
 - `godotcoder runtime use <godot command>`
 - `godotcoder inspect`
 - `godotcoder validate`
+- `godotcoder validate --smoke` for headless main-scene runtime checks (timing out after 3000ms by default).
+- `godotcoder validate --export` for headless export pack checking (parsing export_presets.cfg and verifying PCK packing).
 - `godotcoder repair`
 - `godotcoder plan <idea>`
 - `godotcoder build <task>`
@@ -38,7 +40,8 @@ First TypeScript/Node CLI slice:
 - `godotcoder rpc <method>`
 - Minimal Godot editor plugin scaffold under `addons/godotcoder/` that shells out to `godotcoder rpc`.
 - Editor plugin captures scene, selection, script, and open-scene context, auto-attaches context to regular RPC calls, supports replay/selected replay/clear controls, persists recent RPC history under `user://godotcoder/plugin-history.json`, and surfaces separate stdout/stderr/exit-state output for RPC runs.
-- Editor plugin exposes `Debug` for pasted console/error text through `godotcoder rpc debug.current`.
+- Editor plugin exposes `Debug` for captured or pasted console/error text through `godotcoder rpc debug.current`.
+- Editor plugin debugger integration captures runtime errors (`debug:error`) and warnings (`debug:warning`) automatically from active game execution, populating the error panel.
 - Editor plugin exposes preview-only build review through `godotcoder rpc build.preview`, including compact file counts and changed paths.
 - Editor plugin exposes `Explain` for selected scene/node/script context through `godotcoder rpc editor.explain`.
 - Editor plugin exposes `Review` for read-only git workspace summaries through `godotcoder rpc workspace.changes`.
@@ -382,4 +385,4 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 ## Next Slice
 
-Recommended next implementation slice: choose the next product milestone from `docs/PRD.md` or continue hardening live model/provider behavior with live end-to-end tests.
+Recommended next implementation slice: continue adding screenshot/visual validation frame checks, or refine prompt guidelines for complex brownfield scene patches.

@@ -106,7 +106,7 @@ Usage:
   godotcoder runtime doctor [--json]
   godotcoder runtime use <godot command>
   godotcoder inspect [--json]
-  godotcoder validate [--json]
+  godotcoder validate [--json] [--smoke] [--export]
   godotcoder repair [--json]
   godotcoder rpc <method> [--json]
   godotcoder plan <game idea> [--json]

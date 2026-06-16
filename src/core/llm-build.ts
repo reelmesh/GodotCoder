@@ -3,7 +3,7 @@ import path from "node:path";
 import { writeTrackedFile, type FileChange } from "./change-records.js";
 import { CliError } from "./errors.js";
 import type { GeneratedFile } from "./builders/types.js";
-import { docsPromptContext } from "./godot-docs.js";
+import { docsPromptContextWithExcerpts } from "./godot-docs.js";
 import { inspectGodotProject } from "./godot-project.js";
 import { pathExists } from "./files.js";
 import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
@@ -50,8 +50,9 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
 
   const projectIndex = await inspectGodotProject(projectRoot);
   const artifacts = await readPlanningContext(projectRoot);
+  const docsContext = await docsPromptContextWithExcerpts(projectRoot, prompt);
   const systemPrompt = `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.`;
-  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts });
+  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts, docsContext });
   const totalLength = systemPrompt.length + userPrompt.length;
   if (totalLength > 24_000) {
     console.warn(`Warning: LLM prompt is ${totalLength} characters. Some local models may truncate.`);
@@ -112,7 +113,7 @@ export async function applyLlmBuild(projectRoot: string, plan: LlmBuildPlan): Pr
   };
 }
 
-function parseLlmBuildReply(content: string): { ok: true; summary: string; files: GeneratedFile[] } | { ok: false; error: string } {
+export function parseLlmBuildReply(content: string): { ok: true; summary: string; files: GeneratedFile[] } | { ok: false; error: string } {
   let json: unknown;
   try {
     json = parseJsonObject(content);
@@ -169,7 +170,11 @@ function createAttempt(stage: LlmBuildAttempt["stage"], reply: ModelReply, error
 }
 
 function extractJson(content: string): string {
-  const trimmed = content.trim();
+  let trimmed = content.trim();
+
+  // Strip reasoning blocks from models like DeepSeek-R1
+  trimmed = trimmed.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
   const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   if (fence) return fence[1]!.trim();
 
@@ -197,6 +202,7 @@ function parseJsonObject(content: string): unknown {
 
 function repairLooseJson(value: string): string {
   return value
+    .replace(/\t/g, "\\t")
     .replace(/,\s*([}\]])/g, "$1")
     .replace(/([{,]\s*)(summary|files|path|contents|lines)\s*:/g, '$1"$2":')
     .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
@@ -237,7 +243,12 @@ async function readPlanningContext(projectRoot: string): Promise<Record<string, 
   return artifacts;
 }
 
-function buildPrompt(input: { prompt: string; projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>; artifacts: Record<string, string> }): string {
+function buildPrompt(input: {
+  prompt: string;
+  projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>;
+  artifacts: Record<string, string>;
+  docsContext: string;
+}): string {
   return `Create a controlled Godot implementation patch for this user task.
 
 Task:
@@ -255,7 +266,7 @@ Planning artifacts:
 ${Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none"}
 
 Official Godot docs sources to prefer:
-${docsPromptContext(input.prompt)}
+${input.docsContext}
 
 Open-ended game request acceptance gates:
 - If the task asks to make, create, build, or prototype a game, produce a first playable vertical slice, not a placeholder.

@@ -197,6 +197,22 @@ export function docsPromptContext(query: string, limit = 5): string {
     .join("\n");
 }
 
+export async function docsPromptContextWithExcerpts(projectRoot: string, query: string, limit = 5): Promise<string> {
+  const matches = searchGodotDocs(query, limit);
+  if (matches.length === 0) return "No official docs matched.";
+
+  const blocks: string[] = [];
+  for (const match of matches) {
+    let docContext = `- ${match.title}: ${match.summary}\n  URL: ${match.url}`;
+    const cached = await loadCachedGodotDoc(projectRoot, match.id);
+    if (cached && cached.excerpts && cached.excerpts.length > 0) {
+      docContext += `\n  Excerpts:\n` + cached.excerpts.map((excerpt) => `    * ${excerpt}`).join("\n");
+    }
+    blocks.push(docContext);
+  }
+  return blocks.join("\n\n");
+}
+
 function tokenize(value: string): string[] {
   return value.toLowerCase().split(/[^a-z0-9_]+/).filter((term) => term.length >= 2);
 }

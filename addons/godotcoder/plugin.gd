@@ -32,6 +32,7 @@ var prompt_field: LineEdit
 var error_field: TextEdit
 var command_field: LineEdit
 var history: Array = []
+var debugger_plugin: GodotCoderDebuggerPlugin
 
 func _enter_tree() -> void:
 	_ensure_storage_dir()
@@ -39,8 +40,14 @@ func _enter_tree() -> void:
 	_build_dock()
 	add_control_to_dock(DOCK_SLOT_RIGHT_UL, dock)
 	_refresh_history_view()
+	debugger_plugin = GodotCoderDebuggerPlugin.new()
+	debugger_plugin.main_plugin = self
+	add_debugger_plugin(debugger_plugin)
 
 func _exit_tree() -> void:
+	if debugger_plugin:
+		remove_debugger_plugin(debugger_plugin)
+		debugger_plugin = null
 	if dock:
 		remove_control_from_docks(dock)
 		dock.queue_free()
@@ -486,3 +493,42 @@ func _format_status_message(method: String, command_line: String, exit_code: int
 	if stdout_text.strip_edges().is_empty() and stderr_text.strip_edges().is_empty():
 		return "%s via %s failed without output." % [method, command_line]
 	return "%s via %s exited with code %s." % [method, command_line, exit_code]
+
+func _on_debugger_error(error_text: String) -> void:
+	error_field.text = error_text
+	status_view.text = "Captured runtime error. Click 'Debug' to repair."
+
+func _on_debugger_warning(warning_text: String) -> void:
+	if error_field.text.strip_edges().is_empty():
+		error_field.text = warning_text
+		status_view.text = "Captured warning. Click 'Debug' to investigate."
+
+func _on_session_stopped() -> void:
+	status_view.text = "Session stopped. Check captured errors."
+
+
+class GodotCoderDebuggerPlugin extends EditorDebuggerPlugin:
+	var main_plugin: EditorPlugin
+
+	func _setup_session(session_id: int) -> void:
+		var session := get_session(session_id)
+		session.stopped.connect(func():
+			if main_plugin:
+				main_plugin.call_deferred("_on_session_stopped")
+		)
+
+	func _capture(message: String, data: Array, session_id: int) -> bool:
+		if message == "debug:error":
+			var error_msg = str(data[0])
+			var script_path = str(data[2])
+			var line_num = str(data[3])
+			var full_error = "SCRIPT ERROR: %s\n  at %s:%s" % [error_msg, script_path, line_num]
+			main_plugin.call_deferred("_on_debugger_error", full_error)
+		elif message == "debug:warning":
+			var warning_msg = str(data[0])
+			var script_path = str(data[2])
+			var line_num = str(data[3])
+			var full_warning = "WARNING: %s\n  at %s:%s" % [warning_msg, script_path, line_num]
+			main_plugin.call_deferred("_on_debugger_warning", full_warning)
+		return false
+
