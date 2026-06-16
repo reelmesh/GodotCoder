@@ -497,6 +497,7 @@ src/
 
 ## Documentation
 
+- [Tutorial & Examples](docs/TUTORIAL.md) — step-by-step from zero to playable game
 - [Product Requirements](docs/PRD.md)
 - [Technical Design](docs/TECHNICAL_DESIGN.md)
 - [Starting Prompt](docs/STARTING_PROMPT.md)
