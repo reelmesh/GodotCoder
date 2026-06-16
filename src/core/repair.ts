@@ -1,6 +1,7 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathExists } from "./files.js";
+import { timestampId } from "./ids.js";
 import { type RuntimeProfile } from "./runtime-profile.js";
 import { runValidation, type ValidationFinding, type ValidationReport } from "./validation.js";
 import { workspacePaths } from "./workspace.js";
@@ -315,7 +316,7 @@ function migrateGdscriptText(source: string): { contents: string; descriptions: 
   replace(/(^|\n)([ \t]*)export\s+var\s+/g, "$1$2@export var ", "export var -> @export var");
   replace(/(^|\n)([ \t]*)export\([^)\n]+\)\s+var\s+/g, "$1$2@export var ", "export(...) var -> @export var");
   replace(/(^|\n)([ \t]*)onready\s+var\s+/g, "$1$2@onready var ", "onready var -> @onready var");
-  replace(/(^|\n)([ \t]*)tool([ \t]*(?:\n|$))/g, "$1$2@tool$3", "tool -> @tool");
+  replace(/(^|\n)([ \t]*)(?<!# )tool([ \t]*(?:\n|$))/g, "$1$2@tool$3", "tool -> @tool");
   replace(/\bKinematicBody2D\b/g, "CharacterBody2D", "KinematicBody2D -> CharacterBody2D");
   replace(/\bKinematicBody3D\b/g, "CharacterBody3D", "KinematicBody3D -> CharacterBody3D");
   replace(/\bNavigation2D\b/g, "NavigationRegion2D", "Navigation2D -> NavigationRegion2D");
@@ -374,6 +375,4 @@ function placeholderResource(_resourcePath: string): string {
 `;
 }
 
-function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
-}
+

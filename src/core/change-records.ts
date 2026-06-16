@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { pathExists } from "./files.js";
+import { timestampId } from "./ids.js";
 import { workspacePaths } from "./workspace.js";
 
 export interface FileChange {
@@ -77,6 +78,4 @@ function toGodotResourcePath(relativePath: string): string {
   return `res://${relativePath.split(path.sep).join("/")}`;
 }
 
-function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
-}
+

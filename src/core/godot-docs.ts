@@ -142,7 +142,14 @@ export async function cacheGodotDoc(projectRoot: string, id: string): Promise<{ 
     throw new CliError("DOC_NOT_FOUND", `Unknown Godot doc source: ${id}`);
   }
 
-  const response = await fetch(source.url);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let response: Response;
+  try {
+    response = await fetch(source.url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!response.ok) {
     throw new CliError("DOC_FETCH_FAILED", `${response.status} ${response.statusText}: ${source.url}`);
   }

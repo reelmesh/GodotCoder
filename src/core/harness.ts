@@ -3,6 +3,7 @@ import path from "node:path";
 import { selectBuilder } from "./builders/index.js";
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
+import { timestampId } from "./ids.js";
 import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
 import { writeDocsContext } from "./godot-docs.js";
 import { applyLlmBuild, generateLlmBuild, LlmBuildError, type LlmBuildPlan } from "./llm-build.js";
@@ -211,7 +212,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
         gates: [`exit code: ${validation.exitCode ?? "not run"}`],
       });
 
-      if (options.repair && validation.summary.errors > 0) {
+      if (options.repair && validation && validation.summary.errors > 0) {
         const repair = await attemptRepair(projectRoot, validation, runtimeProfile);
         repairs.push(repair.attempt);
         steps.push({
@@ -317,6 +318,4 @@ ${goal}
   );
 }
 
-function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
-}
+

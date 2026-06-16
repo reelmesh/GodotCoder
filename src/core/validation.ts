@@ -1,3 +1,4 @@
+import { timestampId } from "./ids.js";
 import type { RuntimeProfile } from "./runtime-profile.js";
 import { runProcess } from "./process.js";
 import { godotVersionPolicyText, isGodotVersionSupported } from "./godot-version.js";
@@ -160,6 +161,4 @@ function parseGodotOutput(output: string): ValidationFinding[] {
   return findings;
 }
 
-function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
-}
+

@@ -160,7 +160,11 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         printStatusHint(state);
         return;
       case "/doctor":
-        await runtimeDoctor(args);
+        try {
+          await runtimeDoctor(args);
+        } catch (error) {
+          console.log("No Godot project in this directory. Use /home to browse or navigate to a project folder.");
+        }
         printStatusHint(state);
         return;
       case "/inspect":
