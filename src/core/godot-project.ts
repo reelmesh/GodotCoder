@@ -189,9 +189,14 @@ async function inspectExportPresets(projectRoot: string): Promise<string[]> {
 
 export async function loadProjectIndex(filePath: string): Promise<ProjectIndex | null> {
   try {
-    return parseProjectIndex(JSON.parse(await readFile(filePath, "utf8")));
+    const raw = await readFile(filePath, "utf8");
+    return parseProjectIndex(JSON.parse(raw));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    if (error instanceof SyntaxError) {
+      console.warn(`Warning: Corrupted project index at ${filePath}: ${error.message}`);
       return null;
     }
     throw error;

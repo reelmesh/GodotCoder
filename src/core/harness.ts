@@ -39,7 +39,6 @@ export interface HarnessRun {
   preview: BuildPreview | null;
   validation: ValidationReport | null;
   repairs: RepairAttempt[];
-  modelAdvisory: ModelReply | null;
   modelImplementation: ModelReply | null;
   implementationSource: "deterministic" | "llm";
 }
@@ -127,7 +126,6 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   const builder = selectBuilder(goal);
   let validation: ValidationReport | null = null;
   const repairs: RepairAttempt[] = [];
-  let modelAdvisory: ModelReply | null = null;
   let modelImplementation: ModelReply | null = null;
   let implementationSource: "deterministic" | "llm" = "deterministic";
   let llmPlan: LlmBuildPlan | null = null;
@@ -254,7 +252,6 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     preview,
     validation,
     repairs,
-    modelAdvisory,
     modelImplementation,
     implementationSource,
   };

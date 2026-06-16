@@ -12,7 +12,11 @@ export function selectBuilder(prompt: string): GameBuilder {
   }));
 
   scores.sort((left, right) => right.score - left.score || left.builder.id.localeCompare(right.builder.id));
-  return scores[0]?.builder ?? asteroidShooterBuilder;
+  const best = scores[0];
+  if (!best || best.score === 0) {
+    console.warn(`No matching deterministic builder for "${prompt}". Falling back to generic asteroid shooter. Use --llm for open-ended generation.`);
+  }
+  return best?.builder ?? asteroidShooterBuilder;
 }
 
 export function listBuilders(): GameBuilder[] {

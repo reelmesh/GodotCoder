@@ -50,11 +50,17 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
 
   const projectIndex = await inspectGodotProject(projectRoot);
   const artifacts = await readPlanningContext(projectRoot);
+  const systemPrompt = `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.`;
+  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts });
+  const totalLength = systemPrompt.length + userPrompt.length;
+  if (totalLength > 24_000) {
+    console.warn(`Warning: LLM prompt is ${totalLength} characters. Some local models may truncate.`);
+  }
   const messages = [
-    { role: "system" as const, content: `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.` },
+    { role: "system" as const, content: systemPrompt },
     {
       role: "user" as const,
-      content: buildPrompt({ prompt, projectIndex, artifacts }),
+      content: userPrompt,
     },
   ];
   const attempts: LlmBuildAttempt[] = [];
