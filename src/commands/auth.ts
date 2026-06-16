@@ -17,11 +17,42 @@ export async function authCommand(args: string[]): Promise<void> {
     await logout(rest);
     return;
   }
+  // Quick one-step: /auth openai <key> or /auth anthropic <key>
+  const quickProvider = parseProvider(subcommand);
+  if (quickProvider && rest.length > 0) {
+    await quickLogin(quickProvider, rest[0]!);
+    return;
+  }
   if (!subcommand && process.stdin.isTTY && !args.includes("--json")) {
     await openAuthMenu();
     return;
   }
   await status(args);
+}
+
+async function quickLogin(provider: ModelProviderKind, apiKey: string): Promise<void> {
+  const projectRoot = await findGodotProjectRoot(process.cwd());
+  const { writeModelConfig } = await import("../core/providers.js");
+  await writeProviderSecret(projectRoot, provider, apiKey);
+
+  // Auto-configure a sensible default model
+  const defaultModel = provider === "openai" ? "gpt-4o" : provider === "anthropic" ? "claude-sonnet-4-20250514" : null;
+  if (defaultModel) {
+    const { defaultBaseUrl, defaultApiKeyEnv } = await import("../core/flags.js");
+    await writeModelConfig(projectRoot, {
+      schemaVersion: 1,
+      provider,
+      model: defaultModel,
+      baseUrl: defaultBaseUrl(provider),
+      apiKeyEnv: defaultApiKeyEnv(provider),
+    });
+  }
+
+  console.log(`Saved API key for ${provider}.`);
+  if (defaultModel) {
+    console.log(`Model auto-configured: ${provider}:${defaultModel}`);
+  }
+  console.log(`Verify: /models  or  /ask "Hello"`);
 }
 
 async function openAuthMenu(): Promise<void> {

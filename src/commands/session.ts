@@ -21,6 +21,7 @@ import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
 import { workflowCommand } from "./workflow.js";
 import { completeSessionLine } from "../core/completion.js";
+import { loadModelConfig } from "../core/providers.js";
 import { color, clearScreen, separator } from "../core/terminal.js";
 
 type AgentMode = "build" | "plan";
@@ -35,6 +36,7 @@ export async function startSession(): Promise<void> {
   const state: SessionState = { mode: "build", promptCount: 0, pendingBuildPrompt: null };
 
   printWelcome(state);
+  await checkModelWarning();
 
   if (!input.isTTY) {
     const piped = await readStdin();
@@ -120,7 +122,7 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/auth":
       case "/login":
-        await authCommand(command === "/login" ? ["login", ...args] : args);
+        await authCommand(args);
         printStatusHint(state);
         return;
       case "/agents":
@@ -349,6 +351,22 @@ function setMode(value: string | undefined, state: SessionState): void {
 
 function printStatusHint(state: SessionState): void {
   console.log(color(`mode=${state.mode} prompts=${state.promptCount} pending=${state.pendingBuildPrompt ? "build" : "none"}`, "gray"));
+}
+
+async function checkModelWarning(): Promise<void> {
+  try {
+    const { tryFindGodotProjectRoot } = await import("../core/godot-project.js");
+    const projectRoot = (await tryFindGodotProjectRoot(process.cwd())) ?? process.cwd();
+    const config = await loadModelConfig(projectRoot);
+    if (!config) {
+      console.log(color("No model provider configured.", "yellow"));
+      console.log(color("Quick setup: /auth openai <api-key>  or  /auth anthropic <api-key>", "gray"));
+      console.log(color("Or run /setup for guided configuration.", "gray"));
+      console.log("");
+    }
+  } catch {
+    // project root not found — skip warning
+  }
 }
 
 function stripBuildFlags(prompt: string): string {
