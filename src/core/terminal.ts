@@ -24,3 +24,24 @@ export function clearScreen(): void {
 export function separator(width = 72): string {
   return color("─".repeat(width), "gray");
 }
+
+export function logo(): string {
+  if (!supportsColor) {
+    return color("  GodotCoder", "bold");
+  }
+  const c = (t: string, code: keyof typeof codes) => `${codes[code]}${t}${codes.reset}`;
+  const B = c("█", "cyan");
+  const S = c(" ", "cyan");
+
+  // G O D O T      C O D E R
+  const lines = [
+    `${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B}   ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B}`,
+    `${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${S}${S} ${B}${S}${B}`,
+    `${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${B}${S} ${B}${B}${S}`,
+    `${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${B}${S}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${S}${B} ${B}${S}${B} ${B}${S}${S} ${B}${B}${S}`,
+    `${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${S}${B}${S}   ${B}${S}${S} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${S}${B}`,
+    `${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${S}${B}${S}   ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${B}${B} ${B}${S}${B}`,
+    `${c("   LLM-driven Godot game builder · Linux-first · GDScript-first", "gray")}`,
+  ];
+  return lines.join("\n");
+}

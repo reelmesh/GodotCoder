@@ -22,7 +22,7 @@ import { validateProject } from "./validate.js";
 import { workflowCommand } from "./workflow.js";
 import { completeSessionLine } from "../core/completion.js";
 import { loadModelConfig } from "../core/providers.js";
-import { color, clearScreen, separator } from "../core/terminal.js";
+import { color, clearScreen, separator, logo } from "../core/terminal.js";
 
 type AgentMode = "build" | "plan";
 
@@ -228,9 +228,9 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
 }
 
 function printWelcome(state: SessionState): void {
-  console.log(color("GodotCoder", "bold") + color("  Godot-native agent workspace", "gray"));
-  console.log(separator());
-  console.log(`${color("project", "cyan")} current Godot workspace  ${color("mode", "cyan")} ${state.mode}  ${color("runtime", "cyan")} native/flatpak`);
+  console.log(logo());
+  console.log("");
+  console.log(`${color("mode", "cyan")} ${state.mode}  ${color("project", "cyan")} current workspace  ${color("runtime", "cyan")} native/flatpak`);
   console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
