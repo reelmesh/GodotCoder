@@ -5,7 +5,6 @@ import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 interface PipelineOptions {
   apply: boolean;
   validate: boolean;
-  llm: boolean;
   repair: boolean;
   play: boolean;
   json: boolean;
@@ -45,12 +44,6 @@ async function openPipelineMenu(_embedded: boolean): Promise<void> {
     ]);
     if (!applyChoice) return;
 
-    const modelChoice = await chooseMenuOption(rl, "Model advisory", [
-      { value: "off", label: "Skip model advisory", description: "deterministic harness only" },
-      { value: "on", label: "Use configured model", description: "risks and next tasks" },
-    ]);
-    if (!modelChoice) return;
-
     const playChoice = applyChoice === "apply"
       ? await chooseMenuOption(rl, "After validation", [
           { value: "stay", label: "Stay in CLI", description: "inspect output first" },
@@ -62,7 +55,6 @@ async function openPipelineMenu(_embedded: boolean): Promise<void> {
     await runPipeline(goal, {
       apply: applyChoice === "apply",
       validate: true,
-      llm: modelChoice === "on",
       repair: true,
       play: playChoice === "play",
       json: false,
@@ -74,7 +66,6 @@ async function runPipeline(goal: string, options: PipelineOptions): Promise<void
   const harness = await runHarness(process.cwd(), goal, {
     apply: options.apply,
     validate: options.validate,
-    llm: options.llm,
     repair: options.repair,
   });
 
@@ -91,7 +82,6 @@ async function runPipeline(goal: string, options: PipelineOptions): Promise<void
   console.log("GodotCoder pipeline");
   console.log(`Goal: ${harness.run.goal}`);
   console.log(`Mode: ${harness.run.mode}`);
-  console.log(`Implementation: ${harness.run.implementationSource}`);
   console.log(`Run: ${harness.runPath}`);
   console.log("");
   for (const step of harness.run.steps) {
@@ -118,7 +108,6 @@ function parsePipelineOptions(args: string[]): PipelineOptions {
   return {
     apply: !args.includes("--preview"),
     validate: !args.includes("--no-validate"),
-    llm: args.includes("--llm") || args.includes("--model"),
     repair: !args.includes("--no-repair"),
     play: args.includes("--play"),
     json: args.includes("--json"),
@@ -126,7 +115,7 @@ function parsePipelineOptions(args: string[]): PipelineOptions {
 }
 
 function isPipelineFlag(arg: string): boolean {
-  return ["--preview", "--no-validate", "--no-repair", "--llm", "--model", "--play", "--json"].includes(arg);
+  return ["--preview", "--no-validate", "--no-repair", "--play", "--json"].includes(arg);
 }
 
 function pipelineOk(run: Awaited<ReturnType<typeof runHarness>>["run"]): boolean {
@@ -134,5 +123,6 @@ function pipelineOk(run: Awaited<ReturnType<typeof runHarness>>["run"]): boolean
 }
 
 function printPipelineHelp(): void {
-  console.log("Usage: godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--no-repair] [--json]");
+  console.log("Usage: godotcoder pipeline <game idea> [--preview] [--play] [--no-repair] [--json]");
+  console.log("Requires a configured model provider: godotcoder models use --provider ollama --model llama3.1");
 }

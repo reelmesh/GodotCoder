@@ -102,7 +102,7 @@ Usage:
   godotcoder runs list|show <run-id>
   godotcoder ask <prompt> [--json]
   godotcoder harness <game goal> [--apply] [--repair] [--json]
-  godotcoder build [prompt] [--llm] [--preview] [--apply] [--no-validate]
+  godotcoder build [prompt] [--preview] [--apply] [--no-validate]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
   godotcoder runtime use <godot command>
@@ -111,7 +111,7 @@ Usage:
   godotcoder repair [--json]
   godotcoder rpc <method> [--json]
   godotcoder plan <game idea> [--json]
-  godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--no-repair] [--json]
+  godotcoder pipeline <game idea> [--preview] [--play] [--no-repair] [--json]
   godotcoder play [--editor] [--test] [--json]
   godotcoder playtest [--json]
 

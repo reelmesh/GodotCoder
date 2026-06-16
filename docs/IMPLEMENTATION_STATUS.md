@@ -67,7 +67,7 @@ Core modules:
 - LM Studio bearer token support through `LM_API_TOKEN` or `auth login --provider lmstudio`.
 - LM Studio base URLs accept either full URLs or bare `host:port` values, normalizing bare values to `http://host:port`.
 - Advisory LLM calls through `ask`.
-- Controlled LLM implementation through `build --llm`, `harness --llm`, and `pipeline --llm`.
+- Controlled LLM implementation through `build`, `harness`, and `pipeline`.
 - Failed controlled harness/pipeline model attempts are recorded under `.godotcoder/model-failures/` with parse error, provider/model, and truncated raw model output for debugging.
 - Godot project root discovery.
 - Typed `project.godot` parsing for strings, numbers, booleans, dictionaries, `PackedStringArray`, slash keys, feature tags, main scene, app name, renderer, display settings, input map, autoloads, and enabled editor plugins.
@@ -87,11 +87,11 @@ Core modules:
 - Harness-generated docs context under `.godotcoder/cache/docs/context.json`, with official Godot docs URLs and summaries selected by run goal.
 - Internal deterministic bootstrap fallbacks for a single-scene 2D asteroid shooter prototype and a single-scene 2D platformer prototype.
 - Open-ended game synthesis remains LLM-driven; deterministic fallbacks are for bootstrap and validation only.
-- `godotcoder build --llm` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
-- `harness --llm` and `pipeline --llm` promote configured model output into the directed agent implementation step, preserving JSON parsing, path/extension validation, preview/apply gates, patch records, and Godot validation.
+- `godotcoder build` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
+- `harness` and `pipeline` promote configured model output into the directed agent implementation step, preserving JSON parsing, path/extension validation, preview/apply gates, patch records, and Godot validation.
 - Open-ended LLM game synthesis prompts require a first playable vertical slice with scene/script presence, input or frame processing, visible feedback, an objective/fail/restart loop, and Godot 4.3+ API syntax.
 - Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
-- Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --llm --preview` retry parsing, and harness fallback/model-failure artifacts.
+- Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --preview` retry parsing, and harness fallback/model-failure artifacts.
 - RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
 - `build.preview` RPC returns both raw preview data and a compact `previewSummary` for editor clients.
 - Stable RPC envelope shape: `{ ok, method, result, error, diagnostics }`.
@@ -295,7 +295,7 @@ Model provider flow verified without requiring live credentials:
 ```bash
 node dist/cli.js models --json
 node dist/cli.js models use --provider ollama --model llama3.1 --json
-node dist/cli.js harness "make a 2d asteroid shooter" --llm --json
+node dist/cli.js harness "make a 2d asteroid shooter" --json
 ```
 
 With Ollama not running, harness records model advisory failure and continues deterministic preview instead of crashing.
@@ -318,19 +318,19 @@ Auth status redacts stored key and reports active model provider.
 Controlled LLM build path verified without live model credentials:
 
 ```bash
-node dist/cli.js build "make original puzzle game" --llm --preview --json
+node dist/cli.js build "make original puzzle game" --preview --json
 node dist/cli.js auth login --provider lmstudio --api-key test-token --json
 node dist/cli.js models use --provider lmstudio --model local-model --base-url 10.0.0.9:1234 --json
 ```
 
-With no model provider configured, `build --llm` exits with `MODEL_CONFIG_MISSING`. LM Studio auth accepts local bearer tokens and `models use --provider lmstudio` records `apiKeyEnv: "LM_API_TOKEN"`.
+With no model provider configured, `build` exits with `MODEL_CONFIG_MISSING`. LM Studio auth accepts local bearer tokens and `models use --provider lmstudio` records `apiKeyEnv: "LM_API_TOKEN"`.
 
 Controlled LLM build path verified with live LM Studio:
 
 ```bash
 node dist/cli.js models use --provider lmstudio --model qwen/qwen3.6-27b --json
 node dist/cli.js ask "Say hello in one sentence" --json
-node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --preview --json
+node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --preview --json
 ```
 
 LM Studio chat uses typed `input` blocks, returns `output` arrays, and can include reasoning items. The provider parser extracts message content and ignores reasoning for controlled JSON parsing.
@@ -339,21 +339,21 @@ Real LM Studio testing with `qwen/qwen3.6-27b` verified:
 
 ```bash
 node dist/cli.js models use --provider lmstudio --model qwen/qwen3.6-27b --base-url 10.0.0.9:1234 --json
-node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --preview --json
-node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --llm --apply --json
+node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --preview --json
+node dist/cli.js build "change scripts/main.gd to print a custom puzzle-game ready message" --apply --json
 ```
 
-The small controlled build path generated model output, wrote `res://scripts/main.gd`, created a patch record, and Godot validation returned zero errors and zero warnings. Larger `pipeline --llm --preview` requests against the same model still fell back to the deterministic builder because the model did not return valid JSON for the full game request. The parser now accepts either `contents` strings or `lines` arrays, retries once with a stricter JSON-only prompt, repairs common loose JSON shape errors, and records failed attempt artifacts before falling back.
+The small controlled build path generated model output, wrote `res://scripts/main.gd`, created a patch record, and Godot validation returned zero errors and zero warnings. Larger `pipeline --preview` requests against the same model still fell back to the deterministic builder because the model did not return valid JSON for the full game request. The parser now accepts either `contents` strings or `lines` arrays, retries once with a stricter JSON-only prompt, repairs common loose JSON shape errors, and records failed attempt artifacts before falling back.
 
 Controlled LLM harness/pipeline path verified with an LM Studio-compatible local server:
 
 ```bash
 node dist/cli.js models use --provider lmstudio --model mock-godot --base-url http://127.0.0.1:18082 --json
-node dist/cli.js pipeline "make a custom cozy puzzle game" --preview --llm --json
-node dist/cli.js pipeline "make a custom cozy puzzle game" --llm --no-validate --json
+node dist/cli.js pipeline "make a custom cozy puzzle game" --preview --json
+node dist/cli.js pipeline "make a custom cozy puzzle game" --no-validate --json
 ```
 
-The preview run recorded `model-implementation` as done, `implementationSource: "llm"`, and the preview diff came from the model-generated Godot file. The apply run wrote the model-generated file and patch record with `source: llm`. With no provider configured, `pipeline --llm --preview` records `model-implementation` as skipped and falls back to the deterministic bootstrap builder.
+The preview run recorded `model-implementation` as done, `implementationSource: "llm"`, and the preview diff came from the model-generated Godot file. The apply run wrote the model-generated file and patch record with `source: llm`. With no provider configured, `pipeline --preview` records `model-implementation` as skipped and falls back to the deterministic bootstrap builder.
 
 ## Next Slice (Completed & Updated)
 

@@ -1,6 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { selectBuilder } from "./builders/index.js";
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { timestampId } from "./ids.js";
@@ -40,10 +39,9 @@ export interface HarnessRun {
   validation: ValidationReport | null;
   repairs: RepairAttempt[];
   modelImplementation: ModelReply | null;
-  implementationSource: "deterministic" | "llm";
 }
 
-export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; llm: boolean; repair?: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
+export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; repair?: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
   const startedAt = new Date();
   const existingRoot = await tryFindGodotProjectRoot(startDir);
   const projectRoot = existingRoot ?? startDir;
@@ -123,62 +121,64 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     gates: [`install type: ${runtimeProfile.installType}`, `version: ${runtimeProfile.detectedGodotVersion ?? "unknown"}`],
   });
 
-  const builder = selectBuilder(goal);
   let validation: ValidationReport | null = null;
   const repairs: RepairAttempt[] = [];
   let modelImplementation: ModelReply | null = null;
-  let implementationSource: "deterministic" | "llm" = "deterministic";
   let llmPlan: LlmBuildPlan | null = null;
-  let implementationSummary = builder.summary;
-  let implementationFiles = builder.generateFiles();
 
-  if (options.llm) {
-    const modelConfig = await loadModelConfig(projectRoot);
-    if (modelConfig) {
-      try {
-        llmPlan = await generateLlmBuild(projectRoot, goal);
-        modelImplementation = llmPlan.reply;
-        implementationSource = "llm";
-        implementationSummary = llmPlan.summary;
-        implementationFiles = llmPlan.files;
-        steps.push({
-          id: "model-implementation",
-          agent: "orchestrator+gameplay-engineer",
-          status: "done",
-          summary: `Controlled model implementation generated with ${modelImplementation.provider}:${modelImplementation.model}.`,
-          artifacts: llmPlan.files.map((file) => `res://${file.path}`),
-          gates: ["JSON parsed", "paths and extensions allowed", "preview/apply gates still active"],
-        });
-      } catch (error) {
-        const artifacts: string[] = [];
-        if (error instanceof LlmBuildError) {
-          artifacts.push(await writeModelFailure(projectRoot, goal, error, startedAt));
-        }
-        steps.push({
-          id: "model-implementation",
-          agent: "orchestrator+gameplay-engineer",
-          status: "failed",
-          summary: `Controlled model implementation failed: ${error instanceof Error ? error.message : String(error)}`,
-          artifacts,
-          gates: ["harness fell back to deterministic builder"],
-        });
-      }
-    } else {
-      steps.push({
-        id: "model-implementation",
-        agent: "orchestrator+gameplay-engineer",
-        status: "skipped",
-        summary: "No model provider configured.",
-        artifacts: [],
-        gates: ["run `godotcoder models use ...` to enable LLM implementation"],
-      });
-    }
+  // LLM-driven implementation is the only path.
+  const modelConfig = await loadModelConfig(projectRoot);
+  if (!modelConfig) {
+    steps.push({
+      id: "model-implementation",
+      agent: "orchestrator+gameplay-engineer",
+      status: "failed",
+      summary: "No model provider configured. Configure one first: godotcoder models use --provider ollama --model llama3.1",
+      artifacts: [],
+      gates: ["LLM provider required for code generation"],
+    });
+
+    const run = buildRun(goal, mode, projectRoot, options.apply, startedAt, steps, null, null, [], null);
+    const runPath = path.join(paths.runsDir, `${run.id}.json`);
+    await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
+    return { run, runPath };
   }
 
-  const preview = await previewGeneratedFiles(projectRoot, implementationSummary, implementationFiles);
+  try {
+    llmPlan = await generateLlmBuild(projectRoot, goal);
+    modelImplementation = llmPlan.reply;
+    steps.push({
+      id: "model-implementation",
+      agent: "orchestrator+gameplay-engineer",
+      status: "done",
+      summary: `Model implementation generated with ${modelImplementation.provider}:${modelImplementation.model}.`,
+      artifacts: llmPlan.files.map((file) => `res://${file.path}`),
+      gates: ["JSON parsed", "paths and extensions allowed", "preview/apply gates still active"],
+    });
+  } catch (error) {
+    const artifacts: string[] = [];
+    if (error instanceof LlmBuildError) {
+      artifacts.push(await writeModelFailure(projectRoot, goal, error, startedAt));
+    }
+    steps.push({
+      id: "model-implementation",
+      agent: "orchestrator+gameplay-engineer",
+      status: "failed",
+      summary: `Model implementation failed: ${error instanceof Error ? error.message : String(error)}`,
+      artifacts,
+      gates: ["model output was invalid or did not pass acceptance gates"],
+    });
+
+    const run = buildRun(goal, mode, projectRoot, options.apply, startedAt, steps, null, null, [], null);
+    const runPath = path.join(paths.runsDir, `${run.id}.json`);
+    await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
+    return { run, runPath };
+  }
+
+  const preview = await previewGeneratedFiles(projectRoot, llmPlan.summary, llmPlan.files);
 
   if (options.apply) {
-    const result = llmPlan ? await applyLlmBuild(projectRoot, llmPlan) : await builder.build(projectRoot);
+    const result = await applyLlmBuild(projectRoot, llmPlan);
     let record = await writeChangeRecord(projectRoot, {
       kind: "build",
       status: "applied",
@@ -193,7 +193,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
       status: "done",
       summary: result.summary,
       artifacts: [path.join(paths.patchesDir, record.id, "record.json"), ...result.filesWritten],
-      gates: [`source: ${implementationSource}`, "changes applied", "patch record written"],
+      gates: ["changes applied", "patch record written"],
     });
 
     if (options.validate) {
@@ -233,19 +233,37 @@ export async function runHarness(startDir: string, goal: string, options: { appl
       id: "implementation-preview",
       agent: "gameplay-engineer",
       status: "preview",
-      summary: implementationSummary,
+      summary: llmPlan.summary,
       artifacts: preview.files.map((file) => file.path),
-      gates: [`source: ${implementationSource}`, "preview only", "apply required before patch record", "validation waits for apply"],
+      gates: ["preview only", "apply required before patch record", "validation waits for apply"],
     });
   }
 
-  const run: HarnessRun = {
+  const run = buildRun(goal, mode, projectRoot, options.apply, startedAt, steps, preview, validation, repairs, modelImplementation);
+  const runPath = path.join(paths.runsDir, `${run.id}.json`);
+  await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
+  return { run, runPath };
+}
+
+function buildRun(
+  goal: string,
+  mode: "greenfield" | "brownfield",
+  projectRoot: string,
+  apply: boolean,
+  startedAt: Date,
+  steps: HarnessStep[],
+  preview: BuildPreview | null,
+  validation: ValidationReport | null,
+  repairs: RepairAttempt[],
+  modelImplementation: ModelReply | null,
+): HarnessRun {
+  return {
     schemaVersion: 1,
     id: `run_${timestampId(startedAt)}`,
     goal,
     mode,
     projectRoot,
-    apply: options.apply,
+    apply,
     startedAt: startedAt.toISOString(),
     finishedAt: new Date().toISOString(),
     steps,
@@ -253,11 +271,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     validation,
     repairs,
     modelImplementation,
-    implementationSource,
   };
-  const runPath = path.join(paths.runsDir, `${run.id}.json`);
-  await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
-  return { run, runPath };
 }
 
 async function writeModelFailure(projectRoot: string, goal: string, error: LlmBuildError, startedAt: Date): Promise<string> {
@@ -314,5 +328,3 @@ ${goal}
 `,
   );
 }
-
-

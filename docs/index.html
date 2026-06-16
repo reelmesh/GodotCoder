@@ -108,7 +108,7 @@
 <main>
 
 <h1>GodotCoder Documentation</h1>
-<p style="color:var(--dim); margin-top:0">CLI-first AI development agent for building Godot games · Linux-first · Godot 4.3+ · GDScript-first</p>
+<p style="color:var(--dim); margin-top:0">LLM-driven CLI agent and Godot editor plugin for building Godot games · Linux-first · Godot 4.3+ · GDScript-first</p>
 
 <div class="toc-grid">
   <a href="#quickstart" class="toc-card"><h3>🚀 Quickstart</h3><p>60 seconds to your first playable prototype</p></a>
@@ -156,9 +156,9 @@ node ~/GodotCoder/dist/cli.js</code></pre>
 <h3>Game Creation</h3>
 <table>
 <tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
-<tr><td><code>/make</code></td><td><code>/pipeline</code></td><td><code>--preview&nbsp;--llm&nbsp;--model&nbsp;--play&nbsp;--json&nbsp;--no-validate&nbsp;--no-repair</code></td><td>Full pipeline: plan → build → validate</td></tr>
+<tr><td><code>/make</code></td><td><code>/pipeline</code></td><td><code>--preview&nbsp;--play&nbsp;--json&nbsp;--no-validate&nbsp;--no-repair</code></td><td>Full pipeline: plan → build → validate</td></tr>
 <tr><td><code>/plan</code></td><td>—</td><td><code>--json</code></td><td>Write planning artifacts (brief, GDD, tasks)</td></tr>
-<tr><td><code>/build</code></td><td>—</td><td><code>--llm&nbsp;--preview&nbsp;--apply&nbsp;--yes&nbsp;--no-validate</code></td><td>Build a game feature</td></tr>
+<tr><td><code>/build</code></td><td>—</td><td><code>--preview&nbsp;--apply&nbsp;--yes&nbsp;--no-validate</code></td><td>Build a game feature</td></tr>
 <tr><td><code>/preview</code></td><td>—</td><td><code>--no-validate</code></td><td>Preview changes without writing</td></tr>
 <tr><td><code>/apply</code></td><td>—</td><td>—</td><td>Apply pending build preview</td></tr>
 <tr><td><code>/reject</code></td><td>—</td><td>—</td><td>Discard pending build preview</td></tr>
@@ -180,7 +180,7 @@ node ~/GodotCoder/dist/cli.js</code></pre>
 <tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
 <tr><td><code>/models</code></td><td>—</td><td><code>--json</code></td><td>Show/configure LLM provider</td></tr>
 <tr><td><code>/ask</code></td><td><code>/chat</code></td><td><code>--json</code></td><td>Ask configured LLM</td></tr>
-<tr><td><code>/harness</code></td><td><code>/run</code></td><td><code>--apply&nbsp;--json&nbsp;--llm&nbsp;--repair</code></td><td>Multi-agent workflow</td></tr>
+<tr><td><code>/harness</code></td><td><code>/run</code></td><td><code>--apply&nbsp;--json&nbsp;--repair</code></td><td>Multi-agent workflow</td></tr>
 <tr><td><code>/auth</code></td><td><code>/login</code></td><td><code>--json</code></td><td>Manage API keys</td></tr>
 </table>
 
@@ -380,17 +380,16 @@ Preview  → Build preview without applying</code></pre>
 
 <p>Usage:</p>
 <pre><code>node dist/cli.js harness "make a 2d platformer with coins" --apply --json
-node dist/cli.js harness "make a 2d platformer with coins" --apply --llm --repair</code></pre>
+node dist/cli.js harness "make a 2d platformer with coins" --apply --repair</code></pre>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="build">Build System</h2>
 
-<p>The build system supports two code generation paths:</p>
+<p>The build system uses the configured LLM to generate all game code:</p>
 
 <table>
-<tr><th>Path</th><th>Source</th><th>Trigger</th><th>Output</th></tr>
-<tr><td><strong>Deterministic</strong></td><td>Internal builders</td><td>Default (no flag)</td><td>2D asteroid shooter or 2D platformer prototype</td></tr>
-<tr><td><strong>LLM-Driven</strong></td><td>Configured model</td><td><code>--llm</code> flag</td><td>Open-ended game code from model</td></tr>
+<tr><th>Trigger</th><th>Source</th><th>Output</th></tr>
+<tr><td>Default (always)</td><td>Configured model</td><td>Open-ended game code, any genre</td></tr>
 </table>
 
 <p><strong>Preview mode</strong> (default) shows a line-level diff before writing:</p>

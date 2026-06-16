@@ -1,8 +1,8 @@
 # GodotCoder
 
-GodotCoder is a CLI-first AI development agent for building Godot games. It is designed to feel like a modern terminal coding agent while staying exclusively focused on Godot workflows, GDScript, Godot project files, and Godot-backed validation.
+GodotCoder is an LLM-driven CLI agent and Godot editor plugin for building Godot games. It uses configured language models to generate complete playable game code through preview/apply boundaries, automated validation, and deterministic repair.
 
-The long-term goal is a tool that helps a developer move from ideation to a playable/exportable Godot game through planning, project inspection, safe patches, validation, debugging, and a lightweight Godot editor integration.
+All game code generation is LLM-driven. There are no genre templates or recipe pickers — describe any game idea and the configured model generates a first playable vertical slice. GodotCoder provides the scaffolding, planning artifacts, patch records, validation, and repair loop around the model output.
 
 ## Current Status
 
@@ -27,7 +27,7 @@ This repository currently contains the first implementation slice:
 - Godot launch helper: `godotcoder play` (and playtesting: `godotcoder playtest` or `play --test`)
 - Editor-integration JSON envelope: `godotcoder rpc <method>`
 
-Model-backed code generation can write controlled Godot files through preview/apply boundaries. All writes still go through path validation, patch records, and optional Godot validation.
+Model-backed code generation is the only code generation path. All writes go through LLM generation, preview/apply boundaries, path validation, patch records, and optional Godot validation.
 
 ## Design Direction
 
@@ -292,12 +292,12 @@ Use configured model:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js ask "Review this Godot mechanic"
-node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins" --llm
-node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --preview
-node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --apply
+node /path/to/GodotCoder/dist/cli.js harness "make a 2d platformer with coins"
+node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --preview
+node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --apply
 ```
 
-`harness --llm`, `pipeline --llm`, and `build --llm` can generate controlled Godot file changes. Writes still go through path validation, preview/apply gates, patch records, and optional Godot validation. If a configured model is unavailable during harness or pipeline runs, GodotCoder records the failed model step and falls back to the deterministic bootstrap builder.
+`harness`, `pipeline`, and `build` use the configured model to generate controlled Godot file changes. Writes go through path validation, preview/apply gates, patch records, and optional Godot validation. If no model is configured or the model output fails acceptance gates, the run is recorded as failed and the error is logged under `.godotcoder/model-failures/`.
 
 For open-ended game creation prompts, controlled model output must pass first
 playable acceptance gates: scene/script presence, input or frame processing,
@@ -361,13 +361,6 @@ Applied build runs record changes under:
 
 The record includes changed files, create/modify/unchanged operations, before/after SHA-256 hashes, and linked validation report IDs.
 
-The deterministic build slice currently includes internal smoke-test scaffolds for:
-
-- 2D asteroid shooter prompts.
-- 2D platformer prompts with jumping and coin collection.
-
-Those scaffolds are not a genre whitelist. The LLM-driven synthesis path remains open-ended.
-
 Subcommands are also available for scripting and future editor integration:
 
 ```bash
@@ -392,7 +385,7 @@ node /path/to/GodotCoder/dist/cli.js runtime use flatpak run org.godotengine.God
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
-node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --llm --preview
+node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply
 ```

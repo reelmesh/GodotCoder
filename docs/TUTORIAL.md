@@ -147,7 +147,7 @@ node dist/cli.js pipeline "make a 2d platformer with coins" --preview
 node dist/cli.js pipeline "make a 2d platformer with coins" --play
 
 # With LLM code generation
-node dist/cli.js pipeline "make a cozy puzzle game" --llm --play
+node dist/cli.js pipeline "make a cozy puzzle game" --play
 
 # JSON output for scripts
 node dist/cli.js pipeline "make a 2d shooter" --json
@@ -262,13 +262,13 @@ when the character lands. In your CharacterBody2D script:
 
 ```bash
 # Preview LLM-generated code
-node dist/cli.js build "add a dash move with cooldown UI" --llm --preview
+node dist/cli.js build "add a dash move with cooldown UI" --preview
 
 # Apply it
-node dist/cli.js build "add a dash move with cooldown UI" --llm --apply
+node dist/cli.js build "add a dash move with cooldown UI" --apply
 
 # Full pipeline with LLM
-node dist/cli.js pipeline "make a cozy puzzle game" --llm --play
+node dist/cli.js pipeline "make a cozy puzzle game" --play
 ```
 
 LLM generation is gated by acceptance checks:
@@ -638,7 +638,7 @@ node dist/cli.js repair diff      # see what changed
 
 ```bash
 node dist/cli.js models use --provider lmstudio --model qwen/qwen3.6-27b
-node dist/cli.js pipeline "make a cozy puzzle game about matching colors" --llm --play
+node dist/cli.js pipeline "make a cozy puzzle game about matching colors" --play
 ```
 
 ### "I want to script Godot validation in CI"

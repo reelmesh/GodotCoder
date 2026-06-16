@@ -1,3 +1,6 @@
+// Internal test fixtures only — not used in production code paths.
+// GodotCoder is LLM-driven; all user-facing code generation goes through
+// the configured model provider (see core/llm-build.ts).
 import { asteroidShooterBuilder } from "./asteroid-shooter.js";
 import { platformerBuilder } from "./platformer.js";
 import type { GameBuilder } from "./types.js";

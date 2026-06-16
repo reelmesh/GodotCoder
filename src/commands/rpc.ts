@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { selectBuilder } from "../core/builders/index.js";
 import { CliError, formatError } from "../core/errors.js";
 import { pathExists } from "../core/files.js";
 import { readFlag } from "../core/flags.js";
+import { generateLlmBuild } from "../core/llm-build.js";
 import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { previewGeneratedFiles } from "../core/preview.js";
@@ -76,9 +76,9 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
       throw new CliError("RPC_USAGE", "build.preview requires --prompt <task>.");
     }
     const projectRoot = await findGodotProjectRoot(process.cwd());
-    const builder = selectBuilder(prompt);
-    const preview = await previewGeneratedFiles(projectRoot, builder.summary, builder.generateFiles());
-    return attachContext({ source: "deterministic", prompt, preview, previewSummary: summarizeBuildPreview(preview) }, editorContext);
+    const plan = await generateLlmBuild(projectRoot, prompt);
+    const preview = await previewGeneratedFiles(projectRoot, plan.summary, plan.files);
+    return attachContext({ source: "llm", prompt, preview, previewSummary: summarizeBuildPreview(preview), model: { provider: plan.reply.provider, model: plan.reply.model } }, editorContext);
   }
   if (method === "debug.current") {
     const errorText = readFlag(filteredArgs, "--error") ?? filteredArgs.join(" ").trim();
