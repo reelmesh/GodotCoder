@@ -153,17 +153,7 @@ Full codebase review found 22 issues. Fixes applied in commit `0bdf9d0`:
 
 ### Review Findings Logged (not yet addressed)
 
-For tracking purposes:
-
-- No test files under `test/` despite `test:smoke` script reference. Tests live only in CI smoke checks.
-- `modelAdvisory` field in `HarnessRun` type is always null (dead code).
-- `XDG_DATA_HOME`/`XDG_CACHE_HOME` pointed inside `.godotcoder/cache/` may collect Godot editor state.
-- No stdout/stderr buffer limit on child process output.
-- Secret file permissions not verified on read.
-- No prompt length validation before LLM requests.
-- `selectBuilder` returns asteroid shooter for unrecognized prompts without diagnostic.
-- Hardcoded `config_version=5` may need updating for future Godot 4.x releases.
-- `loadProjectIndex` silently returns null on JSON parse errors.
+All findings from the review are now addressed.
 
 ## Verification
 
