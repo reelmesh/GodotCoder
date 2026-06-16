@@ -1,4 +1,3 @@
-import type { Interface } from "node:readline/promises";
 import { runHarness } from "../core/harness.js";
 import { launchGodot, type LaunchResult } from "../core/launch.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";

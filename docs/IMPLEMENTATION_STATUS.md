@@ -57,7 +57,7 @@ Core modules:
 - Provider policy: GodotCoder uses the configured API/model exactly as provided; it does not load, download, unload, or manage local model lifecycle.
 - Official Godot docs source interface with `docs search`, `docs list`, `docs cache <doc-id>`, and `docs show <doc-id>`.
 - Official Godot docs cache writes raw HTML, extracted text, metadata, and short excerpts for retrieval beyond source summaries.
-- LM Studio provider defaults to `http://10.0.0.9:1234` and uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
+- LM Studio provider defaults to `http://127.0.0.1:1234` and uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
 - Interactive menu-first settings UI in TTY sessions.
@@ -414,4 +414,26 @@ The suite covers the project config mutation helper, missing scene/resource repa
 ## Next Slice
 
 Recommended next: screenshot/visual validation frame checks, brownfield prompt guidelines, or cross-platform export preset template automation.
+
+## Third Review: Architecture Hardening (2026-06-16)
+
+Full codebase review of 36 source files (~5,500 lines). Found 9 issues. All fixed:
+
+- **LM Studio default URL**: commands/models.ts used `10.0.0.9` while core/providers.ts used `127.0.0.1`. Unified to `127.0.0.1`.
+- **Hardcoded path**: workflow.ts template contained absolute `/home/carlosm/...` path. Replaced with relative `.godotcoder/`.
+- **Smoke validation**: Added `--quit-after` flag so Godot self-terminates (defense-in-depth on top of Node timeout kill).
+- **Repair regex**: Added `.webp`, `.gdshader`, `.import`, `.material`, `.shader` to missing resource path detection.
+- **Shared utils**: Extracted `readFlag`, `parseProvider`, `defaultBaseUrl`, `defaultApiKeyEnv` into `src/core/flags.ts`. Removed 4 duplicate implementations across commands/auth/models/setup/rpc.
+- **Command registry**: Created `src/core/session-commands.ts` as single source of truth for all 29 slash commands with aliases, flags, and descriptions. `completion.ts` now derives command names and flag completion from registry instead of hardcoded maps.
+- **Split godot-project.ts**: Separated 555-line monolith into `godot-config-parser.ts` (INI parser/serializer), `godot-project-indexer.ts` (discovery/walk/inspect), and `godot-setting-editor.ts` (safe mutation). Original file is now a 30-line barrel.
+- **TypeScript strictness**: Enabled `noUnusedLocals` and `noUnusedParameters` in tsconfig.json. Removed 5 dead declarations (unused imports, dead functions, dead variables).
+- **Tests added**: 55 unit tests across 3 suites (schema validators, config parser, Godot 3→4 migration).
+
+Build verification:
+
+```bash
+npm run check  # clean, no unused locals
+npm run build
+npm run test:smoke  # 55 tests, 0 failures
+```
 

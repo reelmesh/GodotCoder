@@ -1,4 +1,3 @@
-import type { Interface } from "node:readline/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { findGodotProjectRoot } from "../core/godot-project.js";
@@ -49,7 +48,7 @@ const CUSTOM_EPICS_TEMPLATE = `# Epic & Story Breakdown (Custom Workflow Templat
 const CUSTOM_WORKFLOW_RULES = `# Development Workflow (Custom Workflow Template)
 
 ## 1. Traceability
-Every code change must trace back to a documented mechanic in [gdd.md](file:///home/carlosm/Documents/Dev/GodotCoder/.godotcoder/gdd.md) or story in [epics.md](file:///home/carlosm/Documents/Dev/GodotCoder/.godotcoder/epics.md). No ad-hoc scope additions.
+Every code change must trace back to a documented mechanic in [gdd.md](.godotcoder/gdd.md) or story in [epics.md](.godotcoder/epics.md). No ad-hoc scope additions.
 
 ## 2. Engine Isolation
 Do not put engine-specific node naming conventions or script path hierarchies into the GDD. Keep design specs abstract; implementation details belong solely in the Technical Plan.

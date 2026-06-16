@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { findGodotProjectRoot } from "../core/godot-project.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { writeModelConfig, type ModelConfig, type ModelProviderKind } from "../core/providers.js";
+import { defaultBaseUrl } from "../core/flags.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { writeRuntimeOverride } from "../core/runtime-overrides.js";
 import { loadSettings, setSetting, writeProviderSecret } from "../core/settings.js";
@@ -75,7 +76,7 @@ async function setupModel(rl: Interface, projectRoot: string): Promise<void> {
   if (!provider) return;
   const model = (await askMenuQuestion(rl, "Model name ▸ ")).trim();
   if (!model) return;
-  const defaultUrl = provider === "ollama" ? "http://127.0.0.1:11434" : provider === "lmstudio" ? "http://10.0.0.9:1234" : provider === "openai" ? "https://api.openai.com/v1" : provider === "anthropic" ? "https://api.anthropic.com/v1" : null;
+  const defaultUrl = defaultBaseUrl(provider);
   const baseUrl = (await askMenuQuestion(rl, `Base URL (${defaultUrl ?? "required"}) ▸ `)).trim() || defaultUrl;
   const apiKeyEnv = provider === "openai" ? "OPENAI_API_KEY" : provider === "anthropic" ? "ANTHROPIC_API_KEY" : null;
   const config: ModelConfig = { schemaVersion: 1, provider, model, baseUrl, apiKeyEnv };

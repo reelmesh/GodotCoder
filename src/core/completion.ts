@@ -1,46 +1,6 @@
-const commandNames = [
-  "/help",
-  "?",
-  "/home",
-  "/menu",
-  "/clear",
-  "/mode",
-  "/agent",
-  "/status",
-  "/setup",
-  "/settings",
-  "/auth",
-  "/login",
-  "/agents",
-  "/docs",
-  "/models",
-  "/runs",
-  "/history",
-  "/ask",
-  "/chat",
-  "/harness",
-  "/run",
-  "/pipeline",
-  "/make",
-  "/play",
-  "/playtest",
-  "/open",
-  "/runtime",
-  "/doctor",
-  "/inspect",
-  "/validate",
-  "/check",
-  "/repair",
-  "/rpc",
-  "/preview",
-  "/build",
-  "/apply",
-  "/reject",
-  "/plan",
-  "/workflow",
-  "/exit",
-  "/quit",
-] as const;
+import { allCommandNames, sessionCommands } from "./session-commands.js";
+
+const commandNames = allCommandNames();
 
 const providerNames = ["openai", "anthropic", "ollama", "lmstudio", "openai-compatible"] as const;
 const modeNames = ["plan", "build"] as const;
@@ -175,37 +135,8 @@ export function completeSessionLine(line: string): [string[], string] {
 }
 
 function completeFlags(command: string, token: string, line: string): [string[], string] {
-  const flagsByCommand: Record<string, readonly string[]> = {
-    "/build": ["--llm", "--preview", "--apply", "--yes", "--no-validate"],
-    "/preview": ["--no-validate"],
-    "/harness": ["--apply", "--json", "--llm", "--repair"],
-    "/run": ["--apply", "--json", "--llm", "--repair"],
-    "/pipeline": ["--preview", "--llm", "--model", "--play", "--json", "--no-validate", "--no-repair"],
-    "/make": ["--preview", "--llm", "--model", "--play", "--json", "--no-validate", "--no-repair"],
-    "/play": ["--editor", "--test", "--playtest", "--json"],
-    "/playtest": ["--json"],
-    "/open": ["--editor", "--json"],
-    "/plan": ["--json"],
-    "/ask": ["--json"],
-    "/chat": ["--json"],
-    "/settings": ["--json"],
-    "/auth": ["--json"],
-    "/docs": ["--json"],
-    "/models": ["--json"],
-    "/runs": ["--json"],
-    "/history": ["--json"],
-    "/status": ["--json"],
-    "/inspect": ["--json"],
-    "/validate": ["--json", "--smoke", "--export"],
-    "/check": ["--json", "--smoke", "--export"],
-    "/repair": ["--json"],
-    "/workflow": ["--template", "--json"],
-    "/rpc": ["--json", "--query", "--prompt", "--error", "--scene", "--context"],
-    "/runtime": ["--json"],
-    "/doctor": ["--json"],
-  };
-
-  return completeToken(flagsByCommand[command] ?? [], token, line);
+  const cmd = sessionCommands.find((c) => c.name === command || (c.aliases ?? []).includes(command));
+  return completeToken(cmd?.flags ?? [], token, line);
 }
 
 function completeToken(options: readonly string[], token: string, line: string): [string[], string] {

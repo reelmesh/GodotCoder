@@ -132,6 +132,8 @@ export async function runSmokeValidation(
         projectRoot,
         "--log-file",
         path.join(logsDir, `${id}.log`),
+        "--quit-after",
+        String(Math.ceil(timeoutMs / 1000)),
       ]
     : null;
 

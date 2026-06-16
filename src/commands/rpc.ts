@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { selectBuilder } from "../core/builders/index.js";
 import { CliError, formatError } from "../core/errors.js";
 import { pathExists } from "../core/files.js";
+import { readFlag } from "../core/flags.js";
 import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { previewGeneratedFiles } from "../core/preview.js";
@@ -180,12 +181,6 @@ async function tryProjectRootOrCwd(): Promise<string> {
     }
     throw error;
   }
-}
-
-function readFlag(args: string[], flag: string): string | null {
-  const index = args.indexOf(flag);
-  if (index === -1) return null;
-  return args[index + 1] ?? null;
 }
 
 function readJsonFlag(args: string[], flag: string): string | null {

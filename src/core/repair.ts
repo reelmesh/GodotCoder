@@ -40,7 +40,6 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
   const errorFindings = validation.findings.filter((item) => item.severity === "error");
   const handledFindings = new Set<number>();
   const createdMissingScripts = new Set<string>();
-  const createdMissingScenes = new Set<string>();
   const createdMissingResources = new Set<string>();
 
   if (validation.summary.errors === 0) {
@@ -228,7 +227,7 @@ async function missingTextResourcePath(projectRoot: string, finding: ValidationF
 
 async function missingResourcePath(projectRoot: string, finding: ValidationFinding): Promise<string | null> {
   const haystack = `${finding.file ?? ""}\n${finding.message}\n${finding.raw}`;
-  const candidates = Array.from(haystack.matchAll(/res:\/\/[A-Za-z0-9_./-]+\.(tscn|scn|tres|res|png|jpg|jpeg|wav|ogg|mp3|svg)\b/g)).map((match) => match[0]);
+  const candidates = Array.from(haystack.matchAll(/res:\/\/[A-Za-z0-9_./-]+\.(tscn|scn|tres|res|png|jpg|jpeg|wav|ogg|mp3|svg|webp|gdshader|import|material|shader)\b/g)).map((match) => match[0]);
   for (const candidate of candidates) {
     const absolute = path.join(projectRoot, candidate.slice("res://".length));
     if (!(await pathExists(absolute))) {

@@ -286,17 +286,6 @@ function printSessionHelp(): void {
   console.log(color("Natural-language prompts in build mode preview controlled patches. Add --llm to use configured model.", "gray"));
 }
 
-function printPlanningPlaceholder(idea: string): void {
-  if (!idea) {
-    console.log("Usage: /plan <game idea>");
-    return;
-  }
-
-  console.log(color("Plan mode", "yellow"));
-  console.log(`Captured idea: ${idea}`);
-  console.log(color("Next slice will turn this into brief, GDD, technical plan, tasks, decisions, and risks.", "gray"));
-}
-
 async function runBuildPreview(prompt: string, state: SessionState): Promise<void> {
   if (!prompt.trim()) {
     console.log("Usage: /build <task>");
@@ -346,14 +335,6 @@ async function runPlan(idea: string, state: SessionState): Promise<void> {
   console.log(color("Planning", "yellow"));
   await planProject([idea]);
   printStatusHint(state);
-}
-
-function printPromptPlaceholder(prompt: string, state: SessionState): void {
-  const label = state.mode === "build" ? color("Build prompt", "green") : color("Plan prompt", "yellow");
-  console.log(label);
-  console.log(`Captured prompt: ${prompt}`);
-  console.log(color("Use /build <task> --llm for controlled model-backed file generation.", "gray"));
-  console.log(color("Use /status, /runtime doctor, /inspect, or /validate for implemented workflows.", "gray"));
 }
 
 function setMode(value: string | undefined, state: SessionState): void {

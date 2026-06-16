@@ -5,6 +5,7 @@ import type { ModelProviderKind } from "../core/providers.js";
 import { loadModelConfig } from "../core/providers.js";
 import { loadSecrets, redactSecret, removeProviderSecret, writeProviderSecret } from "../core/settings.js";
 import { workspacePaths } from "../core/workspace.js";
+import { readFlag, parseProvider } from "../core/flags.js";
 
 export async function authCommand(args: string[]): Promise<void> {
   const [subcommand, ...rest] = args;
@@ -136,15 +137,4 @@ async function logout(args: string[]): Promise<void> {
   console.log(`Removed auth for ${provider}.`);
 }
 
-function readFlag(args: string[], flag: string): string | null {
-  const index = args.indexOf(flag);
-  if (index === -1) return null;
-  return args[index + 1] ?? null;
-}
 
-function parseProvider(value: string | null): ModelProviderKind | null {
-  if (value === "openai" || value === "anthropic" || value === "lmstudio" || value === "openai-compatible") {
-    return value;
-  }
-  return null;
-}
