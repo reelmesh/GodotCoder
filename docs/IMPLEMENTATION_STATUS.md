@@ -156,7 +156,22 @@ Full codebase review found 22 issues. Fixes applied in commit `0bdf9d0`:
 
 ### Review Findings Logged (not yet addressed)
 
-All findings from the review are now addressed.
+All findings from the first review are now addressed.
+
+### Second Review: New Feature Hardening (2026-06-16)
+
+Review of smoke validation, export validation, LLM parser hardening, and settings additions (commit `b093965`) found 11 issues. All fixed in commit `0e83a31`:
+
+- **Temp file race condition** in export validation: filenames now include loop index.
+- **Fragile timeout detection** in smoke validation replaced with explicit `ProcessResult.timedOut` field.
+- **Redundant dynamic import** in settings removed; uses static `stat` import now.
+- **Missing `--log-file`** added to smoke validation command.
+- **`readFile` error handling** in export validation: distinguishes `ENOENT` from permission errors.
+- **`parseGodotOutput` multi-line loss**: all continuation lines captured, not just `res://` paths.
+- **Sequential doc reads** parallelized with `Promise.all`.
+- **`<thinking>` tag stripping** added to JSON extraction alongside `<think>`.
+- **Trailing blank lines** removed from commands and core modules.
+- **Test temp dir cleanup** added to smoke/export/hardening tests.
 
 ## Verification
 
@@ -385,4 +400,4 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 ## Next Slice
 
-Recommended next implementation slice: continue adding screenshot/visual validation frame checks, or refine prompt guidelines for complex brownfield scene patches.
+Recommended next: screenshot/visual validation frame checks, brownfield prompt guidelines, or cross-platform export preset template automation.
