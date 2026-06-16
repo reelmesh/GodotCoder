@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
@@ -64,6 +64,7 @@ export async function loadSecrets(projectRoot: string): Promise<SecretStore> {
   if (!(await pathExists(secretsPath))) {
     return { schemaVersion: 1, providers: {} };
   }
+  await verifySecretFilePermissions(secretsPath);
   return parseSecrets(JSON.parse(await readFile(secretsPath, "utf8")));
 }
 
@@ -119,6 +120,22 @@ function parseSettings(value: unknown): UserSettings {
     preferredProvider: root.preferredProvider === null || root.preferredProvider === undefined ? null : parseProvider(root.preferredProvider, "user settings preferredProvider"),
     showDiffs: asOneOf(root.showDiffs, ["compact", "full"], "user settings showDiffs"),
   };
+}
+
+async function verifySecretFilePermissions(filePath: string): Promise<void> {
+  try {
+    const stats = await stat(filePath);
+    const mode = stats.mode & 0o777;
+    if (mode > 0o600) {
+      console.warn(
+        `Warning: ${filePath} has permissions ${mode.toString(8)}. ` +
+        `Secrets should be mode 600 (current: ${mode.toString(8)}). ` +
+        `Fix with: chmod 600 ${filePath}`,
+      );
+    }
+  } catch {
+    // stat failed — file may have been deleted between existence check and stat
+  }
 }
 
 function parseProvider(value: unknown, label: string): ModelProviderKind {

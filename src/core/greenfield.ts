@@ -22,6 +22,8 @@ export async function ensureGreenfieldGodotProject(projectRoot: string, idea?: s
 
   await writeFile(
     projectFile,
+    // config_version tracks the Godot 4 project format. This may need
+    // updating for future Godot 4.x releases (e.g., 4.4+ could use version 6).
     `config_version=5
 
 [application]
@@ -74,5 +76,5 @@ function deriveProjectName(idea?: string): string | null {
 }
 
 function escapeGodotString(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return value.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\t/g, "\\t").replace(/"/g, '\\"');
 }

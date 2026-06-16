@@ -3,7 +3,7 @@ import path from "node:path";
 import { writeTrackedFile, type FileChange } from "./change-records.js";
 import { CliError } from "./errors.js";
 import type { GeneratedFile } from "./builders/types.js";
-import { docsPromptContext } from "./godot-docs.js";
+import { docsPromptContextWithExcerpts } from "./godot-docs.js";
 import { inspectGodotProject } from "./godot-project.js";
 import { pathExists } from "./files.js";
 import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
@@ -21,6 +21,11 @@ export interface LlmBuildResult {
   changes: FileChange[];
   summary: string;
   reply: ModelReply;
+}
+
+export interface GameAcceptanceProjectState {
+  scenes: string[];
+  scripts: string[];
 }
 
 export interface LlmBuildAttempt {
@@ -45,16 +50,29 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
 
   const projectIndex = await inspectGodotProject(projectRoot);
   const artifacts = await readPlanningContext(projectRoot);
+  const docsContext = await docsPromptContextWithExcerpts(projectRoot, prompt);
+  const systemPrompt = `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.`;
+  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts, docsContext });
+  const totalLength = systemPrompt.length + userPrompt.length;
+  if (totalLength > 24_000) {
+    console.warn(`Warning: LLM prompt is ${totalLength} characters. Some local models may truncate.`);
+  }
   const messages = [
-    { role: "system" as const, content: `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.` },
+    { role: "system" as const, content: systemPrompt },
     {
       role: "user" as const,
-      content: buildPrompt({ prompt, projectIndex, artifacts }),
+      content: userPrompt,
     },
   ];
   const attempts: LlmBuildAttempt[] = [];
   let reply = await completeWithModel(config, messages, projectRoot);
   let parsed = parseLlmBuildReply(reply.content);
+  if (parsed.ok) {
+    const gates = evaluateGeneratedGameGates(prompt, projectIndex, parsed.files);
+    if (!gates.passed) {
+      parsed = { ok: false, error: `Generated game slice missed acceptance gates: ${gates.missing.join("; ")}` };
+    }
+  }
   if (!parsed.ok) {
     attempts.push(createAttempt("initial", reply, parsed.error));
     reply = await completeWithModel(config, [
@@ -65,6 +83,12 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
       },
     ], projectRoot);
     parsed = parseLlmBuildReply(reply.content);
+    if (parsed.ok) {
+      const gates = evaluateGeneratedGameGates(prompt, projectIndex, parsed.files);
+      if (!gates.passed) {
+        parsed = { ok: false, error: `Generated game slice missed acceptance gates: ${gates.missing.join("; ")}` };
+      }
+    }
     if (!parsed.ok) {
       attempts.push(createAttempt("retry", reply, parsed.error));
     }
@@ -89,7 +113,7 @@ export async function applyLlmBuild(projectRoot: string, plan: LlmBuildPlan): Pr
   };
 }
 
-function parseLlmBuildReply(content: string): { ok: true; summary: string; files: GeneratedFile[] } | { ok: false; error: string } {
+export function parseLlmBuildReply(content: string): { ok: true; summary: string; files: GeneratedFile[] } | { ok: false; error: string } {
   let json: unknown;
   try {
     json = parseJsonObject(content);
@@ -153,7 +177,11 @@ function createAttempt(stage: LlmBuildAttempt["stage"], reply: ModelReply, error
 }
 
 function extractJson(content: string): string {
-  const trimmed = content.trim();
+  let trimmed = content.trim();
+
+  // Strip reasoning blocks from models like DeepSeek-R1
+  trimmed = trimmed.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "").trim();
+
   const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   if (fence) return fence[1]!.trim();
 
@@ -220,6 +248,7 @@ function parseJsonObject(content: string): unknown {
 
 function repairLooseJson(value: string): string {
   return value
+    .replace(/\t/g, "\\t")
     .replace(/,\s*([}\]])/g, "$1")
     .replace(/([{,]\s*)(summary|files|path|contents|lines)\s*:/g, '$1"$2":')
     .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
@@ -260,7 +289,12 @@ async function readPlanningContext(projectRoot: string): Promise<Record<string, 
   return artifacts;
 }
 
-function buildPrompt(input: { prompt: string; projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>; artifacts: Record<string, string> }): string {
+function buildPrompt(input: {
+  prompt: string;
+  projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>;
+  artifacts: Record<string, string>;
+  docsContext: string;
+}): string {
   return `Create a controlled Godot implementation patch for this user task.
 
 Task:
@@ -278,7 +312,15 @@ Planning artifacts:
 ${Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none"}
 
 Official Godot docs sources to prefer:
-${docsPromptContext(input.prompt)}
+${input.docsContext}
+
+Open-ended game request acceptance gates:
+- If the task asks to make, create, build, or prototype a game, produce a first playable vertical slice, not a placeholder.
+- Include or update a main scene and at least one GDScript gameplay script.
+- Include input handling through Input actions, _input, _process, or _physics_process.
+- Include visible player feedback such as movement, score, health, labels, animation, color, spawning, or collision response.
+- Include a simple objective, fail state, restart path, collectible, enemy, timer, score target, or win condition.
+- Use Godot 4.3+ APIs only; do not use yield(...), Pool*Array, KinematicBody*, export var, onready var, or .instance().
 
 Return JSON exactly matching this shape:
 {
@@ -343,7 +385,54 @@ Rules:
 - Last character of final answer must be }.
 - Use "lines", not "contents".
 - One source line per JSON string.
+- For open-ended game creation, include playable input, visible feedback, and an objective/fail/restart loop.
+- Use Godot 4.3+ APIs only.
 - No markdown.
 - No explanation.
 - No reasoning in final message.`;
+}
+
+function evaluateGeneratedGameGates(
+  prompt: string,
+  projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>,
+  files: GeneratedFile[],
+): { passed: true } | { passed: false; missing: string[] } {
+  return evaluateGeneratedGameAcceptance(prompt, projectIndex, files);
+}
+
+export function evaluateGeneratedGameAcceptance(
+  prompt: string,
+  projectState: GameAcceptanceProjectState,
+  files: GeneratedFile[],
+): { passed: true } | { passed: false; missing: string[] } {
+  if (!isOpenEndedGameRequest(prompt)) {
+    return { passed: true };
+  }
+
+  const missing: string[] = [];
+  const allText = files.map((file) => file.contents).join("\n");
+  const paths = files.map((file) => file.path);
+  const hasScene = projectState.scenes.length > 0 || paths.some((filePath) => filePath.endsWith(".tscn") || filePath === "project.godot");
+  const hasScript = projectState.scripts.length > 0 || paths.some((filePath) => filePath.endsWith(".gd"));
+  const hasInputLoop = /\b(Input\.|_input\s*\(|_process\s*\(|_physics_process\s*\(|move_and_slide\s*\()/.test(allText);
+  const hasFeedback = /\b(score|health|label|hud|animation|modulate|visible|spawn|collision|collect|damage|print\s*\(|queue_redraw\s*\()/.test(allText.toLowerCase());
+  const hasObjective = /\b(win|lose|game_over|restart|reload_current_scene|score|goal|timer|enemy|collect|coin|hazard|lives|health\s*[<=>])/.test(allText.toLowerCase());
+  const bannedGodot3 = /\byield\s*\(|\bPool[A-Za-z0-9]*Array\b|\bKinematicBody[23]D\b|(^|\n)[ \t]*export\s+var\b|(^|\n)[ \t]*onready\s+var\b|\.instance\s*\(/.test(allText);
+
+  if (!hasScene) missing.push("main scene or scene update");
+  if (!hasScript) missing.push("gameplay script");
+  if (!hasInputLoop) missing.push("input or frame-processing loop");
+  if (!hasFeedback) missing.push("visible feedback");
+  if (!hasObjective) missing.push("objective, fail state, restart path, enemy, collectible, or score loop");
+  if (bannedGodot3) missing.push("Godot 4.3+ syntax/API compliance");
+
+  return missing.length === 0 ? { passed: true } : { passed: false, missing };
+}
+
+function isOpenEndedGameRequest(prompt: string): boolean {
+  const normalized = prompt.toLowerCase();
+  if (/\b(change|fix|repair|refactor|rename|explain|inspect|validate|cache|show|list)\b/.test(normalized)) {
+    return false;
+  }
+  return /\b(make|create|build|prototype|generate)\b/.test(normalized) && /\b(game|platformer|shooter|puzzle|rpg|roguelike|runner|arcade|sim|metroidvania|tower defense)\b/.test(normalized);
 }

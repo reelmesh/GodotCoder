@@ -1,6 +1,6 @@
 # Implementation Status
 
-Date: 2026-06-13
+Date: 2026-06-16
 
 ## Implemented
 
@@ -28,6 +28,8 @@ First TypeScript/Node CLI slice:
 - `godotcoder runtime use <godot command>`
 - `godotcoder inspect`
 - `godotcoder validate`
+- `godotcoder validate --smoke` for headless main-scene runtime checks (timing out after 3000ms by default).
+- `godotcoder validate --export` for headless export pack checking (parsing export_presets.cfg and verifying PCK packing).
 - `godotcoder repair`
 - `godotcoder plan <idea>`
 - `godotcoder build <task>`
@@ -35,6 +37,16 @@ First TypeScript/Node CLI slice:
 - `godotcoder play`
 - `godotcoder runs`
 - `godotcoder menu`
+- `godotcoder rpc <method>`
+- Minimal Godot editor plugin scaffold under `addons/godotcoder/` that shells out to `godotcoder rpc`.
+- Editor plugin captures scene, selection, script, and open-scene context, auto-attaches context to regular RPC calls, supports replay/selected replay/clear controls, persists recent RPC history under `user://godotcoder/plugin-history.json`, and surfaces separate stdout/stderr/exit-state output for RPC runs.
+- Editor plugin exposes `Debug` for captured or pasted console/error text through `godotcoder rpc debug.current`.
+- Editor plugin debugger integration captures runtime errors (`debug:error`) and warnings (`debug:warning`) automatically from active game execution, populating the error panel.
+- Editor plugin exposes preview-only build review through `godotcoder rpc build.preview`, including compact file counts and changed paths.
+- Editor plugin exposes `Explain` for selected scene/node/script context through `godotcoder rpc editor.explain`.
+- Editor plugin exposes `Review` for read-only git workspace summaries through `godotcoder rpc workspace.changes`.
+- Editor plugin exposes `Scene` for current-scene prechecks through `godotcoder rpc validation.scene`.
+- `docs/EDITOR_PLUGIN_TEST_PLAN.md` records the plugin round-trip acceptance checks.
 
 Core modules:
 - Godot 4.3+ runtime policy; Godot 4.2 and older are unsupported.
@@ -43,7 +55,8 @@ Core modules:
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
 - Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
 - Provider policy: GodotCoder uses the configured API/model exactly as provided; it does not load, download, unload, or manage local model lifecycle.
-- Official Godot docs source interface with `docs search`, `docs list`, and explicit `docs cache <doc-id>`.
+- Official Godot docs source interface with `docs search`, `docs list`, `docs cache <doc-id>`, and `docs show <doc-id>`.
+- Official Godot docs cache writes raw HTML, extracted text, metadata, and short excerpts for retrieval beyond source summaries.
 - LM Studio provider defaults to `http://10.0.0.9:1234` and uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
@@ -76,6 +89,12 @@ Core modules:
 - Open-ended game synthesis remains LLM-driven; deterministic fallbacks are for bootstrap and validation only.
 - `godotcoder build --llm` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
 - `harness --llm` and `pipeline --llm` promote configured model output into the directed agent implementation step, preserving JSON parsing, path/extension validation, preview/apply gates, patch records, and Godot validation.
+- Open-ended LLM game synthesis prompts require a first playable vertical slice with scene/script presence, input or frame processing, visible feedback, an objective/fail/restart loop, and Godot 4.3+ API syntax.
+- Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
+- Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --llm --preview` retry parsing, and harness fallback/model-failure artifacts.
+- RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
+- `build.preview` RPC returns both raw preview data and a compact `previewSummary` for editor clients.
+- Stable RPC envelope shape: `{ ok, method, result, error, diagnostics }`.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
 - Interactive pending build approval with `/apply` and `/reject`.
@@ -89,8 +108,11 @@ Core modules:
 - Standalone repair command for validating, repairing, recording, and revalidating an existing Godot project.
 - Repair records under `.godotcoder/repairs/<repair-id>.json`.
 - Missing `res://...gd` script repair rule that creates a minimal placeholder script, writes a repair patch record, and re-runs Godot validation.
+- Missing `res://...tscn` scene and `res://...tres` resource repair rules that create minimal placeholders, write repair patch records, and re-run Godot validation.
 - Godot 3 to Godot 4 GDScript migration repair rule for `export var`, `Pool*Array`, `OS.get_ticks_*`, `deg2rad`, `rad2deg`, `linear2db`, `db2linear`, `instance()`, and simple `yield(owner, "signal")` calls.
+- Expanded Godot 4 migration repair rules for `tool`, `onready var`, `KinematicBody2D`, `KinematicBody3D`, `Navigation2D`, `Navigation3D`, and simple `connect("signal", target, "method")` calls.
 - Millisecond artifact IDs for run, patch, validation, and repair records to avoid collisions during fast pipeline loops.
+- Safe `project.godot` mutation helpers for project settings and input-map actions, preserving existing sections where possible and appending missing sections/keys.
 
 Note: in a greenfield folder, preview may create the minimal Godot scaffold first so there is a valid project context. It does not apply the larger build changes or write patch records until `--apply`.
 
@@ -120,16 +142,58 @@ node dist/cli.js runtime use flatpak run org.godotengine.Godot
 
 The pinned command is written to `.godotcoder.local/runtime-overrides.json` and used by both `runtime doctor` and `validate`.
 
+## Adversarial Code Review (2026-06-16)
+
+Full codebase review found 22 issues. Fixes applied in commit `0bdf9d0`:
+
+- **LM Studio default URL** changed from `http://10.0.0.9:1234` to `http://127.0.0.1:1234` — old default unreachable for most users.
+- **`cacheGodotDoc` fetch timeout**: added 30-second `AbortController` timeout. Previously hung indefinitely on slow/unreachable docs server.
+- **Godot 4 `tool` migration regex**: added negative lookbehind `(?<!# )` to skip comment lines containing only `tool`. Previously `# tool` became `# @tool`.
+- **`/doctor` session command**: wrapped in try/catch so it doesn't crash when run outside a Godot project.
+- **Harness repair null guard**: `options.repair && validation && validation.summary.errors > 0` — prevents TypeError when `--no-validate` + `--repair` combined.
+- **`escapeGodotString` in `greenfield.ts`**: added `\n` and `\t` escapes for parity with `godot-project.ts` full implementation.
+- **Deduplicated `timestampId`**: extracted from 4 duplicate definitions into shared `src/core/ids.ts`.
+
+### Review Findings Logged (not yet addressed)
+
+All findings from the first review are now addressed.
+
+### Second Review: New Feature Hardening (2026-06-16)
+
+Review of smoke validation, export validation, LLM parser hardening, and settings additions (commit `b093965`) found 11 issues. All fixed in commit `0e83a31`:
+
+- **Temp file race condition** in export validation: filenames now include loop index.
+- **Fragile timeout detection** in smoke validation replaced with explicit `ProcessResult.timedOut` field.
+- **Redundant dynamic import** in settings removed; uses static `stat` import now.
+- **Missing `--log-file`** added to smoke validation command.
+- **`readFile` error handling** in export validation: distinguishes `ENOENT` from permission errors.
+- **`parseGodotOutput` multi-line loss**: all continuation lines captured, not just `res://` paths.
+- **Sequential doc reads** parallelized with `Promise.all`.
+- **`<thinking>` tag stripping** added to JSON extraction alongside `<think>`.
+- **Trailing blank lines** removed from commands and core modules.
+- **Test temp dir cleanup** added to smoke/export/hardening tests.
+
 ## Verification
+
+Build after review fixes:
+
+```bash
+npm run check  # clean
+npm run build
+npm run test:smoke
+```
+
+All passed.
 
 Commands run:
 
 ```bash
 npm run check
 npm run build
+npm run test:smoke
 ```
 
-Both passed.
+All passed.
 
 A temporary Godot project under `/tmp/godotcoder-smoke` verified:
 
@@ -295,7 +359,7 @@ The preview run recorded `model-implementation` as done, `implementationSource: 
 
 The previous slices have been fully implemented:
 - [x] **Slice 1**: Expanded open-ended game synthesis quality with stronger agent prompts, strict system guidelines, and an automated `# TODO` / `pass #` validation gate.
-- [x] **Slice 2**: Expanded official Godot documentation retrieval by extracting, cleaning, and embedding full cached HTML pages as markdown snippets in the prompt context.
+- [x] **Slice-2**: Expanded official Godot documentation retrieval by extracting, cleaning, and embedding full cached HTML pages as markdown snippets in the prompt context.
 - [x] **Slice 3**: Expanded deterministic repair rules for generating missing scenes (`.tscn`), resources (`.tres`), and images (`.svg`), along with detailed GDScript migration rules (`@onready`, `@export_range`, `@export_file`, `randf_range`, and Callable signal connections).
 - [x] **Slice 4**: Added `project.godot` mutation and serialization helpers to safely update input maps, autoloads, and configurations.
 - [x] **Custom Workflows**: Added `/workflow` (or `godotcoder workflow`) command and a workspace skill to initialize and customize templates.
@@ -303,4 +367,51 @@ The previous slices have been fully implemented:
 - [x] **Automated Runtime Playtesting**: Implemented a dry-run playtesting tool (`godotcoder playtest` or `play --test`) that plays the generated game headlessly for 5 seconds with random input simulation.
 - [x] **Interactive Repair UX**: Developed `repair list`, `repair diff`, and `repair undo/revert` commands to view history/diffs and safely restore original file states.
 - [x] **Structured JSON Output Enhancements**: Incorporated newline string repair prior to JSON parsing.
+
+Project config mutation helpers verified:
+
+```bash
+npm run check
+npm run build
+node --input-type=module -e 'import { updateGodotConfigText, parseGodotConfig } from "./dist/core/godot-project.js"; const source = `config_version=5\n\n[application]\nconfig/name="Old"\n`; const next = updateGodotConfigText(source, [{ section: "application", key: "config/name", value: "New" }, { section: "input", key: "jump", value: { deadzone: 0.5, events: [] } }]); const parsed = parseGodotConfig(next); if (parsed.application.config_name !== "New") throw new Error("name not updated"); const jump = parsed.input.jump; if (!jump || typeof jump !== "object" || Array.isArray(jump)) throw new Error("input action missing"); if (!Array.isArray(jump.events)) throw new Error("events not parsed as array"); console.log("smoke ok");'
+```
+
+Expanded deterministic repair rules verified:
+
+```bash
+npm run check
+npm run build
+```
+
+Additional smoke coverage exercised the repair entrypoint with fake validation reports to confirm missing `.tscn` and `.tres` placeholders are created, and Godot 3 script syntax is migrated for `tool`, `onready var`, `KinematicBody2D`, and simple signal `connect(...)` calls.
+
+Official docs retrieval beyond metadata verified:
+
+```bash
+npm run check
+npm run build
+```
+
+Additional smoke coverage exercised HTML-to-text extraction, cached doc metadata loading, and docs context enrichment with cached excerpts.
+
+Open-ended game synthesis acceptance gates verified:
+
+```bash
+npm run check
+npm run build
+```
+
+Additional smoke coverage confirmed weak open-ended game output is rejected for missing scene/input gates, valid playable output passes, and small edit prompts bypass game-synthesis gates.
+
+Automated smoke suite verified:
+
+```bash
+npm run test:smoke
+```
+
+The suite covers the project config mutation helper, missing scene/resource repair, Godot 3 migration repair, docs cache/context enrichment, open-ended game acceptance gates, OpenAI-compatible mock provider calls, LLM build retry parsing, model-failure fallback records, and RPC success/error envelopes.
+
+## Next Slice
+
+Recommended next: screenshot/visual validation frame checks, brownfield prompt guidelines, or cross-platform export preset template automation.
 

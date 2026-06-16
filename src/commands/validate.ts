@@ -3,21 +3,23 @@ import path from "node:path";
 import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
-import { runValidation } from "../core/validation.js";
+import { runValidation, runSmokeValidation, runExportValidation } from "../core/validation.js";
 import type { ValidationReport } from "../core/validation.js";
 import { workspacePaths } from "../core/workspace.js";
 
 export async function validateProject(args: string[]): Promise<ValidationReport> {
   const json = args.includes("--json");
+  const smoke = args.includes("--smoke");
+  const isExport = args.includes("--export");
   const projectRoot = await findGodotProjectRoot(process.cwd());
-  const { report, reportPath } = await validateProjectRoot(projectRoot);
+  const { report, reportPath } = await validateProjectRoot(projectRoot, { smoke, export: isExport });
 
   if (json) {
     console.log(JSON.stringify({ ok: report.summary.errors === 0, report, reportPath }, null, 2));
     return report;
   }
 
-  console.log("Godot validation");
+  console.log(isExport ? "Godot export validation" : smoke ? "Godot smoke run validation" : "Godot validation");
   console.log(`Report: ${reportPath}`);
   console.log(`Exit code: ${report.exitCode ?? "not run"}`);
   console.log(`Errors: ${report.summary.errors}`);
@@ -28,7 +30,10 @@ export async function validateProject(args: string[]): Promise<ValidationReport>
   return report;
 }
 
-export async function validateProjectRoot(projectRoot: string): Promise<{ report: ValidationReport; reportPath: string }> {
+export async function validateProjectRoot(
+  projectRoot: string,
+  options: { smoke?: boolean; export?: boolean } = {},
+): Promise<{ report: ValidationReport; reportPath: string }> {
   const paths = workspacePaths(projectRoot);
   let runtimeProfile = await loadRuntimeProfile(paths.runtimeProfile);
   if (!runtimeProfile?.executable) {
@@ -38,7 +43,12 @@ export async function validateProjectRoot(projectRoot: string): Promise<{ report
     await mkdir(paths.workspaceRoot, { recursive: true });
     await writeFile(paths.runtimeProfile, JSON.stringify(runtimeProfile, null, 2) + "\n");
   }
-  const report = await runValidation(projectRoot, runtimeProfile);
+  
+  const report = options.export
+    ? await runExportValidation(projectRoot, runtimeProfile)
+    : options.smoke
+      ? await runSmokeValidation(projectRoot, runtimeProfile)
+      : await runValidation(projectRoot, runtimeProfile);
 
   await mkdir(paths.validationsDir, { recursive: true });
   const reportPath = path.join(paths.validationsDir, `${report.id}.json`);

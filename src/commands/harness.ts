@@ -28,11 +28,6 @@ export async function runHarnessCommand(args: string[]): Promise<void> {
   for (const step of result.run.steps) {
     console.log(`${step.status.padEnd(7)} ${step.agent.padEnd(18)} ${step.summary}`);
   }
-  if (result.run.modelAdvisory) {
-    console.log("");
-    console.log(`${result.run.modelAdvisory.provider}:${result.run.modelAdvisory.model}`);
-    console.log(result.run.modelAdvisory.content);
-  }
   if (result.run.modelImplementation) {
     console.log("");
     console.log(`Model implementation: ${result.run.modelImplementation.provider}:${result.run.modelImplementation.model}`);

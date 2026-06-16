@@ -31,6 +31,7 @@ const commandNames = [
   "/validate",
   "/check",
   "/repair",
+  "/rpc",
   "/preview",
   "/build",
   "/apply",
@@ -49,10 +50,11 @@ const runtimeCommands = ["doctor", "use"] as const;
 const authCommands = ["login", "logout"] as const;
 const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "diffs", "init", "help"] as const;
 const modelsCommands = ["use"] as const;
-const docsCommands = ["search", "list", "cache"] as const;
+const docsCommands = ["search", "list", "cache", "show"] as const;
 const runsCommands = ["list", "show", "help"] as const;
 const workflowCommands = ["status", "init"] as const;
 const repairCommands = ["list", "status", "diff", "undo", "revert"] as const;
+const rpcMethods = ["workspace.status", "workspace.changes", "project.inspect", "runtime.doctor", "validation.run", "validation.scene", "docs.search", "build.preview", "debug.current", "editor.context", "editor.explain"] as const;
 
 export function completeSessionLine(line: string): [string[], string] {
   const endsWithSpace = /\s$/.test(line);
@@ -140,6 +142,7 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(runsCommands, currentToken, line);
   }
 
+<<<<<<< HEAD
   if (first === "/workflow") {
     if (parts.length === 2 && !endsWithSpace) {
       return completeToken(workflowCommands, second, line);
@@ -152,6 +155,13 @@ export function completeSessionLine(line: string): [string[], string] {
       return completeToken(repairCommands, second, line);
     }
     return completeToken(repairCommands, currentToken, line);
+=======
+  if (first === "/rpc") {
+    if (parts.length === 2 && !endsWithSpace) {
+      return completeToken(rpcMethods, second, line);
+    }
+    return completeToken(rpcMethods, currentToken, line);
+>>>>>>> origin/main
   }
 
   if (currentToken.startsWith("--")) {
@@ -187,10 +197,11 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/history": ["--json"],
     "/status": ["--json"],
     "/inspect": ["--json"],
-    "/validate": ["--json"],
-    "/check": ["--json"],
+    "/validate": ["--json", "--smoke", "--export"],
+    "/check": ["--json", "--smoke", "--export"],
     "/repair": ["--json"],
     "/workflow": ["--template", "--json"],
+    "/rpc": ["--json", "--query", "--prompt", "--error", "--scene", "--context"],
     "/runtime": ["--json"],
     "/doctor": ["--json"],
   };

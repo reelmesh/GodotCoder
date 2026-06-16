@@ -1,13 +1,14 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathExists } from "./files.js";
+import { timestampId } from "./ids.js";
 import { type RuntimeProfile } from "./runtime-profile.js";
 import { runValidation, type ValidationFinding, type ValidationReport } from "./validation.js";
 import { workspacePaths } from "./workspace.js";
 import { updateChangeRecordValidation, writeChangeRecord, writeTrackedFile, type FileChange } from "./change-records.js";
 
 export interface RepairAction {
-  type: "create-missing-script" | "apply-godot4-migration" | "record-diagnosis" | "create-missing-resource";
+  type: "create-missing-script" | "create-missing-scene" | "create-missing-resource" | "apply-godot4-migration" | "record-diagnosis";
   status: "applied" | "skipped";
   finding: ValidationFinding;
   path: string | null;
@@ -39,6 +40,8 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
   const errorFindings = validation.findings.filter((item) => item.severity === "error");
   const handledFindings = new Set<number>();
   const createdMissingScripts = new Set<string>();
+  const createdMissingScenes = new Set<string>();
+  const createdMissingResources = new Set<string>();
 
   if (validation.summary.errors === 0) {
     const attempt = createAttempt(id, validation.id, "not-needed", "Validation passed; no repair needed.", startedAt, actions, null, null);
@@ -69,6 +72,7 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
     });
   }
 
+<<<<<<< HEAD
   const createdMissingResources = new Set<string>();
 
   for (const [findingIndex, finding] of errorFindings.entries()) {
@@ -102,13 +106,56 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
     }
 
     const change = await writeTrackedFile(projectRoot, relativePath, contents);
+=======
+  for (const [findingIndex, finding] of errorFindings.entries()) {
+    const scenePath = await missingTextResourcePath(projectRoot, finding, [".tscn"]);
+    if (!scenePath) {
+      continue;
+    }
+    handledFindings.add(findingIndex);
+    if (createdMissingScenes.has(scenePath)) {
+      continue;
+    }
+    createdMissingScenes.add(scenePath);
+
+    const relativePath = scenePath.slice("res://".length);
+    const change = await writeTrackedFile(projectRoot, relativePath, placeholderScene(scenePath));
+    changes.push(change);
+    actions.push({
+      type: "create-missing-scene",
+      status: "applied",
+      finding,
+      path: scenePath,
+      summary: `Created missing placeholder scene at ${scenePath}.`,
+    });
+  }
+
+  for (const [findingIndex, finding] of errorFindings.entries()) {
+    const resourcePath = await missingTextResourcePath(projectRoot, finding, [".tres"]);
+    if (!resourcePath) {
+      continue;
+    }
+    handledFindings.add(findingIndex);
+    if (createdMissingResources.has(resourcePath)) {
+      continue;
+    }
+    createdMissingResources.add(resourcePath);
+
+    const relativePath = resourcePath.slice("res://".length);
+    const change = await writeTrackedFile(projectRoot, relativePath, placeholderResource(resourcePath));
+>>>>>>> origin/main
     changes.push(change);
     actions.push({
       type: "create-missing-resource",
       status: "applied",
       finding,
+<<<<<<< HEAD
       path: resPath,
       summary: `Created missing ${typeName} placeholder at ${resPath}.`,
+=======
+      path: resourcePath,
+      summary: `Created missing placeholder resource at ${resourcePath}.`,
+>>>>>>> origin/main
     });
   }
 
@@ -207,9 +254,16 @@ async function writeAttempt(repairsDir: string, attempt: RepairAttempt): Promise
 }
 
 async function missingScriptPath(projectRoot: string, finding: ValidationFinding): Promise<string | null> {
+  return missingTextResourcePath(projectRoot, finding, [".gd"]);
+}
+
+async function missingTextResourcePath(projectRoot: string, finding: ValidationFinding, extensions: string[]): Promise<string | null> {
   const haystack = `${finding.file ?? ""}\n${finding.message}\n${finding.raw}`;
-  const candidates = Array.from(haystack.matchAll(/res:\/\/[A-Za-z0-9_./-]+\.gd\b/g)).map((match) => match[0]);
+  const candidates = Array.from(haystack.matchAll(/res:\/\/[A-Za-z0-9_./-]+\.[A-Za-z0-9_]+\b/g)).map((match) => match[0]);
   for (const candidate of candidates) {
+    if (!extensions.some((extension) => candidate.endsWith(extension))) {
+      continue;
+    }
     const absolute = path.join(projectRoot, candidate.slice("res://".length));
     if (!(await pathExists(absolute))) {
       return candidate;
@@ -335,16 +389,40 @@ export function migrateGdscriptText(source: string): { contents: string; descrip
   replace(/(^|\n)([ \t]*)export\(int,\s*([^)\n]+)\)\s+var\s+/g, "$1$2@export_range($3) var ", "export(int) var -> @export_range var");
   replace(/(^|\n)([ \t]*)export\(String,\s*FILE,\s*([^)\n]+)\)\s+var\s+/g, "$1$2@export_file($3) var ", "export(FILE) var -> @export_file var");
   replace(/(^|\n)([ \t]*)export\([^)\n]+\)\s+var\s+/g, "$1$2@export var ", "export(...) var -> @export var");
+  replace(/(^|\n)([ \t]*)onready\s+var\s+/g, "$1$2@onready var ", "onready var -> @onready var");
+  replace(/(^|\n)([ \t]*)(?<!# )tool([ \t]*(?:\n|$))/g, "$1$2@tool$3", "tool -> @tool");
+  replace(/\bKinematicBody2D\b/g, "CharacterBody2D", "KinematicBody2D -> CharacterBody2D");
+  replace(/\bKinematicBody3D\b/g, "CharacterBody3D", "KinematicBody3D -> CharacterBody3D");
+  replace(/\bNavigation2D\b/g, "NavigationRegion2D", "Navigation2D -> NavigationRegion2D");
+  replace(/\bNavigation3D\b/g, "NavigationRegion3D", "Navigation3D -> NavigationRegion3D");
   replace(/\byield\(([^,\n]+),\s*"([A-Za-z0-9_]+)"\)/g, "await $1.$2", "yield(signal_owner, signal) -> await signal_owner.signal");
+<<<<<<< HEAD
   replace(/\brand_range\(/g, "randf_range(", "rand_range -> randf_range");
   replace(/(^|\n)([ \t]*)onready\s+var\s+/g, "$1$2@onready var ", "onready var -> @onready var");
   replace(/\bconnect\("([A-Za-z0-9_]+)",\s*self,\s*"([A-Za-z0-9_]+)"\)/g, "connect(\"$1\", $2)", "connect(sig, self, method) -> connect(sig, method)");
   replace(/\bconnect\("([A-Za-z0-9_]+)",\s*([^,\n\s]+),\s*"([A-Za-z0-9_]+)"\)/g, "connect(\"$1\", Callable($2, \"$3\"))", "connect(sig, obj, method) -> connect(sig, Callable(obj, method))");
+=======
+  contents = migrateConnectCalls(contents, descriptions);
+>>>>>>> origin/main
 
   return {
     contents,
     descriptions: Array.from(new Set(descriptions)),
   };
+}
+
+function migrateConnectCalls(source: string, descriptions: string[]): string {
+  const next = source.replace(
+    /\b([A-Za-z_][A-Za-z0-9_.$]*)\.connect\(\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*,\s*([A-Za-z_][A-Za-z0-9_.$]*)\s*,\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*\)/g,
+    (_match, emitter: string, signal: string, receiver: string, method: string) => {
+      const callable = receiver === "self" ? method : `${receiver}.${method}`;
+      return `${emitter}.${signal}.connect(${callable})`;
+    },
+  );
+  if (next !== source) {
+    descriptions.push('connect("signal", target, "method") -> signal.connect(callable)');
+  }
+  return next;
 }
 
 function findingMentionsPath(finding: ValidationFinding, resourcePath: string): boolean {
@@ -363,6 +441,19 @@ func _ready() -> void:
 `;
 }
 
-function timestampId(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, "").replace("T", "_").replace(/\.(\d+)Z$/, "_$1");
+function placeholderScene(resourcePath: string): string {
+  const sceneName = path.basename(resourcePath, path.extname(resourcePath)).replace(/[^A-Za-z0-9_]/g, "_") || "RecoveredScene";
+  return `[gd_scene format=3]
+
+[node name="${sceneName}" type="Node2D"]
+`;
 }
+
+function placeholderResource(_resourcePath: string): string {
+  return `[gd_resource type="Resource" format=3]
+
+[resource]
+`;
+}
+
+

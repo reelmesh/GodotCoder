@@ -1,30 +1,32 @@
-# Development Workflow: GodotCoder
+# Conductor Development Workflow
 
-This document details the development conventions, quality gates, and agent workflow standards for building and updating the GodotCoder project.
+This project utilizes Conductor mode, which structures development into clear phases, automatically assisted by oh-my-gemini hooks.
 
-## Development Lifecycle
+## Workflow Phases
 
 ```mermaid
 graph TD
-    A[Define Plan/Issue] --> B[Create Track/Task]
-    B --> C[Draft Code Changes]
-    C --> D[Run Type-Checks & Linters]
-    D -->|Fails| C
-    D -->|Passes| E[Test Execution]
-    E -->|Fails| C
-    E -->|Passes| F[Code Review & Apply]
+    PRD[1. Spec/PRD Stage] --> Plan[2. Technical Plan]
+    Plan --> Code[3. Implementation]
+    Code --> Verify[4. Verification & Review]
 ```
 
-1. **Planning**: Use `conductor/tracks.md` to register feature development tracks.
-2. **Implementation**: Code changes must follow structured design patterns in TS/Node and respect existing module scopes.
-3. **Type-Checking & Build validation**:
-   - Run type-checks: `npm run check`.
-   - Run build: `npm run build`.
-4. **Git Commit Conventions**:
-   - Use conventional commit messages (e.g., `feat: add validation command`, `fix: repair script regex`).
-   - Keep commits granular and scoped to a single logical task.
+### 1. Spec & PRD Phase
+- **Goal:** Define what to build.
+- **Artifact:** A track feature specification under `conductor/tracks/`.
+- **Gate:** Alignment on goals, inputs/outputs, and edge cases.
 
-## Code Quality Standards
-- **Strong Typing**: Avoid using the `any` type. Define interfaces or types for LLM outputs, parser returns, and CLI options.
-- **Safety Boundaries**: File paths must be strictly checked to prevent escaping the project workspace root.
-- **Documentation**: Write inline documentation and JSDoc tags for core functions, especially in the provider abstractions and repair patterns.
+### 2. Planning Phase
+- **Goal:** Design the technical approach.
+- **Artifact:** Technical Plan (`conductor/tracks/<feature>/plan.md`).
+- **Gate:** Code design review and listing modified files.
+
+### 3. Implementation Phase
+- **Goal:** Write clean code.
+- **Process:** Edit code files incrementally. 
+- **Gate:** oh-my-gemini hooks automatically create git checkpoints before file edits, allowing safe rollbacks.
+
+### 4. Verification & Review Phase
+- **Goal:** Ensure code is correct and meets style guidelines.
+- **Auto-Verification Hook:** Runs `npm run check` and `npm run test:smoke` automatically on tool execution completion.
+- **Manual Review:** Run `/omg:review` to generate a diff and review summary.

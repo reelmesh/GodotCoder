@@ -5,6 +5,7 @@ export interface ProcessResult {
   exitCode: number | null;
   stdout: string;
   stderr: string;
+  timedOut: boolean;
 }
 
 export function runProcess(command: string[], options: { cwd?: string; timeoutMs?: number; env?: NodeJS.ProcessEnv } = {}): Promise<ProcessResult> {
@@ -15,8 +16,11 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
       stdio: ["ignore", "pipe", "pipe"],
     });
 
+    const MAX_BUFFER = 512 * 1024;
     let stdout = "";
     let stderr = "";
+    let stdoutTruncated = false;
+    let stderrTruncated = false;
     let timedOut = false;
     const timeout = options.timeoutMs
       ? setTimeout(() => {
@@ -28,10 +32,12 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => {
-      stdout += chunk;
+      if (stdout.length < MAX_BUFFER) stdout += chunk;
+      else stdoutTruncated = true;
     });
     child.stderr.on("data", (chunk) => {
-      stderr += chunk;
+      if (stderr.length < MAX_BUFFER) stderr += chunk;
+      else stderrTruncated = true;
     });
 
     child.on("error", (error) => {
@@ -39,8 +45,9 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
       resolve({
         command,
         exitCode: null,
-        stdout,
-        stderr: stderr + error.message + (timedOut ? "\nTimed out." : ""),
+        stdout: stdout + (stdoutTruncated ? `\nOutput truncated at ${MAX_BUFFER} bytes.` : ""),
+        stderr: stderr + error.message + (timedOut ? "\nTimed out." : "") + (stderrTruncated ? `\nStderr truncated at ${MAX_BUFFER} bytes.` : ""),
+        timedOut,
       });
     });
 
@@ -49,8 +56,9 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
       resolve({
         command,
         exitCode,
-        stdout,
-        stderr: stderr + (timedOut ? "\nTimed out." : ""),
+        stdout: stdout + (stdoutTruncated ? `\nOutput truncated at ${MAX_BUFFER} bytes.` : ""),
+        stderr: stderr + (timedOut ? "\nTimed out." : "") + (stderrTruncated ? `\nStderr truncated at ${MAX_BUFFER} bytes.` : ""),
+        timedOut,
       });
     });
   });

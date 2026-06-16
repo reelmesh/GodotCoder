@@ -2,7 +2,16 @@
 
 This document tracks active development streams, pending backlog, and completed milestones for GodotCoder.
 
-## Active Tracks
+## Integrated Remote Tracks (from `origin/main`)
+
+| Track ID | Description | Status | Spec / Plan | PR / Branch |
+|---|---|---|---|---|
+| 001-smoke-run-validation | Main-scene Headless Smoke Run Validation | Completed | [spec.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/001-smoke-run-validation/spec.md) / [plan.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/001-smoke-run-validation/plan.md) | N/A |
+| 002-export-validation | Export Preset Validation | Completed | [spec.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/002-export-validation/spec.md) / [plan.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/002-export-validation/plan.md) | N/A |
+| 003-editor-plugin-debug | Editor Plugin Debugger & Console Integration | Completed | [spec.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/003-editor-plugin-debug/spec.md) / [plan.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/003-editor-plugin-debug/plan.md) | N/A |
+| 004-model-hardening | LLM Provider Hardening & Context Enrichment | Completed | [spec.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/004-model-hardening/spec.md) / [plan.md](file:///home/carlosm/Documents/Dev/GodotCoder/conductor/tracks/004-model-hardening/plan.md) | N/A |
+
+## Local Enhancement Tracks
 
 ### `track-001`: Conductor Integration
 - **Objective**: Establish the Conductor multi-agent context configuration.
@@ -34,4 +43,3 @@ This document tracks active development streams, pending backlog, and completed 
   - [x] Create the Editor Plugin files in `addons/godotcoder/` (plugin, dock).
   - [x] Enable the plugin and verify compatibility in `project.godot`.
 - **Status**: Completed
-
