@@ -8,6 +8,7 @@ const codes = {
   green: "\u001b[32m",
   yellow: "\u001b[33m",
   red: "\u001b[31m",
+  lightBlue: "\u001b[94m",
   gray: "\u001b[90m",
 };
 
@@ -30,7 +31,7 @@ export function logo(): string {
     return color("  GodotCoder", "bold");
   }
   const c = (t: string, code: keyof typeof codes) => `${codes[code]}${t}${codes.reset}`;
-  const cyan = (t: string) => c(t, "cyan");
+  const cyan = (t: string) => c(t, "lightBlue");
   const gray = (t: string) => c(t, "gray");
 
   return [
