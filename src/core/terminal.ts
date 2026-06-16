@@ -31,21 +31,15 @@ export function logo(): string {
   }
   const c = (t: string, code: keyof typeof codes) => `${codes[code]}${t}${codes.reset}`;
   const cyan = (t: string) => c(t, "cyan");
-  const green = (t: string) => c(t, "green");
   const gray = (t: string) => c(t, "gray");
-  const bold = (t: string) => c(t, "bold");
 
   return [
-    cyan("      ▄▄▄▄▄▄▄"),
-    cyan("     █▀     ▀█"),
-    cyan("    █  ▄▄▄▄▄  █"),
-    cyan("    █ █ █ █ █ █"),
-    cyan("    █  ▀▀▀▀▀  █"),
-    cyan("     █▄     ▄█"),
-    cyan("      ▀▀▀▀▀▀▀"),
+    cyan("   ____           _       _    ____          _           "),
+    cyan("  / ___| ___   __| | ___ | |_ / ___|___   __| | ___ _ __ "),
+    cyan(" | |  _ / _ \\ / _` |/ _ \\| __| |   / _ \\ / _` |/ _ \\ '__|"),
+    cyan(" | |_| | (_) | (_| | (_) | |_| |__| (_) | (_| |  __/ |   "),
+    cyan("  \\____|\\___/ \\__,_|\\___/ \\__|\\____\\___/ \\__,_|\\___|_|   "),
     "",
-    bold("     Godot") + green("Coder"),
-    "",
-    gray("  LLM-driven Godot game builder · Linux-first · GDScript-first"),
+    gray("     LLM-driven Godot game builder \u00b7 Linux-first \u00b7 GDScript-first"),
   ].join("\n");
 }
