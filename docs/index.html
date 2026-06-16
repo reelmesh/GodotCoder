@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GodotCoder Documentation</title>
+<style>
+  :root {
+    --bg: #0d1117; --fg: #c9d1d9; --accent: #58a6ff; --border: #30363d;
+    --code-bg: #161b22; --heading: #f0f6fc; --dim: #8b949e; --green: #3fb950;
+    --yellow: #d2991d; --red: #f85149; --sidebar-bg: #0d1117;
+    --sidebar-w: 260px; --max-w: 900px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; display: flex; min-height: 100vh; }
+  nav { width: var(--sidebar-w); background: var(--sidebar-bg); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; padding: 1.5rem 1rem; z-index: 10; }
+  nav h2 { color: var(--heading); font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  nav a { display: block; color: var(--dim); text-decoration: none; padding: 0.25rem 0; font-size: 0.875rem; transition: color 0.15s; }
+  nav a:hover, nav a.active { color: var(--accent); }
+  nav .section { margin-bottom: 1rem; }
+  nav .section-title { color: var(--fg); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0 0.25rem; }
+  main { margin-left: var(--sidebar-w); padding: 2rem 3rem; max-width: var(--max-w); width: 100%; }
+  h1 { color: var(--heading); font-size: 2rem; margin-bottom: 0.25rem; }
+  h2 { color: var(--heading); font-size: 1.5rem; margin: 2.5rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+  h3 { color: var(--heading); font-size: 1.15rem; margin: 1.5rem 0 0.5rem; }
+  h4 { color: var(--heading); font-size: 1rem; margin: 1rem 0 0.5rem; }
+  p, li { margin: 0.5rem 0; }
+  code { background: var(--code-bg); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; overflow-x: auto; margin: 1rem 0; font-size: 0.875rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; border-radius: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--heading); font-weight: 600; font-size: 0.875rem; }
+  td { font-size: 0.875rem; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; padding: 0.1em 0.5em; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+  .badge-ok { background: #1a3a1a; color: var(--green); }
+  .badge-warn { background: #3a2e0a; color: var(--yellow); }
+  .badge-err { background: #3a1a1a; color: var(--red); }
+  .recipe { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1rem 0; }
+  .recipe h4 { margin-top: 0; color: var(--accent); }
+  .recipe .step { margin: 0.5rem 0; padding-left: 1rem; border-left: 2px solid var(--border); }
+  ul, ol { padding-left: 1.5rem; }
+  a { color: var(--accent); }
+  .section-anchor { float: right; opacity: 0; transition: opacity 0.15s; }
+  h2:hover .section-anchor, h3:hover .section-anchor { opacity: 1; }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+  .toc-card { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-decoration: none; color: var(--fg); transition: border-color 0.15s; display: block; }
+  .toc-card:hover { border-color: var(--accent); }
+  .toc-card h3 { margin: 0 0 0.25rem; color: var(--accent); font-size: 1rem; }
+  .toc-card p { margin: 0; color: var(--dim); font-size: 0.85rem; }
+  @media (max-width: 768px) { nav { display: none; } main { margin-left: 0; padding: 1.5rem; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>GodotCoder Docs</h2>
+  <div class="section">
+    <div class="section-title">Getting Started</div>
+    <a href="#quickstart">Quickstart</a>
+    <a href="#install">Installation</a>
+    <a href="#first-game">Your First Game</a>
+    <a href="#shell">Interactive Shell</a>
+  </div>
+  <div class="section">
+    <div class="section-title">Reference</div>
+    <a href="#commands">All Commands</a>
+    <a href="#flags">Flag Reference</a>
+    <a href="#rpc">RPC API</a>
+    <a href="#schemas">Data Schemas</a>
+    <a href="#workspace-layout">Workspace Layout</a>
+  </div>
+  <div class="section">
+    <div class="section-title">Recipes</div>
+    <a href="#recipe-new-game">New Game from Scratch</a>
+    <a href="#recipe-existing">Existing Project</a>
+    <a href="#recipe-llm">LLM-Powered</a>
+    <a href="#recipe-repair">Fixing Errors</a>
+    <a href="#recipe-playtest">Automated Testing</a>
+    <a href="#recipe-ci">CI/CD Pipeline</a>
+    <a href="#recipe-plugin">Editor Plugin</a>
+  </div>
+  <div class="section">
+    <div class="section-title">Features</div>
+    <a href="#harness">Agent Harness</a>
+    <a href="#build">Build System</a>
+    <a href="#repair">Repair Engine</a>
+    <a href="#validation">Validation</a>
+    <a href="#llm">LLM Providers</a>
+    <a href="#docs-search">Godot Docs Search</a>
+  </div>
+  <div class="section">
+    <div class="section-title">Plugin</div>
+    <a href="#plugin-overview">Overview</a>
+    <a href="#plugin-actions">Dock Actions</a>
+    <a href="#plugin-context">Editor Context</a>
+    <a href="#plugin-test-plan">Test Plan</a>
+  </div>
+  <div class="section">
+    <div class="section-title">Architecture</div>
+    <a href="#arch-overview">Source Layout</a>
+    <a href="#arch-design">Design Principles</a>
+    <a href="#arch-agents">Agent Roles</a>
+  </div>
+</nav>
+
+<main>
+
+<h1>GodotCoder Documentation</h1>
+<p style="color:var(--dim); margin-top:0">CLI-first AI development agent for building Godot games · Linux-first · Godot 4.3+ · GDScript-first</p>
+
+<div class="toc-grid">
+  <a href="#quickstart" class="toc-card"><h3>🚀 Quickstart</h3><p>60 seconds to your first playable prototype</p></a>
+  <a href="#commands" class="toc-card"><h3>📋 Command Reference</h3><p>Every command, flag, and alias</p></a>
+  <a href="#recipes" class="toc-card"><h3>📖 Recipes</h3><p>Step-by-step workflows for common tasks</p></a>
+  <a href="#plugin-overview" class="toc-card"><h3>🔌 Editor Plugin</h3><p>Godot editor integration guide</p></a>
+  <a href="#rpc" class="toc-card"><h3>🔧 RPC API</h3><p>JSON envelopes for scripting and integration</p></a>
+  <a href="#arch-overview" class="toc-card"><h3>🏗 Architecture</h3><p>Source layout, design, agent roles</p></a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="quickstart">Quickstart</h2>
+
+<pre><code>git clone https://github.com/reelmesh/GodotCoder.git
+cd GodotCoder
+npm install
+npm run build
+node dist/cli.js --help</code></pre>
+
+<p><strong>Requirements</strong>: Node.js ≥22.19, Godot 4.3+ (native or Flatpak), Linux.</p>
+
+<p>Run tests:</p>
+<pre><code>npm run test:smoke          # Build + 55 tests
+tsx --test test/schema.test.ts         # Schema validators only
+tsx --test test/godot-config-parser.test.ts  # Config parser
+tsx --test test/repair-migrations.test.ts    # Godot 3→4 migrations</code></pre>
+
+<h3 id="first-game">Your First Game — 60 Seconds</h3>
+
+<pre><code>mkdir ~/my-first-game && cd ~/my-first-game
+node ~/GodotCoder/dist/cli.js</code></pre>
+
+<p>Inside the interactive shell:</p>
+<pre><code>&gt; /make make a 2d asteroid shooter where you dodge rocks</code></pre>
+
+<p>GodotCoder scaffolds a project, writes planning artifacts, builds the game, validates with Godot, and records the run. Launch it:</p>
+<pre><code>&gt; /play</code></pre>
+
+<p>Or skip the shell entirely:</p>
+<pre><code>node ~/GodotCoder/dist/cli.js pipeline "make a 2d platformer with coins" --play</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="commands">Command Reference</h2>
+
+<h3>Game Creation</h3>
+<table>
+<tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
+<tr><td><code>/make</code></td><td><code>/pipeline</code></td><td><code>--preview&nbsp;--llm&nbsp;--model&nbsp;--play&nbsp;--json&nbsp;--no-validate&nbsp;--no-repair</code></td><td>Full pipeline: plan → build → validate</td></tr>
+<tr><td><code>/plan</code></td><td>—</td><td><code>--json</code></td><td>Write planning artifacts (brief, GDD, tasks)</td></tr>
+<tr><td><code>/build</code></td><td>—</td><td><code>--llm&nbsp;--preview&nbsp;--apply&nbsp;--yes&nbsp;--no-validate</code></td><td>Build a game feature</td></tr>
+<tr><td><code>/preview</code></td><td>—</td><td><code>--no-validate</code></td><td>Preview changes without writing</td></tr>
+<tr><td><code>/apply</code></td><td>—</td><td>—</td><td>Apply pending build preview</td></tr>
+<tr><td><code>/reject</code></td><td>—</td><td>—</td><td>Discard pending build preview</td></tr>
+</table>
+
+<h3>Inspect &amp; Validate</h3>
+<table>
+<tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
+<tr><td><code>/status</code></td><td>—</td><td><code>--json</code></td><td>Workspace + runtime summary</td></tr>
+<tr><td><code>/inspect</code></td><td>—</td><td><code>--json</code></td><td>Scan project.godot, scenes, scripts</td></tr>
+<tr><td><code>/validate</code></td><td><code>/check</code></td><td><code>--json&nbsp;--smoke&nbsp;--export</code></td><td>Godot headless validation</td></tr>
+<tr><td><code>/repair</code></td><td>—</td><td><code>--json</code></td><td>Validate → fix → revalidate</td></tr>
+<tr><td><code>/play</code></td><td><code>/open</code></td><td><code>--editor&nbsp;--test&nbsp;--playtest&nbsp;--json</code></td><td>Launch in Godot</td></tr>
+<tr><td><code>/playtest</code></td><td>—</td><td><code>--json</code></td><td>5-second automated headless test</td></tr>
+</table>
+
+<h3>Models &amp; AI</h3>
+<table>
+<tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
+<tr><td><code>/models</code></td><td>—</td><td><code>--json</code></td><td>Show/configure LLM provider</td></tr>
+<tr><td><code>/ask</code></td><td><code>/chat</code></td><td><code>--json</code></td><td>Ask configured LLM</td></tr>
+<tr><td><code>/harness</code></td><td><code>/run</code></td><td><code>--apply&nbsp;--json&nbsp;--llm&nbsp;--repair</code></td><td>Multi-agent workflow</td></tr>
+<tr><td><code>/auth</code></td><td><code>/login</code></td><td><code>--json</code></td><td>Manage API keys</td></tr>
+</table>
+
+<h3>Runtime &amp; Config</h3>
+<table>
+<tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
+<tr><td><code>/runtime</code></td><td>—</td><td><code>--json</code></td><td>Manage Godot runtime</td></tr>
+<tr><td><code>/doctor</code></td><td>—</td><td><code>--json</code></td><td>Check runtime health</td></tr>
+<tr><td><code>/setup</code></td><td>—</td><td>—</td><td>Guided setup wizard</td></tr>
+<tr><td><code>/settings</code></td><td>—</td><td><code>--json</code></td><td>Configure preferences</td></tr>
+<tr><td><code>/workflow</code></td><td>—</td><td><code>--template&nbsp;--json</code></td><td>Customize workflow templates</td></tr>
+</table>
+
+<h3>Review &amp; Debug</h3>
+<table>
+<tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
+<tr><td><code>/runs</code></td><td><code>/history</code></td><td><code>--json</code></td><td>Browse harness run history</td></tr>
+<tr><td><code>/rpc</code></td><td>—</td><td><code>--json&nbsp;--query&nbsp;--prompt&nbsp;--error&nbsp;--scene&nbsp;--context</code></td><td>JSON RPC envelope</td></tr>
+<tr><td><code>/docs</code></td><td>—</td><td><code>--json</code></td><td>Search Godot documentation</td></tr>
+<tr><td><code>/agents</code></td><td>—</td><td><code>--json</code></td><td>Show agent roster</td></tr>
+</table>
+
+<h3>Session Control</h3>
+<table>
+<tr><th>Command</th><th>Alias</th><th>Description</th></tr>
+<tr><td><code>/help</code></td><td><code>?</code></td><td>Show command palette</td></tr>
+<tr><td><code>/home</code></td><td><code>/menu</code></td><td>Open home menu</td></tr>
+<tr><td><code>/mode plan</code></td><td>—</td><td>Switch to planning mode</td></tr>
+<tr><td><code>/mode build</code></td><td>—</td><td>Switch to build mode (default)</td></tr>
+<tr><td><code>/clear</code></td><td>—</td><td>Clear terminal</td></tr>
+<tr><td><code>/exit</code></td><td><code>/quit</code></td><td>Quit session</td></tr>
+</table>
+
+<h3 id="flags">CLI Subcommands</h3>
+
+<p>All commands work from bash too:</p>
+<pre><code>node dist/cli.js init
+node dist/cli.js setup
+node dist/cli.js settings [--json]
+node dist/cli.js settings default-mode plan|build
+node dist/cli.js settings approval-mode preview|auto-apply
+node dist/cli.js settings provider &lt;provider&gt;
+node dist/cli.js settings diffs compact|full
+node dist/cli.js auth [--json]
+node dist/cli.js auth login --provider &lt;provider&gt; --api-key &lt;key&gt;
+node dist/cli.js auth logout --provider &lt;provider&gt;
+node dist/cli.js agents [--json]
+node dist/cli.js models [--json]
+node dist/cli.js models use --provider &lt;provider&gt; --model &lt;model&gt; [--base-url &lt;url&gt;] [--api-key-env &lt;ENV&gt;]
+node dist/cli.js ask &lt;prompt&gt; [--json]
+node dist/cli.js harness &lt;game-goal&gt; [--apply] [--repair] [--json]
+node dist/cli.js build [prompt] [--llm] [--preview] [--apply] [--no-validate]
+node dist/cli.js pipeline &lt;game-idea&gt; [--preview] [--llm] [--play] [--no-repair] [--json]
+node dist/cli.js play [--editor] [--test] [--json]
+node dist/cli.js runs [list|show &lt;id&gt;]
+node dist/cli.js status [--json]
+node dist/cli.js inspect [--json]
+node dist/cli.js validate [--json] [--smoke] [--export]
+node dist/cli.js repair [list|diff|undo] [--json]
+node dist/cli.js repair undo &lt;repair-id&gt;
+node dist/cli.js runtime doctor [--json]
+node dist/cli.js runtime use &lt;godot command&gt;
+node dist/cli.js docs [search &lt;query&gt;|list|cache &lt;doc-id&gt;|show &lt;doc-id&gt;] [--json]
+node dist/cli.js rpc &lt;method&gt; [--json]
+node dist/cli.js workflow [status|init] [--json]</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="recipes">Workflow Recipes</h2>
+
+<div class="recipe" id="recipe-new-game">
+<h4>Recipe: New Game from Scratch</h4>
+<div class="step"><strong>Step 1 — Create project directory</strong>
+<pre><code>mkdir ~/my-game && cd ~/my-game</code></pre></div>
+<div class="step"><strong>Step 2 — Plan the game</strong>
+<pre><code>node ~/GodotCoder/dist/cli.js plan "make a bullet heaven survivor game"</code></pre>
+<p>Writes <code>.godotcoder/brief.md</code>, <code>gdd.md</code>, <code>technical-plan.md</code>, <code>tasks.md</code>.</p></div>
+<div class="step"><strong>Step 3 — Build first playable slice</strong>
+<pre><code>node ~/GodotCoder/dist/cli.js pipeline "make a bullet heaven survivor game" --play</code></pre>
+<p>Builds project, validates, launches in Godot.</p></div>
+<div class="step"><strong>Step 4 — Iterate with previews</strong>
+<pre><code>node ~/GodotCoder/dist/cli.js build "add enemy spawning waves" --preview
+# Review diff, then:
+node ~/GodotCoder/dist/cli.js build "add enemy spawning waves" --apply
+node ~/GodotCoder/dist/cli.js validate
+node ~/GodotCoder/dist/cli.js play</code></pre></div>
+</div>
+
+<div class="recipe" id="recipe-existing">
+<h4>Recipe: Work with an Existing Godot Project</h4>
+<div class="step"><strong>Step 1 — Inspect</strong>
+<pre><code>cd ~/my-existing-project
+node ~/GodotCoder/dist/cli.js inspect --json
+node ~/GodotCoder/dist/cli.js runtime doctor</code></pre></div>
+<div class="step"><strong>Step 2 — Validate</strong>
+<pre><code>node ~/GodotCoder/dist/cli.js validate
+node ~/GodotCoder/dist/cli.js validate --smoke   # Quick 3s test
+node ~/GodotCoder/dist/cli.js validate --export  # Test export presets</code></pre></div>
+<div class="step"><strong>Step 3 — Build a feature</strong>
+<pre><code>node ~/GodotCoder/dist/cli.js build "add a dash move with cooldown UI" --preview
+node ~/GodotCoder/dist/cli.js build "add a dash move with cooldown UI" --apply
+node ~/GodotCoder/dist/cli.js validate</code></pre></div>
+</div>
+
+<div class="recipe" id="recipe-llm">
+<h4>Recipe: LLM-Powered Code Generation</h4>
+<div class="step"><strong>Step 1 — Configure a provider</strong>
+<pre><code># Local Ollama (free)
+node dist/cli.js models use --provider ollama --model llama3.1
+
+# LM Studio local server (free)
+node dist/cli.js models use --provider lmstudio --model qwen/qwen3.6-27b
+
+# OpenAI cloud
+node dist/cli.js models use --provider openai --model gpt-4o --api-key-env OPENAI_API_KEY
+node dist/cli.js auth login --provider openai --api-key sk-...
+
+# Anthropic cloud
+node dist/cli.js models use --provider anthropic --model claude-sonnet-4-20250514
+node dist/cli.js auth login --provider anthropic --api-key sk-ant-...</code></pre></div>
+<div class="step"><strong>Step 2 — Ask questions</strong>
+<pre><code>node dist/cli.js ask "How do I implement double-jumping in Godot 4 CharacterBody2D?"</code></pre></div>
+<div class="step"><strong>Step 3 — Generate code</strong>
+<pre><code>node dist/cli.js build "add a dash move with cooldown UI" --llm --preview
+node dist/cli.js build "add a dash move with cooldown UI" --llm --apply</code></pre></div>
+<div class="step"><strong>Step 4 — Full LLM pipeline</strong>
+<pre><code>node dist/cli.js pipeline "make a cozy puzzle game about matching colors" --llm --play</code></pre></div>
+</div>
+
+<div class="recipe" id="recipe-repair">
+<h4>Recipe: Fixing Validation Errors</h4>
+<div class="step"><strong>Step 1 — Run repair</strong>
+<pre><code>node dist/cli.js repair --json</code></pre></div>
+<div class="step"><strong>Step 2 — Inspect what changed</strong>
+<pre><code>node dist/cli.js repair list
+node dist/cli.js repair diff           # Show latest diff
+node dist/cli.js repair diff repair_20260616T120000_000000</code></pre></div>
+<div class="step"><strong>Step 3 — Undo if needed</strong>
+<pre><code>node dist/cli.js repair undo repair_20260616T120000_000000</code></pre></div>
+</div>
+
+<div class="recipe" id="recipe-playtest">
+<h4>Recipe: Automated Playtesting</h4>
+<pre><code>node dist/cli.js playtest --json
+node dist/cli.js play --test</code></pre>
+<p>Runs the game headlessly for 5 seconds with random input simulation. Returns structured errors:</p>
+<pre><code>{
+  "ok": false,
+  "errors": [
+    "SCRIPT ERROR: Parse Error at res://scripts/player.gd:12"
+  ],
+  "durationMs": 1234
+}</code></pre>
+</div>
+
+<div class="recipe" id="recipe-ci">
+<h4>Recipe: CI/CD Pipeline</h4>
+<pre><code>#!/bin/bash
+# ci-test.sh — Validate a Godot project in CI
+cd my-game
+node /opt/GodotCoder/dist/cli.js inspect --json
+node /opt/GodotCoder/dist/cli.js validate --json
+node /opt/GodotCoder/dist/cli.js validate --smoke --json
+node /opt/GodotCoder/dist/cli.js validate --export --json
+node /opt/GodotCoder/dist/cli.js repair --json</code></pre>
+</div>
+
+<div class="recipe" id="recipe-plugin">
+<h4>Recipe: Editor Plugin Workflow</h4>
+<p>Enable <code>addons/godotcoder/</code> in Project Settings → Plugins. Configure the CLI path to your <code>godotcoder</code> binary.</p>
+<pre><code># From the plugin dock, use these actions:
+Capture  → Captures current scene, selected nodes, open script
+Status   → Shows workspace health
+Validate → Runs Godot validation
+Explain  → Summarizes editor context + project index
+Review   → Shows git status (read-only)
+Scene    → Checks current scene against project index
+Debug    → Triages pasted console errors
+Preview  → Build preview without applying</code></pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="harness">Agent Harness</h2>
+
+<p>The harness runs a BMAD-style sequence of 8 specialized agents:</p>
+
+<table>
+<tr><th>Agent</th><th>Role</th><th>Owns</th><th>Output</th></tr>
+<tr><td><strong>Orchestrator</strong></td><td>Routes work, enforces gates</td><td>Workflow run, agent handoffs</td><td><code>runs/&lt;id&gt;.json</code></td></tr>
+<tr><td><strong>Scout</strong></td><td>Indexes project files</td><td>Project inspection</td><td><code>project-index.json</code></td></tr>
+<tr><td><strong>Producer</strong></td><td>Scope control, milestones</td><td>Backlog, acceptance criteria</td><td><code>backlog.md</code>, <code>tasks.md</code></td></tr>
+<tr><td><strong>Designer</strong></td><td>Core loop, mechanics</td><td>Brief, GDD</td><td><code>brief.md</code>, <code>gdd.md</code></td></tr>
+<tr><td><strong>Architect</strong></td><td>Scene structure, patterns</td><td>Technical plan</td><td><code>technical-plan.md</code></td></tr>
+<tr><td><strong>Gameplay Engineer</strong></td><td>GDScript, scenes</td><td>Code generation, patches</td><td><code>patches/&lt;id&gt;/record.json</code></td></tr>
+<tr><td><strong>QA Validator</strong></td><td>Godot-backed checks</td><td>Validation reports</td><td><code>validations/&lt;id&gt;.json</code></td></tr>
+<tr><td><strong>Docs Librarian</strong></td><td>Official docs context</td><td>Knowledge retrieval</td><td><code>cache/docs/*</code></td></tr>
+</table>
+
+<p>Usage:</p>
+<pre><code>node dist/cli.js harness "make a 2d platformer with coins" --apply --json
+node dist/cli.js harness "make a 2d platformer with coins" --apply --llm --repair</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="build">Build System</h2>
+
+<p>The build system supports two code generation paths:</p>
+
+<table>
+<tr><th>Path</th><th>Source</th><th>Trigger</th><th>Output</th></tr>
+<tr><td><strong>Deterministic</strong></td><td>Internal builders</td><td>Default (no flag)</td><td>2D asteroid shooter or 2D platformer prototype</td></tr>
+<tr><td><strong>LLM-Driven</strong></td><td>Configured model</td><td><code>--llm</code> flag</td><td>Open-ended game code from model</td></tr>
+</table>
+
+<p><strong>Preview mode</strong> (default) shows a line-level diff before writing:</p>
+<pre><code>Build preview
+Adds a health bar HUD to the main scene
+create res://scripts/hud.gd (+24 -0, 0 → 24 lines)
+--- /dev/null
++++ res://scripts/hud.gd
++extends Control
++var health := 100
++func _ready() -> void:
++    update_bar()
+...
+modify res://scripts/main.gd (+3 -0, 42 → 45 lines)
+  func _ready() -> void:
+      print("ready")
++     var hud = preload("res://scripts/hud.gd").instantiate()
++     add_child(hud)</code></pre>
+
+<p>Apply with <code>/apply</code> (shell) or <code>--apply</code> (CLI). Reject with <code>/reject</code>.</p>
+
+<p>Applied builds record under <code>.godotcoder/patches/&lt;patch-id&gt;/record.json</code> with:</p>
+<ul>
+  <li>File operations (create/modify/unchanged)</li>
+  <li>SHA-256 hashes (before/after)</li>
+  <li>Linked validation report IDs</li>
+</ul>
+
+<h3>LLM Acceptance Gates</h3>
+<p>LLM-generated code must pass all gates before application:</p>
+<ul>
+  <li><span class="badge badge-ok">SCENE</span> Must produce or update a scene</li>
+  <li><span class="badge badge-ok">SCRIPT</span> Must include a gameplay GDScript</li>
+  <li><span class="badge badge-ok">INPUT</span> Must handle input or frame processing</li>
+  <li><span class="badge badge-ok">FEEDBACK</span> Must have visible player feedback</li>
+  <li><span class="badge badge-ok">OBJECTIVE</span> Must define a goal/fail/restart loop</li>
+  <li><span class="badge badge-ok">GODOT 4.3+</span> Must use modern Godot 4 APIs only</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="repair">Repair Engine</h2>
+
+<p>The repair loop: <strong>Validate → Detect errors → Apply deterministic fixes → Revalidate</strong>.</p>
+
+<h3>Repair Rules</h3>
+
+<table>
+<tr><th>Category</th><th>Rule</th><th>What it does</th></tr>
+<tr><td>Missing files</td><td>Broken script reference</td><td>Creates placeholder <code>.gd</code> with <code>extends Node</code></td></tr>
+<tr><td>Missing files</td><td>Broken scene reference</td><td>Creates minimal <code>.tscn</code> with <code>Node2D</code> root</td></tr>
+<tr><td>Missing files</td><td>Broken resource reference</td><td>Creates placeholder <code>.tres</code> or SVG image</td></tr>
+<tr><td>Migration</td><td><code>export var</code></td><td>→ <code>@export var</code></td></tr>
+<tr><td>Migration</td><td><code>onready var</code></td><td>→ <code>@onready var</code></td></tr>
+<tr><td>Migration</td><td><code>.instance()</code></td><td>→ <code>.instantiate()</code></td></tr>
+<tr><td>Migration</td><td><code>yield(owner, "signal")</code></td><td>→ <code>await owner.signal</code></td></tr>
+<tr><td>Migration</td><td><code>KinematicBody2D</code></td><td>→ <code>CharacterBody2D</code></td></tr>
+<tr><td>Migration</td><td><code>PoolByteArray</code> etc.</td><td>→ <code>PackedByteArray</code> etc.</td></tr>
+<tr><td>Migration</td><td><code>OS.get_ticks_msec()</code></td><td>→ <code>Time.get_ticks_msec()</code></td></tr>
+<tr><td>Migration</td><td><code>deg2rad()</code></td><td>→ <code>deg_to_rad()</code></td></tr>
+<tr><td>Migration</td><td><code>rand_range()</code></td><td>→ <code>randf_range()</code></td></tr>
+<tr><td>Migration</td><td><code>connect("s", t, "m")</code></td><td>→ <code>s.connect(t.method)</code></td></tr>
+<tr><td>Migration</td><td><code>tool</code></td><td>→ <code>@tool</code></td></tr>
+</table>
+
+<p>More: <code>export(float, ...)</code> → <code>@export_range</code>, <code>export(FILE, ...)</code> → <code>@export_file</code>, <code>linear2db</code> → <code>linear_to_db</code>, <code>db2linear</code> → <code>db_to_linear</code>, <code>KinematicBody3D</code> → <code>CharacterBody3D</code>, <code>Navigation2D</code> → <code>NavigationRegion2D</code>.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="validation">Validation System</h2>
+
+<table>
+<tr><th>Mode</th><th>Command</th><th>Timeout</th><th>Description</th></tr>
+<tr><td><strong>Full</strong></td><td><code>validate</code></td><td>15s</td><td>Loads project in Godot headless, captures all errors</td></tr>
+<tr><td><strong>Smoke</strong></td><td><code>validate --smoke</code></td><td>3s</td><td>Quick start/stop, checks script parse errors</td></tr>
+<tr><td><strong>Export</strong></td><td><code>validate --export</code></td><td>30s/preset</td><td>Tests every export preset by packing to temp file</td></tr>
+</table>
+
+<p>Validation report schema:</p>
+<pre><code>{
+  "schemaVersion": 1,
+  "id": "val_20260616T120000_000000",
+  "command": ["godot", "--headless", "--path", "/project", "--quit"],
+  "exitCode": 0,
+  "runtime": { "installType": "native", "version": "4.6.2" },
+  "findings": [
+    { "severity": "error", "subsystem": "script", "file": "res://player.gd",
+      "line": 12, "message": "Parse Error: ...", "raw": "..." }
+  ],
+  "summary": { "errors": 0, "warnings": 0 }
+}</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="llm">LLM Provider Configuration</h2>
+
+<table>
+<tr><th>Provider</th><th>Kind</th><th>Default URL</th><th>API Key Env</th></tr>
+<tr><td>Ollama</td><td>Local, free</td><td><code>http://127.0.0.1:11434</code></td><td>—</td></tr>
+<tr><td>LM Studio</td><td>Local, free</td><td><code>http://127.0.0.1:1234</code></td><td><code>LM_API_TOKEN</code></td></tr>
+<tr><td>OpenAI</td><td>Cloud</td><td><code>https://api.openai.com/v1</code></td><td><code>OPENAI_API_KEY</code></td></tr>
+<tr><td>Anthropic</td><td>Cloud</td><td><code>https://api.anthropic.com/v1</code></td><td><code>ANTHROPIC_API_KEY</code></td></tr>
+<tr><td>OpenAI-compatible</td><td>Custom</td><td>User-specified</td><td>User-specified</td></tr>
+</table>
+
+<p>Environment variables take precedence over local secrets. Secrets stored in <code>.godotcoder.local/secrets.json</code> with <code>mode 600</code>.</p>
+
+<h3>Model adapter details</h3>
+<ul>
+  <li><strong>OpenAI-compatible</strong>: <code>POST /chat/completions</code></li>
+  <li><strong>Anthropic</strong>: <code>POST /messages</code>, system prompt as top-level field</li>
+  <li><strong>Ollama</strong>: <code>POST /api/chat</code></li>
+  <li><strong>LM Studio</strong>: <code>POST /api/v1/chat</code>, typed input blocks, extracts from <code>output</code> arrays (skips reasoning items)</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="rpc">RPC API Reference</h2>
+
+<p>All RPC methods respond with the stable envelope:</p>
+<pre><code>{ "ok": true|false, "method": "...", "result": ..., "error": null|{...}, "diagnostics": [] }</code></pre>
+
+<table>
+<tr><th>Method</th><th>Args</th><th>Description</th></tr>
+<tr><td><code>workspace.status</code></td><td>—</td><td>Project root, runtime, workspace state</td></tr>
+<tr><td><code>workspace.changes</code></td><td>—</td><td>Git status summary (added/modified/deleted/untracked counts)</td></tr>
+<tr><td><code>project.inspect</code></td><td>—</td><td>Full project index: scenes, scripts, resources, autoloads, exports</td></tr>
+<tr><td><code>runtime.doctor</code></td><td>—</td><td>Runtime discovery with diagnostics</td></tr>
+<tr><td><code>validation.run</code></td><td>—</td><td>Full Godot validation</td></tr>
+<tr><td><code>validation.scene</code></td><td><code>--scene</code></td><td>Check if scene exists in project index</td></tr>
+<tr><td><code>docs.search</code></td><td><code>--query</code></td><td>Search official Godot docs</td></tr>
+<tr><td><code>build.preview</code></td><td><code>--prompt</code></td><td>Preview build changes without applying</td></tr>
+<tr><td><code>debug.current</code></td><td><code>--error</code></td><td>Parse Godot error text: subsystem, source file, root cause, next steps</td></tr>
+<tr><td><code>editor.context</code></td><td><code>--context</code></td><td>Capture raw editor context JSON</td></tr>
+<tr><td><code>editor.explain</code></td><td><code>--context</code></td><td>Summarize editor context against project index</td></tr>
+</table>
+
+<h3>Example RPC calls</h3>
+<pre><code>node dist/cli.js rpc workspace.status --json
+node dist/cli.js rpc workspace.changes --json
+node dist/cli.js rpc project.inspect --json
+node dist/cli.js rpc runtime.doctor --json
+node dist/cli.js rpc validation.run --json
+node dist/cli.js rpc validation.scene --scene res://scenes/main.tscn --json
+node dist/cli.js rpc docs.search --query input --json
+node dist/cli.js rpc build.preview --prompt "add a health bar" --json
+node dist/cli.js rpc debug.current --error "Parse Error at res://scripts/player.gd:42" --json
+node dist/cli.js rpc editor.context --context '{"current_path":"res://scenes/main.tscn"}' --json
+node dist/cli.js rpc editor.explain --context '{"current_path":"res://scenes/main.tscn","selected_nodes":[{"name":"Player","class":"CharacterBody2D"}]}' --json</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="plugin-overview">Godot Editor Plugin</h2>
+
+<p>Location: <code>addons/godotcoder/</code>. Enable in Project Settings → Plugins.</p>
+
+<p>Configure the <strong>CLI Path</strong> in the dock to point to your <code>godotcoder</code> binary. The plugin communicates with the CLI through subprocess JSON — it does not own model orchestration, memory, or providers.</p>
+
+<h3 id="plugin-actions">Dock Actions</h3>
+
+<table>
+<tr><th>Button</th><th>RPC Method</th><th>What it does</th></tr>
+<tr><td><strong>Capture</strong></td><td><code>editor.context</code></td><td>Captures current scene, selected nodes, open script, and active scene path</td></tr>
+<tr><td><strong>Status</strong></td><td><code>workspace.status</code></td><td>Shows project root, runtime, workspace health</td></tr>
+<tr><td><strong>Inspect</strong></td><td><code>project.inspect</code></td><td>Full project index: scenes, scripts, resources, autoloads</td></tr>
+<tr><td><strong>Validate</strong></td><td><code>validation.run</code></td><td>Runs Godot headless validation with captured context</td></tr>
+<tr><td><strong>Explain</strong></td><td><code>editor.explain</code></td><td>Summarizes selected scene/node/script context against project index</td></tr>
+<tr><td><strong>Review</strong></td><td><code>workspace.changes</code></td><td>Read-only git status summary</td></tr>
+<tr><td><strong>Scene</strong></td><td><code>validation.scene</code></td><td>Checks if current scene exists in project index</td></tr>
+<tr><td><strong>Debug</strong></td><td><code>debug.current</code></td><td>Paste Godot console error, get subsystem classification + fix guidance</td></tr>
+<tr><td><strong>Preview</strong></td><td><code>build.preview</code></td><td>Preview build changes: file counts, line counts, changed paths</td></tr>
+</table>
+
+<h3 id="plugin-context">Editor Context JSON</h3>
+
+<pre><code>{
+  "current_path": "res://scenes/main.tscn",
+  "scene_root": { "name": "Main", "class": "Node2D", "path": "res://scenes/main.tscn" },
+  "selected_nodes": [
+    { "name": "Player", "class": "CharacterBody2D", "path": "/root/Main/Player" }
+  ],
+  "current_script": { "class": "GDScript", "path": "res://scripts/player.gd" }
+}</code></pre>
+
+<p><strong>Auto-attach</strong>: When editor context is captured, all subsequent RPC calls include it automatically. History persists in <code>user://godotcoder/plugin-history.json</code>.</p>
+
+<p><strong>History controls</strong>: Replay Last (⌘R), Replay Selected (select from list), Clear history. Each entry stores the full command payload for exact replay.</p>
+
+<h3 id="plugin-test-plan">Plugin Test Plan</h3>
+
+<ol>
+  <li>Enable <code>addons/godotcoder/</code> in a Godot project</li>
+  <li>Open a scene with at least one selected node and one open script</li>
+  <li>Click <strong>Capture</strong> — confirm dock shows structured editor context JSON</li>
+  <li>Run <strong>Status</strong>, <strong>Inspect</strong>, <strong>Validate</strong> — confirm responses include <code>editorContext</code></li>
+  <li>Click <strong>Explain</strong> — confirm summary of selected scene/node/script + project counts</li>
+  <li>Click <strong>Review</strong> — confirm git status is reported (read-only)</li>
+  <li>Click <strong>Scene</strong> — confirm scene existence check against project index</li>
+  <li>Paste a Godot error, click <strong>Debug</strong> — confirm subsystem, source file, next steps</li>
+  <li>Enter a build prompt, click <strong>Preview</strong> — confirm file counts + changed paths (no writes)</li>
+  <li>Use <strong>Replay Selected</strong> on an older entry — confirm exact command is replayed</li>
+  <li>Change CLI path to invalid value — confirm dock shows clear failure message</li>
+  <li>Change selection, capture again — confirm history grows and context updates</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="docs-search">Godot Documentation Search</h2>
+
+<pre><code>node dist/cli.js docs search input
+node dist/cli.js docs list
+node dist/cli.js docs cache class-input          # Downloads full HTML
+node dist/cli.js docs cache gdscript-basics
+node dist/cli.js docs show class-input           # Show cached excerpts
+node dist/cli.js docs list --json</code></pre>
+
+<p>13 official Godot doc sources indexed by default:</p>
+<table>
+<tr><th>ID</th><th>Title</th></tr>
+<tr><td><code>getting-started</code></td><td>Getting Started</td></tr>
+<tr><td><code>gdscript-basics</code></td><td>GDScript Basics</td></tr>
+<tr><td><code>nodes-and-scenes</code></td><td>Nodes and Scenes</td></tr>
+<tr><td><code>input-examples</code></td><td>Input Examples</td></tr>
+<tr><td><code>2d-movement</code></td><td>2D Movement Overview</td></tr>
+<tr><td><code>class-node2d</code></td><td>Node2D Class Reference</td></tr>
+<tr><td><code>class-characterbody2d</code></td><td>CharacterBody2D Class Reference</td></tr>
+<tr><td><code>class-input</code></td><td>Input Class Reference</td></tr>
+<tr><td><code>signals</code></td><td>Signals</td></tr>
+<tr><td><code>resources</code></td><td>Resources</td></tr>
+<tr><td><code>command-line</code></td><td>Command Line Tutorial</td></tr>
+<tr><td><code>project-settings</code></td><td>Project Settings</td></tr>
+<tr><td><code>exporting-projects</code></td><td>Exporting Projects</td></tr>
+</table>
+
+<p>Cached docs (HTML, extracted text, excerpts) are stored under <code>.godotcoder/cache/docs/</code>. LLM prompts include matching docs as grounding.</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="workspace-layout">Workspace Layout</h2>
+
+<pre><code>my-game/
+  project.godot
+  scenes/main.tscn
+  scripts/main.gd
+  .godotcoder/                    ← Committed (team artifacts)
+    brief.md
+    gdd.md
+    technical-plan.md
+    tasks.md
+    decisions.md
+    risk-log.md
+    backlog.md
+    agent-roster.json
+    runtime-profile.json
+    project-index.json
+    agent-memory.json
+    runs/                         ← Harness run records
+    patches/                      ← Change records with SHA-256
+    validations/                  ← Godot validation reports
+    repairs/                      ← Repair attempts + diffs
+    model-failures/               ← Failed LLM attempt logs
+    cache/docs/                   ← Cached Godot documentation
+  .godotcoder.local/              ← Not committed (machine-specific)
+    runtime-overrides.json
+    model-config.json
+    user-settings.json
+    secrets.json                  ← mode 600</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="schemas">Data Schemas</h2>
+
+<h3>runtime-profile.json</h3>
+<pre><code>{
+  "schemaVersion": 1,
+  "projectRoot": "/abs/path",
+  "detectedGodotVersion": "4.6.2",
+  "minimumGodotVersion": "4.3.0",
+  "supported": true,
+  "installType": "native",
+  "executable": ["godot"],
+  "flatpak": { "appId": null, "branch": null, "availableAppIds": [] },
+  "project": { "configVersion": 5, "features": ["4.x"], "mainScene": "res://scenes/main.tscn",
+    "autoloads": [], "enabledPlugins": [], "exportPresets": [] },
+  "paths": { "userData": null, "logs": null, "exportTemplates": null },
+  "validation": { "supportedCommands": ["version"], "lastValidationId": null },
+  "updatedAt": "2026-06-16T12:00:00.000Z"
+}</code></pre>
+
+<h3>project-index.json</h3>
+<pre><code>{
+  "schemaVersion": 1,
+  "projectRoot": "/abs/path",
+  "godotVersionSignals": { "projectConfigVersion": 5, "featureTags": ["4.x"], "runtimeVersion": null },
+  "mainScene": "res://scenes/main.tscn",
+  "applicationName": "My Game",
+  "renderingMethod": "forward_plus",
+  "display": { "width": 1152, "height": 648, "stretchMode": "canvas_items", "stretchAspect": "keep" },
+  "inputMap": ["ui_accept", "ui_cancel", "move_left", "move_right"],
+  "autoloads": [],
+  "plugins": [],
+  "scripts": ["scripts/main.gd", "scripts/player.gd"],
+  "scenes": ["scenes/main.tscn"],
+  "resources": [],
+  "exports": [],
+  "updatedAt": "2026-06-16T12:00:00.000Z"
+}</code></pre>
+
+<h3>Patch Record</h3>
+<pre><code>{
+  "schemaVersion": 1,
+  "id": "patch_20260616T120000_000000",
+  "kind": "build",
+  "status": "applied",
+  "prompt": "add a dash move and cooldown UI",
+  "summary": "Added dash mechanic with cooldown HUD",
+  "files": [
+    { "path": "res://scripts/player.gd", "operation": "modify",
+      "beforeSha256": "abc123...", "afterSha256": "def456..." }
+  ],
+  "validationIds": ["val_20260616T120000_000000"],
+  "createdAt": "2026-06-16T12:00:00.000Z",
+  "updatedAt": "2026-06-16T12:00:02.000Z"
+}</code></pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="arch-overview">Architecture</h2>
+
+<pre><code>src/
+  cli.ts                         Entry point, command routing
+  commands/                      17 CLI command handlers
+    session.ts                   Interactive shell
+    pipeline.ts, harness.ts      Workflow orchestration
+    build.ts, plan.ts            Code generation
+    repair.ts                    Repair loop
+    auth.ts, models.ts, settings.ts, setup.ts
+    runtime.ts, validate.ts, inspect.ts, status.ts
+    play.ts, docs.ts, agents.ts, runs.ts, rpc.ts
+    init.ts, home.ts, workflow.ts
+  core/                          Business logic
+    builders/                    Deterministic builders (asteroid-shooter, platformer)
+    godot-config-parser.ts       project.godot INI parser + serializer
+    godot-project-indexer.ts     Project discovery, file walker, inspection
+    godot-setting-editor.ts      Safe project.godot mutation helpers
+    godot-project.ts             Barrel re-export
+    flags.ts                     Shared flag parsing + provider defaults
+    session-commands.ts          Single source of truth for 29 slash commands
+    completion.ts                Tab completion (derives from registry)
+    providers.ts                 LLM layer (OpenAI, Anthropic, Ollama, LM Studio)
+    harness.ts                   BMAD-style multi-agent workflow runner
+    repair.ts                    Deterministic validation repair + Godot 3→4 migration
+    validation.ts                Godot headless validation (run, smoke, export)
+    llm-build.ts                 Controlled LLM code generation with gates
+    preview.ts                   LCS-based diff preview
+    change-records.ts            Patch records with SHA-256
+    settings.ts                  User settings + secrets (mode 600)
+    playtest.ts                  Automated 5-second headless playtesting
+    schema.ts, errors.ts, ids.ts, process.ts, files.ts, terminal.ts, menu.ts
+    greenfield.ts, planning.ts, launch.ts
+    godot-version.ts, godot-docs.ts, workspace.ts
+    runtime-discovery.ts, runtime-profile.ts, runtime-overrides.ts</code></pre>
+
+<h3 id="arch-design">Design Principles</h3>
+
+<ul>
+  <li><strong>CLI-first</strong>: Fast terminal start, no editor required</li>
+  <li><strong>Linux-first</strong>: Native + Flatpak Godot as first-class targets</li>
+  <li><strong>Godot-native</strong>: GDScript, scenes, resources — no non-Godot runtimes</li>
+  <li><strong>Godot as judge</strong>: Validation through the actual Godot executable</li>
+  <li><strong>Small steps</strong>: Preview → review → apply → validate</li>
+  <li><strong>Recoverability</strong>: SHA-256 patches, repair records, undo support</li>
+  <li><strong>Knowledge priority</strong>: Local files → Official docs → Skills → Datasets → Model knowledge</li>
+</ul>
+
+<h3 id="arch-agents">Agent Roles</h3>
+
+<table>
+<tr><th>Agent</th><th>Owns</th><th>Inputs</th><th>Outputs</th></tr>
+<tr><td>Orchestrator</td><td>Workflow run, handoffs</td><td>Goal, project index, runtime, artifacts</td><td><code>runs/&lt;id&gt;.json</code></td></tr>
+<tr><td>Scout</td><td>Project inspection</td><td>project.godot, filesystem</td><td><code>project-index.json</code></td></tr>
+<tr><td>Producer</td><td>Backlog, scope</td><td>Brief, GDD, goal</td><td><code>backlog.md</code>, <code>tasks.md</code></td></tr>
+<tr><td>Designer</td><td>Core loop, mechanics</td><td>Goal, constraints</td><td><code>brief.md</code>, <code>gdd.md</code></td></tr>
+<tr><td>Architect</td><td>Scene structure, patterns</td><td>Project index, GDD, runtime</td><td><code>technical-plan.md</code></td></tr>
+<tr><td>Gameplay Engineer</td><td>GDScript, scenes</td><td>Technical plan, task</td><td>Patches, <code>patches/&lt;id&gt;/record.json</code></td></tr>
+<tr><td>QA Validator</td><td>Validation reports</td><td>Runtime profile, project files</td><td><code>validations/&lt;id&gt;.json</code></td></tr>
+<tr><td>Docs Librarian</td><td>Knowledge retrieval</td><td>Godot version, task topic</td><td><code>cache/docs/*</code></td></tr>
+</table>
+
+<h3>Approval Policy</h3>
+
+<table>
+<tr><th>Automatic (no approval needed)</th><th>Requires Approval</th></tr>
+<tr><td>Read files · Search files · Index project · Draft plans · Propose patches · Run non-destructive checks · Inspect metadata</td><td>Write files · Edit scenes/resources · Change project settings · Install dependencies · Run export/build · Delete/move assets</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="install">Installation</h2>
+
+<pre><code>git clone https://github.com/reelmesh/GodotCoder.git
+cd GodotCoder
+npm install
+npm run build
+npm run test:smoke    # Verify: 55 tests pass</code></pre>
+
+<p><strong>Requirements</strong>: Node.js ≥22.19, npm, Godot 4.3+ (native or Flatpak), Linux. TypeScript 5.9 with strict mode enabled.</p>
+
+<p style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border); color:var(--dim); font-size:0.85rem">
+  GodotCoder · CLI-first AI development agent for Godot · <a href="https://github.com/reelmesh/GodotCoder">GitHub</a>
+</p>
+
+</main>
+</body>
+</html>

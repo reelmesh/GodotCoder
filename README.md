@@ -497,6 +497,7 @@ src/
 
 ## Documentation
 
+- [HTML Documentation](docs/index.html) — complete navigable reference (open in browser)
 - [Tutorial & Examples](docs/TUTORIAL.md) — step-by-step from zero to playable game
 - [Product Requirements](docs/PRD.md)
 - [Technical Design](docs/TECHNICAL_DESIGN.md)
