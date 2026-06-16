@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
@@ -123,7 +123,6 @@ function parseSettings(value: unknown): UserSettings {
 }
 
 async function verifySecretFilePermissions(filePath: string): Promise<void> {
-  const { stat, constants } = await import("node:fs/promises");
   try {
     const stats = await stat(filePath);
     const mode = stats.mode & 0o777;

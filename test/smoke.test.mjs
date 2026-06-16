@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -226,6 +226,7 @@ test("runSmokeValidation handles timeout as success and parses script errors on 
   assert.equal(reportExit.findings[0].severity, "error");
   assert.equal(reportExit.findings[0].subsystem, "runtime");
   assert.match(reportExit.findings[0].message, /prematurely/);
+  try { await rm(projectRoot, { recursive: true, force: true }); } catch { /* ignore */ }
 });
 
 test("runExportValidation handles missing presets, success, and failures", async () => {
@@ -272,6 +273,7 @@ test("runExportValidation handles missing presets, success, and failures", async
   assert.equal(reportFail.summary.errors, 1);
   assert.match(reportFail.findings[0].message, /No export template found/);
   assert.equal(reportFail.findings[0].severity, "error");
+  try { await rm(projectRoot, { recursive: true, force: true }); } catch { /* ignore */ }
 });
 
 test("docsPromptContextWithExcerpts includes cached excerpts and parseLlmBuildReply handles thinking blocks/tabs", async () => {
@@ -329,6 +331,7 @@ test("docsPromptContextWithExcerpts includes cached excerpts and parseLlmBuildRe
   assert.equal(result.summary, "Implement input handling");
   assert.equal(result.files[0].path, "scripts/main.gd");
   assert.equal(result.files[0].contents.includes("\t"), true);
+  try { await rm(projectRoot, { recursive: true, force: true }); } catch { /* ignore */ }
 });
 
 

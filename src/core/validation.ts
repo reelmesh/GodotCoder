@@ -130,6 +130,8 @@ export async function runSmokeValidation(
         "--headless",
         "--path",
         projectRoot,
+        "--log-file",
+        path.join(logsDir, `${id}.log`),
       ]
     : null;
 
@@ -170,9 +172,7 @@ export async function runSmokeValidation(
 
   const findings = parseGodotOutput(`${result.stdout}\n${result.stderr}`);
 
-  const timedOut = result.stderr.includes("Timed out.");
-
-  if (!timedOut && result.exitCode !== 0 && result.exitCode !== null) {
+  if (!result.timedOut && result.exitCode !== 0 && result.exitCode !== null) {
     if (findings.length === 0) {
       findings.push({
         severity: "error",
@@ -240,15 +240,13 @@ function parseGodotOutput(output: string): ValidationFinding[] {
         raw,
       };
       findings.push(lastFinding);
-    } else if (lastFinding && line.includes("res://")) {
+    } else if (lastFinding) {
       const fileMatch = line.match(/(res:\/\/[^\s:'".]+(?:\.[A-Za-z0-9_]+)?)(?::(\d+))?/);
-      if (fileMatch) {
-        if (!lastFinding.file) {
-          lastFinding.file = fileMatch[1] ?? null;
-          lastFinding.line = fileMatch[2] ? Number(fileMatch[2]) : null;
-        }
-        lastFinding.message += `\n  ${line}`;
-        lastFinding.raw += `\n${raw}`;
+      lastFinding.message += `\n  ${line}`;
+      lastFinding.raw += `\n${raw}`;
+      if (fileMatch && !lastFinding.file) {
+        lastFinding.file = fileMatch[1] ?? null;
+        lastFinding.line = fileMatch[2] ? Number(fileMatch[2]) : null;
       }
     }
   }
@@ -310,6 +308,19 @@ export async function runExportValidation(
   try {
     presetsText = await readFile(presetPath, "utf8");
   } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") {
+      const finding: ValidationFinding = {
+        severity: "error",
+        subsystem: "project",
+        file: "export_presets.cfg",
+        line: null,
+        column: null,
+        message: `Cannot read export_presets.cfg: ${error instanceof Error ? error.message : String(error)}`,
+        raw: "",
+      };
+      return createReport(id, commandBase, projectRoot, startedAt, 1, runtimeProfile, [finding]);
+    }
     const finding: ValidationFinding = {
       severity: "warning",
       subsystem: "project",
@@ -352,8 +363,8 @@ export async function runExportValidation(
   const tempDir = path.join(os.tmpdir(), "godotcoder-export-val");
   await mkdir(tempDir, { recursive: true });
 
-  for (const presetName of presetNames) {
-    const tempPckPath = path.join(tempDir, `export_${timestampId(new Date())}.pck`);
+  for (const [i, presetName] of presetNames.entries()) {
+    const tempPckPath = path.join(tempDir, `export_${i}_${timestampId(new Date())}.pck`);
     const command = [
       ...commandBase,
       "--export-pack",
@@ -406,6 +417,3 @@ export async function runExportValidation(
 
   return createReport(id, commandBase, projectRoot, startedAt, finalExitCode, runtimeProfile, findings);
 }
-
-
-

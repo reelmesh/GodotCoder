@@ -173,7 +173,7 @@ function extractJson(content: string): string {
   let trimmed = content.trim();
 
   // Strip reasoning blocks from models like DeepSeek-R1
-  trimmed = trimmed.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  trimmed = trimmed.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "").trim();
 
   const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   if (fence) return fence[1]!.trim();

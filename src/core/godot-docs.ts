@@ -201,16 +201,17 @@ export async function docsPromptContextWithExcerpts(projectRoot: string, query: 
   const matches = searchGodotDocs(query, limit);
   if (matches.length === 0) return "No official docs matched.";
 
-  const blocks: string[] = [];
-  for (const match of matches) {
-    let docContext = `- ${match.title}: ${match.summary}\n  URL: ${match.url}`;
-    const cached = await loadCachedGodotDoc(projectRoot, match.id);
-    if (cached && cached.excerpts && cached.excerpts.length > 0) {
-      docContext += `\n  Excerpts:\n` + cached.excerpts.map((excerpt) => `    * ${excerpt}`).join("\n");
-    }
-    blocks.push(docContext);
-  }
-  return blocks.join("\n\n");
+  const enriched = await Promise.all(
+    matches.map(async (match) => {
+      let docContext = `- ${match.title}: ${match.summary}\n  URL: ${match.url}`;
+      const cached = await loadCachedGodotDoc(projectRoot, match.id);
+      if (cached && cached.excerpts && cached.excerpts.length > 0) {
+        docContext += `\n  Excerpts:\n` + cached.excerpts.map((excerpt) => `    * ${excerpt}`).join("\n");
+      }
+      return docContext;
+    }),
+  );
+  return enriched.join("\n\n");
 }
 
 function tokenize(value: string): string[] {

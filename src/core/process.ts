@@ -5,6 +5,7 @@ export interface ProcessResult {
   exitCode: number | null;
   stdout: string;
   stderr: string;
+  timedOut: boolean;
 }
 
 export function runProcess(command: string[], options: { cwd?: string; timeoutMs?: number; env?: NodeJS.ProcessEnv } = {}): Promise<ProcessResult> {
@@ -46,6 +47,7 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
         exitCode: null,
         stdout: stdout + (stdoutTruncated ? `\nOutput truncated at ${MAX_BUFFER} bytes.` : ""),
         stderr: stderr + error.message + (timedOut ? "\nTimed out." : "") + (stderrTruncated ? `\nStderr truncated at ${MAX_BUFFER} bytes.` : ""),
+        timedOut,
       });
     });
 
@@ -56,6 +58,7 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
         exitCode,
         stdout: stdout + (stdoutTruncated ? `\nOutput truncated at ${MAX_BUFFER} bytes.` : ""),
         stderr: stderr + (timedOut ? "\nTimed out." : "") + (stderrTruncated ? `\nStderr truncated at ${MAX_BUFFER} bytes.` : ""),
+        timedOut,
       });
     });
   });
