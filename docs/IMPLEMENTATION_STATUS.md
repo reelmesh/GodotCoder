@@ -1,6 +1,6 @@
 # Implementation Status
 
-Date: 2026-06-15
+Date: 2026-06-16
 
 ## Implemented
 
@@ -139,7 +139,43 @@ node dist/cli.js runtime use flatpak run org.godotengine.Godot
 
 The pinned command is written to `.godotcoder.local/runtime-overrides.json` and used by both `runtime doctor` and `validate`.
 
+## Adversarial Code Review (2026-06-16)
+
+Full codebase review found 22 issues. Fixes applied in commit `0bdf9d0`:
+
+- **LM Studio default URL** changed from `http://10.0.0.9:1234` to `http://127.0.0.1:1234` — old default unreachable for most users.
+- **`cacheGodotDoc` fetch timeout**: added 30-second `AbortController` timeout. Previously hung indefinitely on slow/unreachable docs server.
+- **Godot 4 `tool` migration regex**: added negative lookbehind `(?<!# )` to skip comment lines containing only `tool`. Previously `# tool` became `# @tool`.
+- **`/doctor` session command**: wrapped in try/catch so it doesn't crash when run outside a Godot project.
+- **Harness repair null guard**: `options.repair && validation && validation.summary.errors > 0` — prevents TypeError when `--no-validate` + `--repair` combined.
+- **`escapeGodotString` in `greenfield.ts`**: added `\n` and `\t` escapes for parity with `godot-project.ts` full implementation.
+- **Deduplicated `timestampId`**: extracted from 4 duplicate definitions into shared `src/core/ids.ts`.
+
+### Review Findings Logged (not yet addressed)
+
+For tracking purposes:
+
+- No test files under `test/` despite `test:smoke` script reference. Tests live only in CI smoke checks.
+- `modelAdvisory` field in `HarnessRun` type is always null (dead code).
+- `XDG_DATA_HOME`/`XDG_CACHE_HOME` pointed inside `.godotcoder/cache/` may collect Godot editor state.
+- No stdout/stderr buffer limit on child process output.
+- Secret file permissions not verified on read.
+- No prompt length validation before LLM requests.
+- `selectBuilder` returns asteroid shooter for unrecognized prompts without diagnostic.
+- Hardcoded `config_version=5` may need updating for future Godot 4.x releases.
+- `loadProjectIndex` silently returns null on JSON parse errors.
+
 ## Verification
+
+Build after review fixes:
+
+```bash
+npm run check  # clean
+npm run build
+npm run test:smoke
+```
+
+All passed.
 
 Commands run:
 
