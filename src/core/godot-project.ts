@@ -392,7 +392,7 @@ function appendSection(lines: string[], section: string, settingLine: string): v
   lines.push(`[${section}]`, settingLine);
 }
 
-function serializeGodotValue(value: GodotConfigValue | unknown): string {
+export function serializeGodotValue(value: GodotConfigValue | unknown): string {
   if (value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") {
@@ -403,7 +403,8 @@ function serializeGodotValue(value: GodotConfigValue | unknown): string {
   }
   if (typeof value === "string") return `"${escapeGodotString(value)}"`;
   if (Array.isArray(value)) {
-    return `[${value.map((item) => serializeGodotValue(item)).join(", ")}]`;
+    const items = (value as unknown[]).map((item) => serializeGodotValue(item)).join(", ");
+    return `PackedStringArray(${items})`;
   }
   if (typeof value === "object") {
     const entries = Object.entries(value as Record<string, unknown>).map(([key, entryValue]) => `"${escapeGodotString(key)}": ${serializeGodotValue(entryValue)}`);
@@ -561,11 +562,11 @@ export async function updateGodotProjectSetting(projectRoot: string, section: st
       throw error;
     }
   }
-  const updatedText = updateGodotConfigText(text, section, key, value);
+  const updatedText = updateGodotConfigTextSingle(text, section, key, value);
   await writeFile(projectFile, updatedText, "utf8");
 }
 
-export function updateGodotConfigText(text: string, targetSection: string, targetKey: string, value: GodotConfigValue): string {
+export function updateGodotConfigTextSingle(text: string, targetSection: string, targetKey: string, value: GodotConfigValue): string {
   const lines = text.split(/\r?\n/);
   const serialized = serializeGodotValue(value);
   let currentSection = "root";
@@ -618,24 +619,4 @@ export function updateGodotConfigText(text: string, targetSection: string, targe
   }
 
   return lines.join("\n");
-}
-
-export function serializeGodotValue(value: GodotConfigValue): string {
-  if (value === null) return "null";
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") return value.toString();
-  if (typeof value === "string") {
-    return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\t/g, "\\t")}"`;
-  }
-  if (Array.isArray(value)) {
-    const items = value.map(item => serializeGodotValue(item)).join(", ");
-    return `PackedStringArray(${items})`;
-  }
-  if (typeof value === "object") {
-    const pairs = Object.entries(value)
-      .map(([k, v]) => `"${k}": ${serializeGodotValue(v as GodotConfigValue)}`)
-      .join(", ");
-    return `{ ${pairs} }`;
-  }
-  return String(value);
 }

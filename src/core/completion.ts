@@ -142,7 +142,6 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(runsCommands, currentToken, line);
   }
 
-<<<<<<< HEAD
   if (first === "/workflow") {
     if (parts.length === 2 && !endsWithSpace) {
       return completeToken(workflowCommands, second, line);
@@ -155,13 +154,13 @@ export function completeSessionLine(line: string): [string[], string] {
       return completeToken(repairCommands, second, line);
     }
     return completeToken(repairCommands, currentToken, line);
-=======
+  }
+
   if (first === "/rpc") {
     if (parts.length === 2 && !endsWithSpace) {
       return completeToken(rpcMethods, second, line);
     }
     return completeToken(rpcMethods, currentToken, line);
->>>>>>> origin/main
   }
 
   if (currentToken.startsWith("--")) {

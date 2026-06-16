@@ -72,9 +72,6 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
     });
   }
 
-<<<<<<< HEAD
-  const createdMissingResources = new Set<string>();
-
   for (const [findingIndex, finding] of errorFindings.entries()) {
     if (handledFindings.has(findingIndex)) {
       continue;
@@ -95,10 +92,10 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
     let contents = "";
     let typeName = "file";
     if (ext === ".tscn" || ext === ".scn") {
-      contents = placeholderScene();
+      contents = placeholderScene(resPath);
       typeName = "scene";
     } else if (ext === ".tres" || ext === ".res") {
-      contents = placeholderResource();
+      contents = placeholderResource(resPath);
       typeName = "resource";
     } else if ([".png", ".jpg", ".jpeg", ".svg"].includes(ext)) {
       contents = placeholderSvg();
@@ -106,56 +103,13 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
     }
 
     const change = await writeTrackedFile(projectRoot, relativePath, contents);
-=======
-  for (const [findingIndex, finding] of errorFindings.entries()) {
-    const scenePath = await missingTextResourcePath(projectRoot, finding, [".tscn"]);
-    if (!scenePath) {
-      continue;
-    }
-    handledFindings.add(findingIndex);
-    if (createdMissingScenes.has(scenePath)) {
-      continue;
-    }
-    createdMissingScenes.add(scenePath);
-
-    const relativePath = scenePath.slice("res://".length);
-    const change = await writeTrackedFile(projectRoot, relativePath, placeholderScene(scenePath));
     changes.push(change);
     actions.push({
-      type: "create-missing-scene",
+      type: typeName === "scene" ? "create-missing-scene" : "create-missing-resource",
       status: "applied",
       finding,
-      path: scenePath,
-      summary: `Created missing placeholder scene at ${scenePath}.`,
-    });
-  }
-
-  for (const [findingIndex, finding] of errorFindings.entries()) {
-    const resourcePath = await missingTextResourcePath(projectRoot, finding, [".tres"]);
-    if (!resourcePath) {
-      continue;
-    }
-    handledFindings.add(findingIndex);
-    if (createdMissingResources.has(resourcePath)) {
-      continue;
-    }
-    createdMissingResources.add(resourcePath);
-
-    const relativePath = resourcePath.slice("res://".length);
-    const change = await writeTrackedFile(projectRoot, relativePath, placeholderResource(resourcePath));
->>>>>>> origin/main
-    changes.push(change);
-    actions.push({
-      type: "create-missing-resource",
-      status: "applied",
-      finding,
-<<<<<<< HEAD
       path: resPath,
       summary: `Created missing ${typeName} placeholder at ${resPath}.`,
-=======
-      path: resourcePath,
-      summary: `Created missing placeholder resource at ${resourcePath}.`,
->>>>>>> origin/main
     });
   }
 
@@ -284,19 +238,7 @@ async function missingResourcePath(projectRoot: string, finding: ValidationFindi
   return null;
 }
 
-function placeholderScene(): string {
-  return `[gd_scene format=3]
 
-[node name="Node" type="Node"]
-`;
-}
-
-function placeholderResource(): string {
-  return `[gd_resource type="Resource" format=3]
-
-[resource]
-`;
-}
 
 function placeholderSvg(): string {
   return `<svg width="1" height="1" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="gray"/></svg>`;
@@ -396,14 +338,8 @@ export function migrateGdscriptText(source: string): { contents: string; descrip
   replace(/\bNavigation2D\b/g, "NavigationRegion2D", "Navigation2D -> NavigationRegion2D");
   replace(/\bNavigation3D\b/g, "NavigationRegion3D", "Navigation3D -> NavigationRegion3D");
   replace(/\byield\(([^,\n]+),\s*"([A-Za-z0-9_]+)"\)/g, "await $1.$2", "yield(signal_owner, signal) -> await signal_owner.signal");
-<<<<<<< HEAD
   replace(/\brand_range\(/g, "randf_range(", "rand_range -> randf_range");
-  replace(/(^|\n)([ \t]*)onready\s+var\s+/g, "$1$2@onready var ", "onready var -> @onready var");
-  replace(/\bconnect\("([A-Za-z0-9_]+)",\s*self,\s*"([A-Za-z0-9_]+)"\)/g, "connect(\"$1\", $2)", "connect(sig, self, method) -> connect(sig, method)");
-  replace(/\bconnect\("([A-Za-z0-9_]+)",\s*([^,\n\s]+),\s*"([A-Za-z0-9_]+)"\)/g, "connect(\"$1\", Callable($2, \"$3\"))", "connect(sig, obj, method) -> connect(sig, Callable(obj, method))");
-=======
   contents = migrateConnectCalls(contents, descriptions);
->>>>>>> origin/main
 
   return {
     contents,
@@ -412,11 +348,20 @@ export function migrateGdscriptText(source: string): { contents: string; descrip
 }
 
 function migrateConnectCalls(source: string, descriptions: string[]): string {
-  const next = source.replace(
+  // Explicit emitter: emitter.connect("signal", receiver, "method") -> emitter.signal.connect(receiver.method)
+  let next = source.replace(
     /\b([A-Za-z_][A-Za-z0-9_.$]*)\.connect\(\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*,\s*([A-Za-z_][A-Za-z0-9_.$]*)\s*,\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*\)/g,
     (_match, emitter: string, signal: string, receiver: string, method: string) => {
       const callable = receiver === "self" ? method : `${receiver}.${method}`;
       return `${emitter}.${signal}.connect(${callable})`;
+    },
+  );
+  // Implicit emitter: connect("signal", receiver, "method") -> signal.connect(receiver.method)
+  next = next.replace(
+    /(?<!\.)\bconnect\(\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*,\s*([A-Za-z_][A-Za-z0-9_.$]*)\s*,\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*\)/g,
+    (_match, signal: string, receiver: string, method: string) => {
+      const callable = receiver === "self" ? method : `${receiver}.${method}`;
+      return `${signal}.connect(${callable})`;
     },
   );
   if (next !== source) {
