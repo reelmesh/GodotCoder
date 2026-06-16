@@ -7,7 +7,9 @@ opencode/.git/
 /scenes/
 /scripts/
 /.godotcoder/
+.godot/
 .godotcoder/cache/
 .godotcoder/logs/
 .godotcoder/sessions/
 .godotcoder.local/
+

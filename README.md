@@ -24,7 +24,7 @@ This repository currently contains the first implementation slice:
 - Directed multi-agent harness: `godotcoder harness <game goal>`
 - First playable prototype build: `godotcoder build`
 - End-to-end playable pipeline: `godotcoder pipeline <game idea>`
-- Godot launch helper: `godotcoder play`
+- Godot launch helper: `godotcoder play` (and playtesting: `godotcoder playtest` or `play --test`)
 
 Model-backed code generation can write controlled Godot files through preview/apply boundaries. All writes still go through path validation, patch records, and optional Godot validation.
 
@@ -94,6 +94,7 @@ Available slash commands:
 /make <idea>
 /pipeline <idea>
 /play
+/playtest
 /help
 /setup
 /settings
@@ -192,10 +193,20 @@ You can also run the repair loop directly on an existing project:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js repair
+node /path/to/GodotCoder/dist/cli.js repair list
+node /path/to/GodotCoder/dist/cli.js repair diff [repair-id]
+node /path/to/GodotCoder/dist/cli.js repair undo <repair-id>
 node /path/to/GodotCoder/dist/cli.js repair --json
 ```
 
-Standalone repair validates the current Godot project, applies known deterministic fixes when possible, writes a repair record, and re-runs Godot validation. It is intended for brownfield cleanup as well as pipeline recovery.
+Standalone repair validates the current Godot project, applies known deterministic fixes when possible, writes a repair record, and re-runs Godot validation. It is intended for brownfield cleanup as well as pipeline recovery. You can inspect repair history with `repair list`, view side-by-side diffs of applied repairs with `repair diff`, and revert a repair cycle using `repair undo <repair-id>`.
+
+You can also run an automated playtest to simulate 5 seconds of random user input headlessly to check for runtime/script exceptions:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js playtest
+node /path/to/GodotCoder/dist/cli.js play --test
+```
 
 Harness workflow runs a BMAD-style Godot agent sequence:
 

@@ -23,6 +23,7 @@ const commandNames = [
   "/pipeline",
   "/make",
   "/play",
+  "/playtest",
   "/open",
   "/runtime",
   "/doctor",
@@ -35,6 +36,7 @@ const commandNames = [
   "/apply",
   "/reject",
   "/plan",
+  "/workflow",
   "/exit",
   "/quit",
 ] as const;
@@ -49,6 +51,8 @@ const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "d
 const modelsCommands = ["use"] as const;
 const docsCommands = ["search", "list", "cache"] as const;
 const runsCommands = ["list", "show", "help"] as const;
+const workflowCommands = ["status", "init"] as const;
+const repairCommands = ["list", "status", "diff", "undo", "revert"] as const;
 
 export function completeSessionLine(line: string): [string[], string] {
   const endsWithSpace = /\s$/.test(line);
@@ -136,6 +140,20 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(runsCommands, currentToken, line);
   }
 
+  if (first === "/workflow") {
+    if (parts.length === 2 && !endsWithSpace) {
+      return completeToken(workflowCommands, second, line);
+    }
+    return completeToken(workflowCommands, currentToken, line);
+  }
+
+  if (first === "/repair") {
+    if (parts.length === 2 && !endsWithSpace) {
+      return completeToken(repairCommands, second, line);
+    }
+    return completeToken(repairCommands, currentToken, line);
+  }
+
   if (currentToken.startsWith("--")) {
     return completeFlags(first, currentToken, line);
   }
@@ -155,7 +173,8 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/run": ["--apply", "--json", "--llm", "--repair"],
     "/pipeline": ["--preview", "--llm", "--model", "--play", "--json", "--no-validate", "--no-repair"],
     "/make": ["--preview", "--llm", "--model", "--play", "--json", "--no-validate", "--no-repair"],
-    "/play": ["--editor", "--json"],
+    "/play": ["--editor", "--test", "--playtest", "--json"],
+    "/playtest": ["--json"],
     "/open": ["--editor", "--json"],
     "/plan": ["--json"],
     "/ask": ["--json"],
@@ -171,6 +190,7 @@ function completeFlags(command: string, token: string, line: string): [string[],
     "/validate": ["--json"],
     "/check": ["--json"],
     "/repair": ["--json"],
+    "/workflow": ["--template", "--json"],
     "/runtime": ["--json"],
     "/doctor": ["--json"],
   };

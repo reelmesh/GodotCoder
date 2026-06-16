@@ -45,6 +45,7 @@ const commands: Record<string, CommandHandler> = {
   plan: planProject,
   pipeline: pipelineCommand,
   play: playCommand,
+  playtest: (args) => playCommand(["--test", ...args]),
   repair: repairCommand,
 };
 
@@ -108,7 +109,8 @@ Usage:
   godotcoder repair [--json]
   godotcoder plan <game idea> [--json]
   godotcoder pipeline <game idea> [--preview] [--llm] [--play] [--no-repair] [--json]
-  godotcoder play [--editor] [--json]
+  godotcoder play [--editor] [--test] [--json]
+  godotcoder playtest [--json]
 
 Run without arguments to open the interactive GodotCoder session.
 MVP focus: Godot 4.3+, Linux-first, CLI workspace commands.`);

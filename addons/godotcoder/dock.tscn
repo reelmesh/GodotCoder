@@ -1,0 +1,44 @@
+[gd_scene load_steps=2 format=3 uid="uid://dfgd12345"]
+
+[ext_resource type="Script" path="res://addons/godotcoder/dock.gd" id="1_dock"]
+
+[node name="GodotCoderDock" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dock")
+
+[node name="Toolbar" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="StatusBtn" type="Button" parent="Toolbar"]
+layout_mode = 2
+text = "Check Status"
+
+[node name="ValidateBtn" type="Button" parent="Toolbar"]
+layout_mode = 2
+text = "Validate Project"
+
+[node name="InspectBtn" type="Button" parent="Toolbar"]
+layout_mode = 2
+text = "Inspect Project"
+
+[node name="OutputArea" type="RichTextLabel" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "[color=gray]GodotCoder editor integration loaded. Click buttons to query backend CLI.[/color]"
+
+[node name="PromptBar" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="PromptInput" type="LineEdit" parent="PromptBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type game idea or build prompt..."
+
+[node name="SendBtn" type="Button" parent="PromptBar"]
+layout_mode = 2
+text = "Send Prompt"

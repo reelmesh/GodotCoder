@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { pathExists } from "./files.js";
@@ -9,6 +9,7 @@ export interface FileChange {
   operation: "create" | "modify" | "unchanged";
   beforeSha256: string | null;
   afterSha256: string;
+  beforeContent?: string | null;
 }
 
 export interface ChangeRecord {
@@ -27,7 +28,8 @@ export interface ChangeRecord {
 export async function writeTrackedFile(projectRoot: string, relativePath: string, contents: string): Promise<FileChange> {
   const absolutePath = path.join(projectRoot, relativePath);
   const beforeExists = await pathExists(absolutePath);
-  const beforeSha256 = beforeExists ? sha256(await readFile(absolutePath)) : null;
+  const beforeContent = beforeExists ? await readFile(absolutePath, "utf8") : null;
+  const beforeSha256 = beforeContent !== null ? sha256(beforeContent) : null;
   const afterSha256 = sha256(contents);
 
   await mkdir(path.dirname(absolutePath), { recursive: true });
@@ -38,6 +40,7 @@ export async function writeTrackedFile(projectRoot: string, relativePath: string
     operation: !beforeExists ? "create" : beforeSha256 === afterSha256 ? "unchanged" : "modify",
     beforeSha256,
     afterSha256,
+    beforeContent,
   };
 }
 
@@ -67,6 +70,33 @@ export async function updateChangeRecordValidation(projectRoot: string, record: 
   const paths = workspacePaths(projectRoot);
   await writeFile(path.join(paths.patchesDir, record.id, "record.json"), JSON.stringify(updated, null, 2) + "\n");
   return updated;
+}
+
+export async function revertChangeRecord(projectRoot: string, recordId: string): Promise<void> {
+  const paths = workspacePaths(projectRoot);
+  const recordFile = path.join(paths.patchesDir, recordId, "record.json");
+  if (!(await pathExists(recordFile))) {
+    throw new Error(`Change record not found: ${recordId}`);
+  }
+
+  const text = await readFile(recordFile, "utf8");
+  const record: ChangeRecord = JSON.parse(text);
+
+  for (const file of record.files) {
+    const relativePath = file.path.slice("res://".length);
+    const absolutePath = path.join(projectRoot, relativePath);
+
+    if (file.operation === "create") {
+      if (await pathExists(absolutePath)) {
+        await rm(absolutePath, { force: true });
+      }
+    } else if (file.operation === "modify") {
+      if (file.beforeContent !== undefined && file.beforeContent !== null) {
+        await mkdir(path.dirname(absolutePath), { recursive: true });
+        await writeFile(absolutePath, file.beforeContent, "utf8");
+      }
+    }
+  }
 }
 
 function sha256(value: string | Buffer): string {

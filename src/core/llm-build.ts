@@ -114,6 +114,13 @@ function parseLlmBuildReply(content: string): { ok: true; summary: string; files
       if (contents.length > 160_000) {
         throw new CliError("MODEL_OUTPUT_INVALID", `${relativePath} is too large for one controlled build step.`);
       }
+      
+      const placeholderMatch = contents.match(/#\s*(TODO|FIXME|IMPLEMENT|placeholder)/i) || 
+                               contents.match(/\bpass\s+#/i);
+      if (placeholderMatch) {
+        throw new CliError("MODEL_OUTPUT_INVALID", `File ${relativePath} contains unimplemented placeholders or TODO comments ("${placeholderMatch[0]}"). All generated code must be complete and fully functional.`);
+      }
+      
       return { path: relativePath, contents };
     });
 
@@ -159,13 +166,52 @@ function extractJson(content: string): string {
   return trimmed;
 }
 
+function repairRawNewlinesInJsonStrings(jsonStr: string): string {
+  let result = "";
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const char = jsonStr[i];
+    if (inString) {
+      if (escape) {
+        result += char;
+        escape = false;
+      } else if (char === '\\') {
+        result += char;
+        escape = true;
+      } else if (char === '"') {
+        result += char;
+        inString = false;
+      } else if (char === '\n') {
+        result += '\\n';
+      } else if (char === '\r') {
+        if (jsonStr[i + 1] === '\n') {
+          result += '\\n';
+          i++; // Skip \n
+        } else {
+          result += '\\n';
+        }
+      } else {
+        result += char;
+      }
+    } else {
+      result += char;
+      if (char === '"') {
+        inString = true;
+      }
+    }
+  }
+  return result;
+}
+
 function parseJsonObject(content: string): unknown {
   const extracted = extractJson(content);
+  const fixedNewlines = repairRawNewlinesInJsonStrings(extracted);
   try {
-    return JSON.parse(extracted);
+    return JSON.parse(fixedNewlines);
   } catch (firstError) {
     try {
-      return JSON.parse(repairLooseJson(extracted));
+      return JSON.parse(repairLooseJson(fixedNewlines));
     } catch {
       throw firstError;
     }
@@ -252,6 +298,7 @@ Return JSON exactly matching this shape:
 
 Rules:
 - Return full file contents as a JSON array named "lines", one source line per JSON string.
+- Complete the code fully! DO NOT leave comments like "# TODO: implement combat" or use placeholders. All generated files must be production-ready and fully written.
 - Escape tabs as \\t and quotes as \\" inside JSON strings.
 - Do not put raw newline characters inside a JSON string.
 - Do not use markdown fences.
@@ -291,6 +338,7 @@ Return exactly this JSON shape and nothing else:
 }
 
 Rules:
+- Write full, complete, and fully functional files. DO NOT leave comments like "# TODO" or use placeholders.
 - First character of final answer must be {.
 - Last character of final answer must be }.
 - Use "lines", not "contents".

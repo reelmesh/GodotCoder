@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
@@ -149,9 +150,85 @@ export async function cacheGodotDoc(projectRoot: string, id: string): Promise<{ 
 export function docsPromptContext(query: string, limit = 5): string {
   const matches = searchGodotDocs(query, limit);
   if (matches.length === 0) return "No official docs matched.";
+
+  let projectRoot = process.cwd();
+  let found = false;
+  while (true) {
+    if (fs.existsSync(path.join(projectRoot, "project.godot"))) {
+      found = true;
+      break;
+    }
+    const parent = path.dirname(projectRoot);
+    if (parent === projectRoot) break;
+    projectRoot = parent;
+  }
+
+  const paths = found ? workspacePaths(projectRoot) : null;
+
   return matches
-    .map((match) => `- ${match.title}: ${match.summary}\n  ${match.url}`)
-    .join("\n");
+    .map((match) => {
+      let docBody = "";
+      if (paths) {
+        const htmlPath = path.join(paths.cacheDocsDir, `${match.id}.html`);
+        if (fs.existsSync(htmlPath)) {
+          try {
+            const htmlText = fs.readFileSync(htmlPath, "utf8");
+            const cleaned = cleanHtmlToMarkdown(htmlText);
+            docBody = cleaned.length > 2500 ? cleaned.slice(0, 2500) + "\n...[truncated]..." : cleaned;
+          } catch (error) {
+            // ignore read error
+          }
+        }
+      }
+      
+      const snippet = docBody ? `\n--- Cached Documentation Content ---\n${docBody}\n--- End Content ---` : "";
+      return `- ${match.title}: ${match.summary}\n  URL: ${match.url}${snippet}`;
+    })
+    .join("\n\n");
+}
+
+export function cleanHtmlToMarkdown(htmlText: string): string {
+  const bodyMatch = htmlText.match(/<div[^>]*itemprop="articleBody"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/i) ||
+                    htmlText.match(/<div[^>]*role="main"[^>]*>([\s\S]*?)<\/div>/i) ||
+                    htmlText.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  let mainContent = bodyMatch ? bodyMatch[1]! : htmlText;
+
+  mainContent = mainContent.replace(/<script[\s\S]*?<\/script>/gi, "");
+  mainContent = mainContent.replace(/<style[\s\S]*?<\/style>/gi, "");
+  mainContent = mainContent.replace(/<!--[\s\S]*?-->/g, "");
+
+  mainContent = mainContent.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "\n# $1\n");
+  mainContent = mainContent.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "\n## $1\n");
+  mainContent = mainContent.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "\n### $1\n");
+  mainContent = mainContent.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, "\n#### $1\n");
+
+  mainContent = mainContent.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, "\n```gdscript\n$1\n```\n");
+  mainContent = mainContent.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "\n```\n$1\n```\n");
+  mainContent = mainContent.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, " `$1` ");
+
+  mainContent = mainContent.replace(/<[^>]+>/g, "");
+
+  mainContent = mainContent
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+
+  const lines = mainContent.split(/\r?\n/).map(line => line.trim());
+  const cleanLines: string[] = [];
+  for (const line of lines) {
+    if (line === "") {
+      if (cleanLines.length > 0 && cleanLines[cleanLines.length - 1] !== "") {
+        cleanLines.push("");
+      }
+    } else {
+      cleanLines.push(line);
+    }
+  }
+
+  return cleanLines.join("\n").trim();
 }
 
 function tokenize(value: string): string[] {

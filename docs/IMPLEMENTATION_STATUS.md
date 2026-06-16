@@ -291,11 +291,16 @@ node dist/cli.js pipeline "make a custom cozy puzzle game" --llm --no-validate -
 
 The preview run recorded `model-implementation` as done, `implementationSource: "llm"`, and the preview diff came from the model-generated Godot file. The apply run wrote the model-generated file and patch record with `source: llm`. With no provider configured, `pipeline --llm --preview` records `model-implementation` as skipped and falls back to the deterministic bootstrap builder.
 
-## Next Slice
+## Next Slice (Completed & Updated)
 
-Recommended next implementation slice:
+The previous slices have been fully implemented:
+- [x] **Slice 1**: Expanded open-ended game synthesis quality with stronger agent prompts, strict system guidelines, and an automated `# TODO` / `pass #` validation gate.
+- [x] **Slice 2**: Expanded official Godot documentation retrieval by extracting, cleaning, and embedding full cached HTML pages as markdown snippets in the prompt context.
+- [x] **Slice 3**: Expanded deterministic repair rules for generating missing scenes (`.tscn`), resources (`.tres`), and images (`.svg`), along with detailed GDScript migration rules (`@onready`, `@export_range`, `@export_file`, `randf_range`, and Callable signal connections).
+- [x] **Slice 4**: Added `project.godot` mutation and serialization helpers to safely update input maps, autoloads, and configurations.
+- [x] **Custom Workflows**: Added `/workflow` (or `godotcoder workflow`) command and a workspace skill to initialize and customize templates.
+- [x] **Godot Editor Plugin Integration**: Created a valid Godot Editor Plugin in `addons/godotcoder/` and successfully enabled it.
+- [x] **Automated Runtime Playtesting**: Implemented a dry-run playtesting tool (`godotcoder playtest` or `play --test`) that plays the generated game headlessly for 5 seconds with random input simulation.
+- [x] **Interactive Repair UX**: Developed `repair list`, `repair diff`, and `repair undo/revert` commands to view history/diffs and safely restore original file states.
+- [x] **Structured JSON Output Enhancements**: Incorporated newline string repair prior to JSON parsing.
 
-1. Expand open-ended game synthesis quality with stronger agent prompts and acceptance gates.
-2. Expand official Godot documentation retrieval beyond source metadata.
-3. Expand repair rules for missing resources, scene load failures, signal connection changes, and more Godot 4 API migrations.
-4. Add project.godot mutation helpers for safe input-map/project-setting edits.

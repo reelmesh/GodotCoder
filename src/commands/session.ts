@@ -18,6 +18,7 @@ import { setupCommand } from "./setup.js";
 import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
 import { validateProject } from "./validate.js";
+import { workflowCommand } from "./workflow.js";
 import { completeSessionLine } from "../core/completion.js";
 import { color, clearScreen, separator } from "../core/terminal.js";
 
@@ -106,6 +107,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/setup":
         await setupCommand(args);
+        printStatusHint(state);
+        return;
+      case "/workflow":
+        await workflowCommand(args);
         printStatusHint(state);
         return;
       case "/settings":

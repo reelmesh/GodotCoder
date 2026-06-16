@@ -7,7 +7,7 @@ import { workspacePaths } from "./workspace.js";
 import { updateChangeRecordValidation, writeChangeRecord, writeTrackedFile, type FileChange } from "./change-records.js";
 
 export interface RepairAction {
-  type: "create-missing-script" | "apply-godot4-migration" | "record-diagnosis";
+  type: "create-missing-script" | "apply-godot4-migration" | "record-diagnosis" | "create-missing-resource";
   status: "applied" | "skipped";
   finding: ValidationFinding;
   path: string | null;
@@ -18,7 +18,7 @@ export interface RepairAttempt {
   schemaVersion: 1;
   id: string;
   sourceValidationId: string;
-  status: "not-needed" | "repaired" | "skipped" | "failed";
+  status: "not-needed" | "repaired" | "skipped" | "failed" | "reverted";
   summary: string;
   startedAt: string;
   finishedAt: string;
@@ -66,6 +66,49 @@ export async function attemptRepair(projectRoot: string, validation: ValidationR
       finding,
       path: scriptPath,
       summary: `Created missing GDScript placeholder at ${scriptPath}.`,
+    });
+  }
+
+  const createdMissingResources = new Set<string>();
+
+  for (const [findingIndex, finding] of errorFindings.entries()) {
+    if (handledFindings.has(findingIndex)) {
+      continue;
+    }
+    const resPath = await missingResourcePath(projectRoot, finding);
+    if (!resPath) {
+      continue;
+    }
+    handledFindings.add(findingIndex);
+    if (createdMissingResources.has(resPath)) {
+      continue;
+    }
+    createdMissingResources.add(resPath);
+
+    const relativePath = resPath.slice("res://".length);
+    const ext = path.extname(relativePath).toLowerCase();
+
+    let contents = "";
+    let typeName = "file";
+    if (ext === ".tscn" || ext === ".scn") {
+      contents = placeholderScene();
+      typeName = "scene";
+    } else if (ext === ".tres" || ext === ".res") {
+      contents = placeholderResource();
+      typeName = "resource";
+    } else if ([".png", ".jpg", ".jpeg", ".svg"].includes(ext)) {
+      contents = placeholderSvg();
+      typeName = "image";
+    }
+
+    const change = await writeTrackedFile(projectRoot, relativePath, contents);
+    changes.push(change);
+    actions.push({
+      type: "create-missing-resource",
+      status: "applied",
+      finding,
+      path: resPath,
+      summary: `Created missing ${typeName} placeholder at ${resPath}.`,
     });
   }
 
@@ -175,6 +218,36 @@ async function missingScriptPath(projectRoot: string, finding: ValidationFinding
   return null;
 }
 
+async function missingResourcePath(projectRoot: string, finding: ValidationFinding): Promise<string | null> {
+  const haystack = `${finding.file ?? ""}\n${finding.message}\n${finding.raw}`;
+  const candidates = Array.from(haystack.matchAll(/res:\/\/[A-Za-z0-9_./-]+\.(tscn|scn|tres|res|png|jpg|jpeg|wav|ogg|mp3|svg)\b/g)).map((match) => match[0]);
+  for (const candidate of candidates) {
+    const absolute = path.join(projectRoot, candidate.slice("res://".length));
+    if (!(await pathExists(absolute))) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function placeholderScene(): string {
+  return `[gd_scene format=3]
+
+[node name="Node" type="Node"]
+`;
+}
+
+function placeholderResource(): string {
+  return `[gd_resource type="Resource" format=3]
+
+[resource]
+`;
+}
+
+function placeholderSvg(): string {
+  return `<svg width="1" height="1" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="gray"/></svg>`;
+}
+
 async function applyGodot4Migrations(projectRoot: string): Promise<Array<{ change: FileChange; summary: string }>> {
   const migrated: Array<{ change: FileChange; summary: string }> = [];
   const scripts = await collectGdScripts(projectRoot);
@@ -231,7 +304,7 @@ async function collectGdScripts(projectRoot: string): Promise<string[]> {
   return results.sort();
 }
 
-function migrateGdscriptText(source: string): { contents: string; descriptions: string[] } {
+export function migrateGdscriptText(source: string): { contents: string; descriptions: string[] } {
   let contents = source;
   const descriptions: string[] = [];
 
@@ -258,8 +331,15 @@ function migrateGdscriptText(source: string): { contents: string; descriptions: 
   replace(/\bdb2linear\(/g, "db_to_linear(", "db2linear -> db_to_linear");
   replace(/\.instance\(\)/g, ".instantiate()", "instance() -> instantiate()");
   replace(/(^|\n)([ \t]*)export\s+var\s+/g, "$1$2@export var ", "export var -> @export var");
+  replace(/(^|\n)([ \t]*)export\(float,\s*([^)\n]+)\)\s+var\s+/g, "$1$2@export_range($3) var ", "export(float) var -> @export_range var");
+  replace(/(^|\n)([ \t]*)export\(int,\s*([^)\n]+)\)\s+var\s+/g, "$1$2@export_range($3) var ", "export(int) var -> @export_range var");
+  replace(/(^|\n)([ \t]*)export\(String,\s*FILE,\s*([^)\n]+)\)\s+var\s+/g, "$1$2@export_file($3) var ", "export(FILE) var -> @export_file var");
   replace(/(^|\n)([ \t]*)export\([^)\n]+\)\s+var\s+/g, "$1$2@export var ", "export(...) var -> @export var");
   replace(/\byield\(([^,\n]+),\s*"([A-Za-z0-9_]+)"\)/g, "await $1.$2", "yield(signal_owner, signal) -> await signal_owner.signal");
+  replace(/\brand_range\(/g, "randf_range(", "rand_range -> randf_range");
+  replace(/(^|\n)([ \t]*)onready\s+var\s+/g, "$1$2@onready var ", "onready var -> @onready var");
+  replace(/\bconnect\("([A-Za-z0-9_]+)",\s*self,\s*"([A-Za-z0-9_]+)"\)/g, "connect(\"$1\", $2)", "connect(sig, self, method) -> connect(sig, method)");
+  replace(/\bconnect\("([A-Za-z0-9_]+)",\s*([^,\n\s]+),\s*"([A-Za-z0-9_]+)"\)/g, "connect(\"$1\", Callable($2, \"$3\"))", "connect(sig, obj, method) -> connect(sig, Callable(obj, method))");
 
   return {
     contents,
