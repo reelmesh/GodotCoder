@@ -11,6 +11,8 @@ const authCommands = ["login", "logout"] as const;
 const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "diffs", "init", "help"] as const;
 const modelsCommands = ["use"] as const;
 const docsCommands = ["search", "list", "cache", "show"] as const;
+const exportCommands = ["doctor", "preset"] as const;
+const exportPresetTargets = ["linux"] as const;
 const runsCommands = ["list", "show", "help"] as const;
 const workflowCommands = ["status", "init"] as const;
 const repairCommands = ["list", "status", "diff", "undo", "revert"] as const;
@@ -93,6 +95,16 @@ export function completeSessionLine(line: string): [string[], string] {
       return completeToken(docsCommands, second, line);
     }
     return completeToken(docsCommands, currentToken, line);
+  }
+
+  if (first === "/export") {
+    if (parts.length === 2 && !endsWithSpace) {
+      return completeToken(exportCommands, second, line);
+    }
+    if (second === "preset") {
+      return completeToken(exportPresetTargets, currentToken, line);
+    }
+    return completeToken(exportCommands, currentToken, line);
   }
 
   if (first === "/runs" || first === "/history") {

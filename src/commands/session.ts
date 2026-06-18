@@ -2,6 +2,7 @@ import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { authCommand } from "./auth.js";
 import { docsCommand } from "./docs.js";
+import { exportCommand } from "./export.js";
 import { showAgents } from "./agents.js";
 import { buildProject } from "./build.js";
 import { homeCommand } from "./home.js";
@@ -183,6 +184,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await validateProject(args);
         printStatusHint(state);
         return;
+      case "/export":
+        await exportCommand(args);
+        printStatusHint(state);
+        return;
       case "/repair":
         await repairCommand(args);
         printStatusHint(state);
@@ -271,8 +276,10 @@ function printSessionHelp(): void {
   console.log(`${color("/runtime use <cmd>", "cyan").padEnd(22)} Pin a native, Flatpak, or custom Godot command`);
   console.log(`${color("/doctor", "cyan").padEnd(22)} Alias for /runtime doctor`);
   console.log(`${color("/inspect", "cyan").padEnd(22)} Inspect project.godot and project files`);
-  console.log(`${color("/validate [--smoke] [--export]", "cyan").padEnd(22)} Run Godot-backed validation; --smoke for smoke check, --export for export check`);
-  console.log(`${color("/check [--smoke] [--export]", "cyan").padEnd(22)} Alias for /validate`);
+  console.log(`${color("/validate [--smoke] [--visual] [--export]", "cyan").padEnd(22)} Run Godot-backed validation; --smoke, --visual, or --export for focused checks`);
+  console.log(`${color("/check [--smoke] [--visual] [--export]", "cyan").padEnd(22)} Alias for /validate`);
+  console.log(`${color("/export doctor", "cyan").padEnd(22)} Inspect export preset and template readiness`);
+  console.log(`${color("/export preset linux", "cyan").padEnd(22)} Preview a starter Linux export preset`);
   console.log(`${color("/repair", "cyan").padEnd(22)} Validate, apply deterministic repair, and revalidate`);
   console.log(`${color("/rpc <method>", "cyan").padEnd(22)} Emit stable JSON RPC envelope`);
   console.log(`${color("/mode plan", "cyan").padEnd(22)} Read-only planning mode`);

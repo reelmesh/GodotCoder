@@ -1,6 +1,41 @@
 # Implementation Status
 
-Date: 2026-06-16
+Date: 2026-06-18
+
+## Recent Implementation Arc: Validation, Brownfield Safety, Export Readiness
+
+Implemented and verified the next confidence-building arc:
+
+- `godotcoder validate --visual`
+  - Launches the project through the configured Godot runtime with a temporary capture script.
+  - Saves artifacts under `.godotcoder/validations/<validation-id>/`, including `frame.png`.
+  - Adds `visual` to validation JSON with artifact path, dimensions, blank/near-blank status, and visual findings.
+  - Treats blank or near-blank frames as warnings by default, escalating to errors only when runtime errors are also present.
+  - Includes PNG analysis coverage for blank/nonblank frames and missing screenshot artifacts.
+- Brownfield project safety
+  - Adds brownfield detection beyond the minimal GodotCoder scaffold.
+  - Adds task intent modes: `feature`, `fix`, `refactor`, and `polish`.
+  - Adds model prompt guidance to preserve architecture, naming, scene ownership, input actions, autoloads, resources, and paths in brownfield projects.
+  - Adds apply-time safety checks that reject broad unrelated rewrites, large existing script replacement, large `project.godot` rewrites, deletion-like edits, and non-Godot-native generated content.
+  - Brownfield pipeline/harness runs default to preview unless `--apply` is passed explicitly.
+  - Build, harness, and pipeline JSON include brownfield and task-intent metadata.
+- Export preset automation
+  - Adds `godotcoder export doctor [--json]`.
+  - Adds `godotcoder export preset linux [--apply] [--json]`.
+  - `export doctor` inspects `export_presets.cfg`, configured presets, platform names, output paths, likely template installation locations, and readiness findings without running an export build.
+  - `export preset linux` is preview-first and prints the exact starter Linux preset text before writing; it only writes `export_presets.cfg` with `--apply`.
+  - `status` now surfaces export readiness and preset count.
+  - `validate --export` reports include `exportReadiness` so future build/repair prompts can reference export facts.
+
+Verification for this arc:
+
+```bash
+npm run check
+npm run build
+npm run test:smoke
+```
+
+All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, existing parser/repair/schema tests, and RPC/provider smoke coverage.
 
 ## Implemented
 
@@ -29,7 +64,10 @@ First TypeScript/Node CLI slice:
 - `godotcoder inspect`
 - `godotcoder validate`
 - `godotcoder validate --smoke` for headless main-scene runtime checks (timing out after 3000ms by default).
+- `godotcoder validate --visual` for main-scene frame capture and blank/near-blank visual checks.
 - `godotcoder validate --export` for headless export pack checking (parsing export_presets.cfg and verifying PCK packing).
+- `godotcoder export doctor` for non-build export readiness inspection.
+- `godotcoder export preset linux` for preview-first starter Linux export preset generation.
 - `godotcoder repair`
 - `godotcoder plan <idea>`
 - `godotcoder build <task>`
@@ -78,6 +116,8 @@ Core modules:
 - Runtime profiles enriched with Godot project config version, feature tags, main scene, autoloads, plugins, and export preset signals.
 - Lightweight schema guards for runtime profiles, runtime overrides, and project indexes.
 - Godot-backed validation with isolated workspace-local log/data/cache paths.
+- Visual validation frame capture, PNG analysis, and structured visual validation findings.
+- Export readiness inspection for preset files, preset metadata, output paths, and likely export template availability.
 - JSON output suitable for future Godot editor integration.
 - Interactive Codex/OpenCode-style terminal shell with slash commands, mode switching, command-palette help, aliases, and status hints for implemented workflows.
 - Menu-first setup, settings, model, auth, and runtime flows for TTY sessions.
@@ -90,6 +130,9 @@ Core modules:
 - `godotcoder build` controlled model generation path that asks the configured provider for full Godot file contents, validates paths/extensions, previews diffs, applies only with approval, writes patch records, and runs Godot validation.
 - `harness` and `pipeline` promote configured model output into the directed agent implementation step, preserving JSON parsing, path/extension validation, preview/apply gates, patch records, and Godot validation.
 - Open-ended LLM game synthesis prompts require a first playable vertical slice with scene/script presence, input or frame processing, visible feedback, an objective/fail/restart loop, and Godot 4.3+ API syntax.
+- Brownfield LLM build prompts require preservation of existing architecture, scene ownership, naming, input actions, autoloads, resources, and paths.
+- Brownfield safety rejects broad rewrites, large existing script replacement, large `project.godot` rewrites, deletion-like edits, and non-Godot-native generated content unless the task explicitly asks for a rewrite.
+- Task intent modes are supported through `--intent feature|fix|refactor|polish` and aliases `--feature`, `--fix`, `--refactor`, `--polish`.
 - Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
 - Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --preview` retry parsing, and harness fallback/model-failure artifacts.
 - RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
@@ -101,6 +144,7 @@ Core modules:
 - Applied build change records under `.godotcoder/patches/<id>/record.json` with file operations, unchanged-file detection, and hashes.
 - End-to-end pipeline command that creates greenfield projects, writes planning artifacts, runs the directed harness, applies a first playable, validates with Godot, and records the run.
 - `--preview`, `--llm`, `--play`, `--json`, `--no-validate`, and `--no-repair` pipeline flags.
+- Brownfield pipeline/harness apply mode requires explicit `--apply`; otherwise the run records a preview gate and avoids applying generated edits.
 - Godot launch helper for running the current game or opening the editor through the configured runtime.
 - Home menu and run-history browser for the main CLI workflow.
 - Slash command completion and menu type-to-jump support.
@@ -413,7 +457,14 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 ## Next Slice
 
-Recommended next: screenshot/visual validation frame checks, brownfield prompt guidelines, or cross-platform export preset template automation.
+Recommended next: editor plugin review/apply UX.
+
+The visual validation, brownfield safety, and Linux export preset automation slices are complete. The next useful product slice is to keep the Godot editor plugin thin while adding:
+
+- clearer pending-build summaries,
+- Apply and Reject buttons that call the CLI/RPC path,
+- latest validation/repair/visual summaries in the dock,
+- a quick `Debug last runtime error` action using `debug.current`.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 
@@ -427,13 +478,12 @@ Full codebase review of 36 source files (~5,500 lines). Found 9 issues. All fixe
 - **Command registry**: Created `src/core/session-commands.ts` as single source of truth for all 29 slash commands with aliases, flags, and descriptions. `completion.ts` now derives command names and flag completion from registry instead of hardcoded maps.
 - **Split godot-project.ts**: Separated 555-line monolith into `godot-config-parser.ts` (INI parser/serializer), `godot-project-indexer.ts` (discovery/walk/inspect), and `godot-setting-editor.ts` (safe mutation). Original file is now a 30-line barrel.
 - **TypeScript strictness**: Enabled `noUnusedLocals` and `noUnusedParameters` in tsconfig.json. Removed 5 dead declarations (unused imports, dead functions, dead variables).
-- **Tests added**: 55 unit tests across 3 suites (schema validators, config parser, Godot 3→4 migration).
+- **Tests added**: 55 unit tests across 3 suites (schema validators, config parser, Godot 3→4 migration). The current smoke suite has since grown to 63 tests covering brownfield, export, and visual validation additions.
 
 Build verification:
 
 ```bash
 npm run check  # clean, no unused locals
 npm run build
-npm run test:smoke  # 55 tests, 0 failures
+npm run test:smoke  # 63 tests, 0 failures
 ```
-

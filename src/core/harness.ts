@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { detectBrownfieldProject, inferTaskIntent, type BrownfieldProfile, type TaskIntent } from "./brownfield.js";
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { timestampId } from "./ids.js";
@@ -39,14 +40,17 @@ export interface HarnessRun {
   validation: ValidationReport | null;
   repairs: RepairAttempt[];
   modelImplementation: ModelReply | null;
+  taskIntent: TaskIntent;
+  brownfield: BrownfieldProfile;
 }
 
-export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; repair?: boolean }): Promise<{ run: HarnessRun; runPath: string }> {
+export async function runHarness(startDir: string, goal: string, options: { apply: boolean; validate: boolean; repair?: boolean; explicitApply?: boolean; intent?: TaskIntent }): Promise<{ run: HarnessRun; runPath: string }> {
   const startedAt = new Date();
   const existingRoot = await tryFindGodotProjectRoot(startDir);
   const projectRoot = existingRoot ?? startDir;
   const mode = existingRoot ? "brownfield" : "greenfield";
   const scaffold = await ensureGreenfieldGodotProject(projectRoot, goal);
+  const taskIntent = options.intent ?? inferTaskIntent(goal);
   const paths = workspacePaths(projectRoot);
   const steps: HarnessStep[] = [];
 
@@ -69,6 +73,8 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   });
 
   const projectIndex = await inspectGodotProject(projectRoot);
+  const brownfield = detectBrownfieldProject(projectIndex, scaffold.createdProjectFile);
+  const apply = options.apply && (!brownfield.isBrownfield || options.explicitApply === true);
   await writeFile(paths.projectIndex, JSON.stringify(projectIndex, null, 2) + "\n");
   steps.push({
     id: "context-scout",
@@ -78,6 +84,17 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     artifacts: [paths.projectIndex],
     gates: [`main scene: ${projectIndex.mainScene ?? "unknown"}`, `scripts: ${projectIndex.scripts.length}`, `scenes: ${projectIndex.scenes.length}`],
   });
+
+  if (options.apply && !apply && brownfield.isBrownfield) {
+    steps.push({
+      id: "brownfield-apply-gate",
+      agent: "orchestrator",
+      status: "preview",
+      summary: "Brownfield project detected; defaulting to preview until --apply is passed explicitly.",
+      artifacts: [],
+      gates: ["existing project preservation", `reasons: ${brownfield.reasons.join(", ")}`, `intent: ${taskIntent}`],
+    });
+  }
 
   const planning = await writePlanningArtifacts(projectRoot, goal, mode);
   steps.push({
@@ -138,14 +155,14 @@ export async function runHarness(startDir: string, goal: string, options: { appl
       gates: ["LLM provider required for code generation"],
     });
 
-    const run = buildRun(goal, mode, projectRoot, options.apply, startedAt, steps, null, null, [], null);
+    const run = buildRun(goal, mode, projectRoot, apply, startedAt, steps, null, null, [], null, taskIntent, brownfield);
     const runPath = path.join(paths.runsDir, `${run.id}.json`);
     await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
     return { run, runPath };
   }
 
   try {
-    llmPlan = await generateLlmBuild(projectRoot, goal);
+    llmPlan = await generateLlmBuild(projectRoot, goal, { intent: taskIntent, brownfieldProfile: brownfield });
     modelImplementation = llmPlan.reply;
     steps.push({
       id: "model-implementation",
@@ -169,7 +186,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
       gates: ["model output was invalid or did not pass acceptance gates"],
     });
 
-    const run = buildRun(goal, mode, projectRoot, options.apply, startedAt, steps, null, null, [], null);
+    const run = buildRun(goal, mode, projectRoot, apply, startedAt, steps, null, null, [], null, taskIntent, brownfield);
     const runPath = path.join(paths.runsDir, `${run.id}.json`);
     await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
     return { run, runPath };
@@ -177,8 +194,8 @@ export async function runHarness(startDir: string, goal: string, options: { appl
 
   const preview = await previewGeneratedFiles(projectRoot, llmPlan.summary, llmPlan.files);
 
-  if (options.apply) {
-    const result = await applyLlmBuild(projectRoot, llmPlan);
+  if (apply) {
+    const result = await applyLlmBuild(projectRoot, llmPlan, { prompt: goal, intent: taskIntent, brownfieldProfile: brownfield });
     let record = await writeChangeRecord(projectRoot, {
       kind: "build",
       status: "applied",
@@ -239,7 +256,7 @@ export async function runHarness(startDir: string, goal: string, options: { appl
     });
   }
 
-  const run = buildRun(goal, mode, projectRoot, options.apply, startedAt, steps, preview, validation, repairs, modelImplementation);
+  const run = buildRun(goal, mode, projectRoot, apply, startedAt, steps, preview, validation, repairs, modelImplementation, taskIntent, brownfield);
   const runPath = path.join(paths.runsDir, `${run.id}.json`);
   await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
   return { run, runPath };
@@ -256,6 +273,8 @@ function buildRun(
   validation: ValidationReport | null,
   repairs: RepairAttempt[],
   modelImplementation: ModelReply | null,
+  taskIntent: TaskIntent,
+  brownfield: BrownfieldProfile,
 ): HarnessRun {
   return {
     schemaVersion: 1,
@@ -271,6 +290,8 @@ function buildRun(
     validation,
     repairs,
     modelImplementation,
+    taskIntent,
+    brownfield,
   };
 }
 

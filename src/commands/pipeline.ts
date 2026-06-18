@@ -1,6 +1,7 @@
 import { runHarness } from "../core/harness.js";
 import { launchGodot, type LaunchResult } from "../core/launch.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
+import { isTaskIntentFlag, parseTaskIntent, type TaskIntent } from "../core/brownfield.js";
 
 interface PipelineOptions {
   apply: boolean;
@@ -8,6 +9,8 @@ interface PipelineOptions {
   repair: boolean;
   play: boolean;
   json: boolean;
+  explicitApply: boolean;
+  intent: TaskIntent | null;
 }
 
 export async function pipelineCommand(args: string[]): Promise<void> {
@@ -21,7 +24,7 @@ export async function pipelineCommand(args: string[]): Promise<void> {
   }
 
   const options = parsePipelineOptions(cleanArgs);
-  const goal = cleanArgs.filter((arg) => !isPipelineFlag(arg)).join(" ").trim();
+  const goal = cleanArgs.filter((arg, index) => !isPipelineFlag(arg, cleanArgs[index - 1])).join(" ").trim();
   if (!goal) {
     printPipelineHelp();
     return;
@@ -54,10 +57,12 @@ async function openPipelineMenu(_embedded: boolean): Promise<void> {
 
     await runPipeline(goal, {
       apply: applyChoice === "apply",
+      explicitApply: applyChoice === "apply",
       validate: true,
       repair: true,
       play: playChoice === "play",
       json: false,
+      intent: null,
     });
   });
 }
@@ -65,8 +70,10 @@ async function openPipelineMenu(_embedded: boolean): Promise<void> {
 async function runPipeline(goal: string, options: PipelineOptions): Promise<void> {
   const harness = await runHarness(process.cwd(), goal, {
     apply: options.apply,
+    explicitApply: options.explicitApply,
     validate: options.validate,
     repair: options.repair,
+    intent: options.intent ?? undefined,
   });
 
   let launch: LaunchResult | null = null;
@@ -93,9 +100,9 @@ async function runPipeline(goal: string, options: PipelineOptions): Promise<void
     console.log(`Validation: ${harness.run.validation.summary.errors} errors, ${harness.run.validation.summary.warnings} warnings`);
   }
 
-  if (!options.apply) {
+  if (!harness.run.apply) {
     console.log("");
-    console.log("Preview only. Run `godotcoder pipeline <idea>` without --preview to build the playable slice.");
+    console.log("Preview only. Run `godotcoder pipeline <idea> --apply` to build the playable slice.");
   }
 
   if (launch) {
@@ -106,16 +113,19 @@ async function runPipeline(goal: string, options: PipelineOptions): Promise<void
 
 function parsePipelineOptions(args: string[]): PipelineOptions {
   return {
-    apply: !args.includes("--preview"),
+    apply: args.includes("--apply") || !args.includes("--preview"),
+    explicitApply: args.includes("--apply"),
     validate: !args.includes("--no-validate"),
     repair: !args.includes("--no-repair"),
     play: args.includes("--play"),
     json: args.includes("--json"),
+    intent: parseTaskIntent(args),
   };
 }
 
-function isPipelineFlag(arg: string): boolean {
-  return ["--preview", "--no-validate", "--no-repair", "--play", "--json"].includes(arg);
+function isPipelineFlag(arg: string, previous?: string): boolean {
+  if (isTaskIntentFlag(arg, previous)) return true;
+  return ["--preview", "--apply", "--no-validate", "--no-repair", "--play", "--json"].includes(arg);
 }
 
 function pipelineOk(run: Awaited<ReturnType<typeof runHarness>>["run"]): boolean {
@@ -123,6 +133,9 @@ function pipelineOk(run: Awaited<ReturnType<typeof runHarness>>["run"]): boolean
 }
 
 function printPipelineHelp(): void {
-  console.log("Usage: godotcoder pipeline <game idea> [--preview] [--play] [--no-repair] [--json]");
+  console.log("Usage: godotcoder pipeline <game idea> [--preview] [--apply] [--play] [--no-repair] [--json]");
+  console.log("Default applies the playable slice unless --preview is given.");
   console.log("Requires a configured model provider: godotcoder models use --provider ollama --model llama3.1");
 }
+
+

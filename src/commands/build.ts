@@ -1,18 +1,20 @@
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
-import { tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { inspectGodotProject, tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { applyLlmBuild, generateLlmBuild } from "../core/llm-build.js";
 import { CliError } from "../core/errors.js";
 import { loadModelConfig } from "../core/providers.js";
 import { validateProjectRoot } from "./validate.js";
 import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
 import { previewGeneratedFiles } from "../core/preview.js";
+import { detectBrownfieldProject, inferTaskIntent, isTaskIntentFlag, parseTaskIntent } from "../core/brownfield.js";
 
 export async function buildProject(args: string[]): Promise<void> {
   const json = args.includes("--json");
   const preview = args.includes("--preview");
   const apply = args.includes("--apply") || args.includes("--yes");
   const shouldValidate = !args.includes("--no-validate");
-  const prompt = args.filter((arg) => !["--json", "--no-validate", "--preview", "--apply", "--yes"].includes(arg)).join(" ").trim();
+  const intent = parseTaskIntent(args);
+  const prompt = args.filter((arg, index) => !isBuildFlag(arg, args[index - 1])).join(" ").trim();
 
   if (!prompt) {
     console.log("Usage: godotcoder build <task> [--preview] [--apply] [--no-validate] [--json]");
@@ -22,30 +24,43 @@ export async function buildProject(args: string[]): Promise<void> {
   const existingRoot = await tryFindGodotProjectRoot(process.cwd());
   const projectRoot = existingRoot ?? process.cwd();
   const scaffold = await ensureGreenfieldGodotProject(projectRoot, prompt || "GodotCoder Game");
+  const projectIndex = await inspectGodotProject(projectRoot);
+  const brownfield = detectBrownfieldProject(projectIndex, scaffold.createdProjectFile);
+  const taskIntent = intent ?? inferTaskIntent(prompt);
 
   const modelConfig = await loadModelConfig(projectRoot);
   if (!modelConfig) {
     throw new CliError("MODEL_CONFIG_MISSING", "No model provider configured. GodotCoder is LLM-driven — configure a provider first:\n  godotcoder models use --provider ollama --model llama3.1");
   }
 
-  const plan = await generateLlmBuild(projectRoot, prompt || "build requested game feature");
+  const plan = await generateLlmBuild(projectRoot, prompt || "build requested game feature", {
+    intent: taskIntent,
+    brownfieldProfile: brownfield,
+  });
 
   if (preview || !apply) {
     const buildPreview = await previewGeneratedFiles(projectRoot, plan.summary, plan.files);
     if (json) {
-      console.log(JSON.stringify({ ok: true, mode: "preview", source: "llm", scaffold, preview: buildPreview, model: { provider: plan.reply.provider, model: plan.reply.model } }, null, 2));
+      console.log(JSON.stringify({ ok: true, mode: "preview", source: "llm", scaffold, brownfield, intent: taskIntent, preview: buildPreview, model: { provider: plan.reply.provider, model: plan.reply.model } }, null, 2));
       return;
     }
 
     if (scaffold.createdProjectFile) {
       console.log("No project.godot found. Created a minimal greenfield Godot project.");
     }
+    if (brownfield.isBrownfield) {
+      console.log(`Brownfield mode: ${brownfield.reasons.join(", ")}. Previewing targeted ${taskIntent} patch.`);
+    }
     printPreview(buildPreview);
     console.log("Apply with: godotcoder build <task> --apply, or /apply in the interactive shell.");
     return;
   }
 
-  const result = await applyLlmBuild(projectRoot, plan);
+  const result = await applyLlmBuild(projectRoot, plan, {
+    prompt: prompt || "build first playable",
+    intent: taskIntent,
+    brownfieldProfile: brownfield,
+  });
   let changeRecord = await writeChangeRecord(projectRoot, {
     kind: "build",
     status: "applied",
@@ -65,10 +80,13 @@ export async function buildProject(args: string[]): Promise<void> {
   }
 
   if (json) {
-    console.log(JSON.stringify({ ok: validationReport ? validationReport.summary.errors === 0 : true, source: "llm", scaffold, result, changeRecord, validationReport, validationReportPath }, null, 2));
+    console.log(JSON.stringify({ ok: validationReport ? validationReport.summary.errors === 0 : true, source: "llm", scaffold, brownfield, intent: taskIntent, result, changeRecord, validationReport, validationReportPath }, null, 2));
   } else {
     if (scaffold.createdProjectFile) {
       console.log("No project.godot found. Created a minimal greenfield Godot project.");
+    }
+    if (brownfield.isBrownfield) {
+      console.log(`Brownfield safety: ${result.brownfieldSafety?.findings.length ?? 0} findings.`);
     }
     console.log(result.summary);
     for (const file of result.filesWritten) {
@@ -86,6 +104,11 @@ export async function buildProject(args: string[]): Promise<void> {
       }
     }
   }
+}
+
+function isBuildFlag(arg: string, previous: string | undefined): boolean {
+  if (isTaskIntentFlag(arg, previous)) return true;
+  return ["--json", "--no-validate", "--preview", "--apply", "--yes"].includes(arg);
 }
 
 function printPreview(buildPreview: Awaited<ReturnType<typeof previewGeneratedFiles>>): void {

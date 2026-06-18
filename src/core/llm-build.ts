@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { writeTrackedFile, type FileChange } from "./change-records.js";
+import { assertBrownfieldSafety, brownfieldPromptGuidance, detectBrownfieldProject, inferTaskIntent, type BrownfieldProfile, type BrownfieldSafetyReport, type TaskIntent } from "./brownfield.js";
 import { CliError } from "./errors.js";
 import type { GeneratedFile } from "./builders/types.js";
 import { docsPromptContextWithExcerpts } from "./godot-docs.js";
@@ -21,6 +22,7 @@ export interface LlmBuildResult {
   changes: FileChange[];
   summary: string;
   reply: ModelReply;
+  brownfieldSafety: BrownfieldSafetyReport | null;
 }
 
 export interface GameAcceptanceProjectState {
@@ -42,17 +44,19 @@ export class LlmBuildError extends CliError {
   }
 }
 
-export async function generateLlmBuild(projectRoot: string, prompt: string): Promise<LlmBuildPlan> {
+export async function generateLlmBuild(projectRoot: string, prompt: string, options: { intent?: TaskIntent; brownfieldProfile?: BrownfieldProfile } = {}): Promise<LlmBuildPlan> {
   const config = await loadModelConfig(projectRoot);
   if (!config) {
     throw new CliError("MODEL_CONFIG_MISSING", "No model provider configured. Use `godotcoder models use ...` first.");
   }
 
   const projectIndex = await inspectGodotProject(projectRoot);
+  const intent = options.intent ?? inferTaskIntent(prompt);
+  const brownfieldProfile = options.brownfieldProfile ?? detectBrownfieldProject(projectIndex);
   const artifacts = await readPlanningContext(projectRoot);
   const docsContext = await docsPromptContextWithExcerpts(projectRoot, prompt);
   const systemPrompt = `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.`;
-  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts, docsContext });
+  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts, docsContext, intent, brownfieldProfile });
   const totalLength = systemPrompt.length + userPrompt.length;
   if (totalLength > 24_000) {
     console.warn(`Warning: LLM prompt is ${totalLength} characters. Some local models may truncate.`);
@@ -79,7 +83,7 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
       { role: "system", content: "Return only valid JSON. No prose. No markdown. First character must be { and last character must be }." },
       {
         role: "user",
-        content: buildRetryPrompt({ prompt, projectIndex, parseError: parsed.error }),
+        content: buildRetryPrompt({ prompt, projectIndex, parseError: parsed.error, intent, brownfieldProfile }),
       },
     ], projectRoot);
     parsed = parseLlmBuildReply(reply.content);
@@ -99,7 +103,18 @@ export async function generateLlmBuild(projectRoot: string, prompt: string): Pro
   return { summary: parsed.summary, files: parsed.files, reply };
 }
 
-export async function applyLlmBuild(projectRoot: string, plan: LlmBuildPlan): Promise<LlmBuildResult> {
+export async function applyLlmBuild(
+  projectRoot: string,
+  plan: LlmBuildPlan,
+  options: { prompt?: string; intent?: TaskIntent; brownfieldProfile?: BrownfieldProfile; safety?: boolean } = {},
+): Promise<LlmBuildResult> {
+  const projectIndex = await inspectGodotProject(projectRoot);
+  const intent = options.intent ?? inferTaskIntent(options.prompt ?? plan.summary);
+  const brownfieldProfile = options.brownfieldProfile ?? detectBrownfieldProject(projectIndex);
+  const brownfieldSafety = options.safety === false
+    ? null
+    : await assertBrownfieldSafety(projectRoot, options.prompt ?? plan.summary, intent, brownfieldProfile, plan.files);
+
   const changes: FileChange[] = [];
   for (const file of plan.files) {
     changes.push(await writeTrackedFile(projectRoot, file.path, file.contents));
@@ -110,6 +125,7 @@ export async function applyLlmBuild(projectRoot: string, plan: LlmBuildPlan): Pr
     changes,
     summary: plan.summary,
     reply: plan.reply,
+    brownfieldSafety,
   };
 }
 
@@ -294,6 +310,8 @@ function buildPrompt(input: {
   projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>;
   artifacts: Record<string, string>;
   docsContext: string;
+  intent: TaskIntent;
+  brownfieldProfile: BrownfieldProfile;
 }): string {
   return `Create a controlled Godot implementation patch for this user task.
 
@@ -307,6 +325,8 @@ Project:
 - Scenes: ${input.projectIndex.scenes.join(", ") || "none"}
 - Resources: ${input.projectIndex.resources.join(", ") || "none"}
 - Autoloads: ${input.projectIndex.autoloads.join(", ") || "none"}
+
+${brownfieldPromptGuidance(input.brownfieldProfile, input.intent)}
 
 Planning artifacts:
 ${Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none"}
@@ -353,7 +373,13 @@ Rules:
 - Use Godot 4.3+ APIs.`;
 }
 
-function buildRetryPrompt(input: { prompt: string; projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>; parseError: string }): string {
+function buildRetryPrompt(input: {
+  prompt: string;
+  projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>;
+  parseError: string;
+  intent: TaskIntent;
+  brownfieldProfile: BrownfieldProfile;
+}): string {
   return `Previous response failed validation: ${input.parseError}
 
 Generate a small Godot 4.3+ implementation for:
@@ -362,6 +388,8 @@ ${input.prompt}
 Current project:
 - Main scene: ${input.projectIndex.mainScene ?? "unknown"}
 - Scripts: ${input.projectIndex.scripts.join(", ") || "none"}
+
+${brownfieldPromptGuidance(input.brownfieldProfile, input.intent)}
 
 Return exactly this JSON shape and nothing else:
 {

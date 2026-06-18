@@ -27,6 +27,7 @@ godotcoder CLI
     settings
     auth
     status
+    export
     runtime doctor
     inspect
     validate
@@ -41,6 +42,7 @@ godotcoder CLI
     project inspector
     runtime adapter
     validation harness
+    export readiness
     patch manager
     knowledge sources
     agent orchestrator
@@ -93,6 +95,8 @@ Initial slash commands:
 - `/runtime doctor`
 - `/inspect`
 - `/validate`
+- `/export doctor`
+- `/export preset linux`
 - `/plan <idea>`
 - `/build <task>`
 - `/exit`
@@ -105,6 +109,7 @@ Responsibilities:
 - Report workspace root.
 - Report Godot project root.
 - Report known runtime profile.
+- Report export readiness and preset count.
 - Report whether planning artifacts exist.
 - Report latest validation result.
 - Report dirty/missing workspace artifacts.
@@ -200,7 +205,7 @@ godotcoder models use --provider anthropic --model your-model --api-key-env ANTH
 godotcoder models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
 ```
 
-LM Studio defaults to `http://10.0.0.9:1234` and uses its native local API endpoints:
+LM Studio defaults to `http://127.0.0.1:1234` and uses its native local API endpoints:
 
 - `GET /api/v1/models`
 - `POST /api/v1/chat`
@@ -279,6 +284,45 @@ Responsibilities:
 - Parse Godot errors/warnings.
 - Write validation report.
 
+Validation modes:
+- Default validation loads/checks the project in headless mode.
+- `--smoke` launches the main scene briefly with `--quit-after` and treats timeout as a successful continuous game loop when no errors are parsed.
+- `--visual` launches the main scene with a temporary GDScript capture runner, waits a few frames, saves `frame.png`, analyzes dimensions and blank/near-blank status, and writes findings into the validation report.
+- `--export` inspects export readiness and then uses Godot export-pack checks against configured presets.
+
+Visual artifacts are written under:
+
+```text
+.godotcoder/validations/<validation-id>/
+  frame.png
+  visual_capture.gd
+```
+
+Blank or near-blank visual frames are warnings unless runtime errors are also present.
+
+### `godotcoder export doctor`
+
+Inspects export readiness without building exports.
+
+Responsibilities:
+- Read `export_presets.cfg` when present.
+- Summarize preset names, platforms, runnable flags, and configured output paths.
+- Check likely local export-template locations for the detected Godot runtime version.
+- Return structured findings and readiness status.
+- Surface the same readiness summary through `status` and `validate --export` JSON.
+
+### `godotcoder export preset linux`
+
+Generates a safe starter Linux export preset.
+
+Responsibilities:
+- Preview first by default.
+- Print or return the exact proposed `export_presets.cfg` contents.
+- Append to an existing preset file when safe.
+- Avoid duplicate Linux presets.
+- Write only with `--apply` or `--yes`.
+- Keep actual export builds out of scope for this command.
+
 ### `godotcoder plan "<game idea>"`
 
 First planning workflow. It is deterministic in the current slice and should become model-backed in the next agent slice.
@@ -293,13 +337,17 @@ Responsibilities:
 
 ### `godotcoder build "<task>"`
 
-First deterministic build workflow. It should become model-backed after patch safety and approval records are in place.
+Controlled model-backed build workflow.
 
 Responsibilities:
 - Support greenfield and brownfield Godot projects.
-- Create a small playable first slice from the current project plan.
+- Ask the configured model for complete Godot-native file contents.
+- Create a small playable first slice for open-ended game creation prompts.
 - Keep generated game code Godot-native and GDScript-first.
 - Preview file changes before writing by default.
+- Infer or accept task intent: `feature`, `fix`, `refactor`, or `polish`.
+- For brownfield projects, preserve existing architecture, naming, scene ownership, input actions, autoloads, resources, and paths.
+- Reject large existing script rewrites, large `project.godot` rewrites, deletion-like edits, non-Godot-native content, and broad multi-file rewrites unless explicitly requested.
 - Run Godot-backed validation after building unless disabled.
 - Report written files and validation results.
 
@@ -428,6 +476,29 @@ Schemas should be implemented with TypeBox or an equivalent runtime-validating T
       "raw": "Raw Godot output line"
     }
   ],
+  "visual": {
+    "artifactPath": "/abs/path/.godotcoder/validations/val_visual_.../frame.png",
+    "width": 1280,
+    "height": 720,
+    "blank": false,
+    "nearBlank": false,
+    "findings": []
+  },
+  "exportReadiness": {
+    "schemaVersion": 1,
+    "presetFileExists": true,
+    "presets": [
+      {
+        "index": 0,
+        "name": "Linux",
+        "platform": "Linux/X11",
+        "exportPath": "build/linux/Game.x86_64",
+        "runnable": true
+      }
+    ],
+    "ready": true,
+    "findings": []
+  },
   "summary": {
     "errors": 0,
     "warnings": 0
@@ -607,11 +678,11 @@ MVP validation:
 5. Output parsing: convert Godot output to structured findings.
 
 Later validation:
-1. Main-scene smoke run with timeout.
+1. Main-scene smoke run with timeout. Implemented as `validate --smoke`.
 2. Scene-specific validation.
-3. Export preset validation.
-4. Export template validation.
-5. Screenshot or frame inspection.
+3. Export preset validation. Implemented as `validate --export` plus `export doctor`.
+4. Export template validation. Implemented as best-effort readiness inspection.
+5. Screenshot or frame inspection. Implemented as `validate --visual`.
 
 Validation should prefer Godot's own output over model assumptions.
 
@@ -626,6 +697,9 @@ Restricted:
 - Asset deletion/move/overwrite.
 - External dependency installation.
 - Non-Godot code introduction.
+- Large existing script replacement in brownfield projects.
+- Large `project.godot` rewrites instead of targeted settings/input/autoload edits.
+- Broad multi-file rewrites that are unrelated to the requested task.
 
 Scene/resource edits should eventually route through the Godot editor integration or Godot-aware structured operations.
 
@@ -635,6 +709,7 @@ Approval gates:
 - Patch application requires approval.
 - Scene/resource/project setting changes require approval.
 - Destructive operations require explicit approval and should be rare.
+- Brownfield `harness` and `pipeline` runs default to preview unless `--apply` is explicit.
 
 ## 10. Knowledge Sources
 

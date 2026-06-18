@@ -15,6 +15,8 @@ This repository currently contains the first implementation slice:
 - Runtime override selection: `godotcoder runtime use <godot command>`
 - Project inspection: `godotcoder inspect`
 - Godot-backed validation: `godotcoder validate`
+- Visual validation: `godotcoder validate --visual`
+- Export readiness: `godotcoder export doctor`, `godotcoder export preset linux`
 - Standalone deterministic repair: `godotcoder repair`
 - Agent roster: `godotcoder agents`
 - Settings area: `godotcoder settings`
@@ -127,6 +129,9 @@ Available slash commands:
 /doctor
 /inspect
 /validate
+/validate --visual
+/export doctor
+/export preset linux
 /repair
 /rpc <method>
 /check
@@ -167,6 +172,16 @@ scripts/main.gd
 
 Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
 
+Brownfield projects are treated conservatively. When an existing project has meaningful scenes, scripts, resources, input actions, autoloads, or plugins beyond the minimal scaffold, GodotCoder switches to preservation-oriented prompts and apply-time safety checks. Generated changes must stay targeted to the task, preserve existing architecture and resource paths, and avoid large script or `project.godot` rewrites unless the task explicitly asks for that rewrite. Use task intent flags when useful:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js build "fix the player jump coyote time" --intent fix --preview
+node /path/to/GodotCoder/dist/cli.js build "polish the hit feedback" --polish --apply
+node /path/to/GodotCoder/dist/cli.js harness "refactor enemy spawning into a manager" --intent refactor
+```
+
+`pipeline` and `harness` default brownfield projects to preview unless `--apply` is passed explicitly. This keeps existing games from being rewritten by an accidental full-pipeline run.
+
 The fastest end-to-end path is the pipeline command:
 
 ```bash
@@ -189,6 +204,12 @@ Use preview mode when you want to inspect first:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js pipeline "make a 2d asteroid shooter" --preview
+```
+
+In an existing brownfield project, use explicit apply when you want the pipeline to write changes:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js pipeline "add a pause menu to the existing game" --apply
 ```
 
 Pipeline repair is enabled by default. Current deterministic repair rules:
@@ -227,6 +248,43 @@ You can also run an automated playtest to simulate 5 seconds of random user inpu
 node /path/to/GodotCoder/dist/cli.js playtest
 node /path/to/GodotCoder/dist/cli.js play --test
 ```
+
+Validation modes:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js validate
+node /path/to/GodotCoder/dist/cli.js validate --smoke
+node /path/to/GodotCoder/dist/cli.js validate --visual
+node /path/to/GodotCoder/dist/cli.js validate --export
+```
+
+`validate --visual` runs the main scene long enough to capture a frame and stores artifacts under:
+
+```text
+.godotcoder/validations/<validation-id>/
+  frame.png
+  visual_capture.gd
+```
+
+The validation JSON includes:
+
+- frame artifact path,
+- frame dimensions,
+- `blank` and `nearBlank` booleans,
+- visual warning/error findings.
+
+A blank frame is a warning by default. If runtime errors are also present, visual findings become errors so the validation report reflects the combined failure.
+
+Export readiness:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js export doctor
+node /path/to/GodotCoder/dist/cli.js export doctor --json
+node /path/to/GodotCoder/dist/cli.js export preset linux
+node /path/to/GodotCoder/dist/cli.js export preset linux --apply
+```
+
+`export doctor` inspects `export_presets.cfg`, preset names/platforms, output paths, and likely Godot export-template locations. It does not build exports. `export preset linux` previews a safe starter Linux preset and prints the exact generated text; it writes only with `--apply`.
 
 Editor integration and external tools can use stable RPC-style JSON envelopes:
 
@@ -297,7 +355,7 @@ node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --p
 node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --apply
 ```
 
-`harness`, `pipeline`, and `build` use the configured model to generate controlled Godot file changes. Writes go through path validation, preview/apply gates, patch records, and optional Godot validation. If no model is configured or the model output fails acceptance gates, the run is recorded as failed and the error is logged under `.godotcoder/model-failures/`.
+`harness`, `pipeline`, and `build` use the configured model to generate controlled Godot file changes. Writes go through path validation, preview/apply gates, brownfield safety checks, patch records, and optional Godot validation. If no model is configured or the model output fails acceptance gates, the run is recorded as failed and the error is logged under `.godotcoder/model-failures/`.
 
 For open-ended game creation prompts, controlled model output must pass first
 playable acceptance gates: scene/script presence, input or frame processing,
@@ -384,10 +442,17 @@ node /path/to/GodotCoder/dist/cli.js runtime use godot
 node /path/to/GodotCoder/dist/cli.js runtime use flatpak run org.godotengine.Godot
 node /path/to/GodotCoder/dist/cli.js inspect
 node /path/to/GodotCoder/dist/cli.js validate
+node /path/to/GodotCoder/dist/cli.js validate --smoke
+node /path/to/GodotCoder/dist/cli.js validate --visual
+node /path/to/GodotCoder/dist/cli.js validate --export
+node /path/to/GodotCoder/dist/cli.js export doctor
+node /path/to/GodotCoder/dist/cli.js export preset linux
+node /path/to/GodotCoder/dist/cli.js export preset linux --apply
 node /path/to/GodotCoder/dist/cli.js plan "make a 2d asteroid shooter"
 node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --preview
 node /path/to/GodotCoder/dist/cli.js build "build the first playable" --apply
+node /path/to/GodotCoder/dist/cli.js build "fix the player jump" --intent fix --preview
 ```
 
 Minimal Godot editor plugin scaffold lives under `addons/godotcoder/`. Add that
@@ -414,6 +479,9 @@ node /path/to/GodotCoder/dist/cli.js runtime doctor --json
 node /path/to/GodotCoder/dist/cli.js models --json
 node /path/to/GodotCoder/dist/cli.js inspect --json
 node /path/to/GodotCoder/dist/cli.js validate --json
+node /path/to/GodotCoder/dist/cli.js validate --visual --json
+node /path/to/GodotCoder/dist/cli.js validate --export --json
+node /path/to/GodotCoder/dist/cli.js export doctor --json
 ```
 
 Runtime and model configs are stored in `.godotcoder.local/`, which is ignored by git because it is machine-specific. The shared `.godotcoder/runtime-profile.json` records the detected runtime, Godot version, Flatpak app metadata when relevant, and project signals from `project.godot`.
