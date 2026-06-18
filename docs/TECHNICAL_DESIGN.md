@@ -217,6 +217,11 @@ OpenRouter defaults to `https://openrouter.ai/api/v1` with `OPENROUTER_API_KEY`,
 
 Runs one model prompt with GodotCoder system prompt.
 
+Responsibilities:
+- Keep response advisory.
+- Enforce Godot-only/GDScript-first instruction in system prompt.
+- Avoid file writes.
+
 ### Editor Plugin Review Loop
 
 The editor plugin remains a thin companion:
@@ -226,10 +231,14 @@ The editor plugin remains a thin companion:
 - `editor.summary` reads the latest validation, visual validation, and repair artifacts from `.godotcoder/`.
 - The dock owns only UI state such as the current prompt, captured editor context, and pending preview summary.
 
-Responsibilities:
-- Keep response advisory.
-- Enforce Godot-only/GDScript-first instruction in system prompt.
-- Avoid file writes.
+### Playtest Intelligence
+
+`godotcoder playtest` remains heuristic-based and Godot-native:
+- Temporarily inject a Godot autoload that simulates input actions and records a short timeline.
+- Store playtest artifacts under `.godotcoder/playtests/`, including stdout, stderr, Godot engine logs, timeline JSON, run record JSON, and frame/visual validation paths when available.
+- Report simple interactivity signals: input simulated, frame/physics processing active, scene state changed, text changed, visual output nonblank, runtime errors, and premature exit.
+- Keep warnings advisory; lack of visible/state change is a playtest warning unless runtime errors are present.
+- Include `.godotcoder/playtests/latest.json` in future LLM build context.
 
 ### `godotcoder harness "<game goal>"`
 

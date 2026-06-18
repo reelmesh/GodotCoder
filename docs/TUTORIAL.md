@@ -467,7 +467,7 @@ Cached docs are used by the LLM code generator for grounding.
 
 ## 12. Automated Playtesting
 
-Runs the game headlessly for 5 seconds with random input simulation:
+Runs the game headlessly for 5 seconds with input simulation, logs, artifacts, and simple interactivity heuristics:
 
 ```bash
 # Direct playtest
@@ -480,7 +480,7 @@ node dist/cli.js play --test
 node dist/cli.js playtest --json
 ```
 
-Detects runtime crashes, script errors, and premature exits:
+Detects runtime crashes, script errors, premature exits, blank visual output, missing frame processing, and lack of simple state/text changes:
 
 ```json
 {
@@ -488,9 +488,20 @@ Detects runtime crashes, script errors, and premature exits:
   "errors": [
     "SCRIPT ERROR: Parse Error at res://scripts/player.gd:12"
   ],
-  "durationMs": 1234
+  "warnings": [
+    "No simple scene-state or text changes were observed during the playtest."
+  ],
+  "durationMs": 1234,
+  "timeline": [
+    { "atMs": 500, "kind": "input", "action": "ui_accept", "pressed": true }
+  ],
+  "interactivity": {
+    "appearsInteractive": false
+  }
 }
 ```
+
+Playtest records live under `.godotcoder/playtests/`, with `latest.json` included in future LLM build context.
 
 ---
 

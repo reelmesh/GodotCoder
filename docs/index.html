@@ -329,14 +329,24 @@ node dist/cli.js repair diff repair_20260616T120000_000000</code></pre></div>
 <h4>Recipe: Automated Playtesting</h4>
 <pre><code>node dist/cli.js playtest --json
 node dist/cli.js play --test</code></pre>
-<p>Runs the game headlessly for 5 seconds with random input simulation. Returns structured errors:</p>
+<p>Runs the game headlessly for 5 seconds with input simulation, logs, artifacts, and simple interactivity heuristics. Returns structured errors and warnings:</p>
 <pre><code>{
   "ok": false,
   "errors": [
     "SCRIPT ERROR: Parse Error at res://scripts/player.gd:12"
   ],
-  "durationMs": 1234
+  "warnings": [
+    "No simple scene-state or text changes were observed during the playtest."
+  ],
+  "durationMs": 1234,
+  "timeline": [
+    { "atMs": 500, "kind": "input", "action": "ui_accept", "pressed": true }
+  ],
+  "interactivity": {
+    "appearsInteractive": false
+  }
 }</code></pre>
+<p>Records are stored under <code>.godotcoder/playtests/</code>, including <code>latest.json</code> for future build context.</p>
 </div>
 
 <div class="recipe" id="recipe-ci">
@@ -756,7 +766,7 @@ node dist/cli.js docs list --json</code></pre>
     preview.ts                   LCS-based diff preview
     change-records.ts            Patch records with SHA-256
     settings.ts                  User settings + secrets (mode 600)
-    playtest.ts                  Automated 5-second headless playtesting
+    playtest.ts                  Automated headless playtesting with input timeline and interactivity signals
     schema.ts, errors.ts, ids.ts, process.ts, files.ts, terminal.ts, menu.ts
     greenfield.ts, planning.ts, launch.ts
     godot-version.ts, godot-docs.ts, workspace.ts

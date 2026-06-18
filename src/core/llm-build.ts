@@ -295,6 +295,7 @@ async function readPlanningContext(projectRoot: string): Promise<Record<string, 
     gdd: paths.gdd,
     technicalPlan: paths.technicalPlan,
     tasks: paths.tasks,
+    latestPlaytest: path.join(paths.playtestsDir, "latest.json"),
   };
   const artifacts: Record<string, string> = {};
   for (const [name, filePath] of Object.entries(candidates)) {

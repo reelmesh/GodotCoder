@@ -31,6 +31,11 @@ Implemented and verified the next confidence-building arc:
   - Adds pending preview state, Apply, Reject, and Summaries controls to the Godot dock.
   - Shows latest validation, visual validation, and repair artifact summaries without reading workspace files from GDScript.
   - Keeps the plugin thin: it captures context, invokes CLI/RPC commands, stores UI history, and displays envelopes.
+- Playtest intelligence
+  - Expands `godotcoder playtest` with a simulated input timeline, stdout/stderr logs, Godot engine logs, and durable records under `.godotcoder/playtests/`.
+  - Captures frame artifacts directly when possible and records fallback visual validation artifact/report paths when the headless playtest viewport cannot be analyzed.
+  - Reports heuristic interactivity signals: input simulated, frame/physics processing active, scene state changed, text changed, visual nonblank status, runtime errors, and premature exit.
+  - Adds `.godotcoder/playtests/latest.json` to future LLM build context.
 
 Verification for this arc:
 
@@ -40,7 +45,7 @@ npm run build
 npm run test:smoke
 ```
 
-All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, editor RPC summaries/reject acknowledgements, existing parser/repair/schema tests, and RPC/provider smoke coverage.
+All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, playtest interactivity heuristics, editor RPC summaries/reject acknowledgements, existing parser/repair/schema tests, and RPC/provider smoke coverage.
 
 ## Implemented
 
@@ -464,14 +469,14 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 ## Next Slice
 
-Recommended next: playtest intelligence.
+Recommended next: task board iteration loop.
 
-The visual validation, brownfield safety, Linux export preset automation, and editor plugin UX slices are complete. The next useful product slice is to expand `godotcoder playtest` with:
+The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, and playtest intelligence slices are complete. The next useful product slice is to add structured task state alongside `.godotcoder/tasks.md`:
 
-- a short input simulation timeline,
-- captured logs and visual validation artifacts,
-- heuristic interactivity signals such as input handling, frame processing, text/objective changes, restart/fail paths, or scene state changes,
-- playtest summaries that future repair/build prompts can reference.
+- `godotcoder tasks` list/show/update commands,
+- task states: `planned`, `active`, `blocked`, and `done`,
+- links from tasks to patches, validations, repairs, and playtests,
+- `godotcoder build --task <id>` support.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 

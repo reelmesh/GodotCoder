@@ -28,6 +28,16 @@ export async function playCommand(args: string[]): Promise<void> {
         console.log(`  - ${err}`);
       }
     }
+    console.log(`Interactivity: ${result.interactivity.appearsInteractive ? "appears interactive" : "needs review"}`);
+    for (const warning of result.warnings) {
+      console.log(`WARN: ${warning}`);
+    }
+    console.log(`Timeline events: ${result.timeline.length}`);
+    console.log(`Record: ${result.artifacts.recordPath}`);
+    console.log(`Logs: ${result.artifacts.stdoutPath}, ${result.artifacts.stderrPath}`);
+    if (result.visual) {
+      console.log(`Frame: ${result.visual.artifactPath} (${result.visual.width}x${result.visual.height}, blank=${result.visual.blank}, nearBlank=${result.visual.nearBlank})`);
+    }
     return;
   }
 
@@ -46,4 +56,3 @@ export async function playCommand(args: string[]): Promise<void> {
     console.log(`PID: ${result.pid}`);
   }
 }
-

@@ -242,12 +242,14 @@ node /path/to/GodotCoder/dist/cli.js repair --json
 
 Standalone repair validates the current Godot project, applies known deterministic fixes when possible, writes a repair record, and re-runs Godot validation. It is intended for brownfield cleanup as well as pipeline recovery. You can inspect repair history with `repair list`, view side-by-side diffs of applied repairs with `repair diff`, and revert a repair cycle using `repair undo <repair-id>`.
 
-You can also run an automated playtest to simulate 5 seconds of random user input headlessly to check for runtime/script exceptions:
+You can also run an automated playtest to simulate 5 seconds of input headlessly, capture logs/artifacts, and check for runtime/script exceptions plus basic interactivity signals:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js playtest
 node /path/to/GodotCoder/dist/cli.js play --test
 ```
+
+Playtest records are stored under `.godotcoder/playtests/`. Each run includes stdout/stderr logs, the Godot engine log path, a simulated input timeline, visual artifact/report paths when available, and heuristic signals such as input simulation, frame/physics processing, scene/text changes, blank visual output, runtime errors, and premature exit. The latest playtest summary is included in future LLM build context.
 
 Validation modes:
 
@@ -562,7 +564,7 @@ src/
     preview.ts              LCS-based diff preview
     change-records.ts       Patch records with SHA-256 hashes
     settings.ts             User settings + secrets (mode 600)
-    playtest.ts             Automated 5-second headless playtesting
+    playtest.ts             Automated headless playtesting with input timeline and interactivity signals
     ...
 ```
 
