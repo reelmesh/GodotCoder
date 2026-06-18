@@ -3,6 +3,7 @@ import path from "node:path";
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
 import { tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { createRuntimeProfile } from "../core/runtime-profile.js";
+import { loadTaskBoard } from "../core/tasks.js";
 import { workspacePaths } from "../core/workspace.js";
 
 export async function initWorkspace(args: string[]): Promise<void> {
@@ -21,6 +22,7 @@ export async function initWorkspace(args: string[]): Promise<void> {
   await writeIfMissing(paths.gdd, "# Game Design Document\n\n");
   await writeIfMissing(paths.technicalPlan, "# Technical Plan\n\n");
   await writeIfMissing(paths.tasks, "# Tasks\n\n");
+  await loadTaskBoard(projectRoot);
   await writeIfMissing(paths.decisions, "# Decisions\n\n");
   await writeIfMissing(paths.riskLog, "# Risk Log\n\n");
   await writeIfMissing(paths.agentMemory, JSON.stringify({ schemaVersion: 1, notes: [] }, null, 2) + "\n");

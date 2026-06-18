@@ -19,6 +19,7 @@ import { runsCommand } from "./runs.js";
 import { setupCommand } from "./setup.js";
 import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
+import { tasksCommand } from "./tasks.js";
 import { validateProject } from "./validate.js";
 import { workflowCommand } from "./workflow.js";
 import { completeSessionLine } from "../core/completion.js";
@@ -143,6 +144,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await runsCommand(["--embedded", ...args]);
         printStatusHint(state);
         return;
+      case "/tasks":
+        await tasksCommand(args);
+        printStatusHint(state);
+        return;
       case "/ask":
       case "/chat":
         await askModel(args);
@@ -236,7 +241,7 @@ function printWelcome(state: SessionState): void {
   console.log(logo());
   console.log("");
   console.log(`${color("mode", "cyan")} ${state.mode}  ${color("project", "cyan")} current workspace  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /harness  /status  /validate  /build  /runtime doctor  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /tasks  /harness  /status  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -265,6 +270,7 @@ function printSessionHelp(): void {
   console.log(`${color("/models", "cyan").padEnd(22)} Show or configure model provider`);
   console.log(`${color("/runs", "cyan").padEnd(22)} Browse harness run history`);
   console.log(`${color("/history", "cyan").padEnd(22)} Alias for /runs`);
+  console.log(`${color("/tasks", "cyan").padEnd(22)} List, show, or update task-board state`);
   console.log(`${color("/ask <prompt>", "cyan").padEnd(22)} Ask configured LLM with GodotCoder system prompt`);
   console.log(`${color("/harness <goal>", "cyan").padEnd(22)} Run directed multi-agent workflow preview`);
   console.log(`${color("/run <goal>", "cyan").padEnd(22)} Alias for /harness`);
@@ -286,7 +292,7 @@ function printSessionHelp(): void {
   console.log(`${color("/mode build", "cyan").padEnd(22)} Implementation mode`);
   console.log(`${color("/plan <idea>", "cyan").padEnd(22)} Scaffold/plan a greenfield or brownfield project`);
   console.log(`${color("/preview <task>", "cyan").padEnd(22)} Preview controlled build changes`);
-  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes; add --llm for model generation`);
+  console.log(`${color("/build <task>", "cyan").padEnd(22)} Preview changes; supports --task <id>`);
   console.log(`${color("/apply", "cyan").padEnd(22)} Apply pending build preview`);
   console.log(`${color("/reject", "cyan").padEnd(22)} Reject pending build preview`);
   console.log(`${color("/clear", "cyan").padEnd(22)} Clear terminal`);

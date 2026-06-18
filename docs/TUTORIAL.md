@@ -608,6 +608,7 @@ my-game/
     gdd.md
     technical-plan.md
     tasks.md
+    tasks.json              # Structured task state and artifact links
     decisions.md
     risk-log.md
     backlog.md
@@ -618,6 +619,7 @@ my-game/
     patches/                 # Change records with SHA-256
     validations/             # Godot validation reports
     repairs/                 # Repair attempts + diffs
+    playtests/               # Playtest timelines and records
     model-failures/          # Failed LLM attempts
     cache/docs/              # Cached Godot documentation
   .godotcoder.local/

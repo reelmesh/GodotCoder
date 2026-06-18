@@ -3,6 +3,7 @@ import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
 import { tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { writePlanningArtifacts } from "../core/planning.js";
 import { createRuntimeProfile } from "../core/runtime-profile.js";
+import { loadTaskBoard } from "../core/tasks.js";
 import { workspacePaths } from "../core/workspace.js";
 import { writeFile } from "node:fs/promises";
 
@@ -29,6 +30,7 @@ export async function planProject(args: string[]): Promise<void> {
   await writeFile(paths.runtimeProfile, JSON.stringify(createRuntimeProfile(projectRoot), null, 2) + "\n", { flag: "w" });
 
   const result = await writePlanningArtifacts(projectRoot, idea, mode);
+  await loadTaskBoard(projectRoot);
 
   if (json) {
     console.log(JSON.stringify({ ok: true, mode, scaffold, result }, null, 2));

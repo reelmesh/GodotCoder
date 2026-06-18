@@ -366,11 +366,24 @@ Responsibilities:
 - Create a small playable first slice for open-ended game creation prompts.
 - Keep generated game code Godot-native and GDScript-first.
 - Preview file changes before writing by default.
+- Accept `--task <id>` to build from structured task-board state.
 - Infer or accept task intent: `feature`, `fix`, `refactor`, or `polish`.
 - For brownfield projects, preserve existing architecture, naming, scene ownership, input actions, autoloads, resources, and paths.
 - Reject large existing script rewrites, large `project.godot` rewrites, deletion-like edits, non-Godot-native content, and broad multi-file rewrites unless explicitly requested.
 - Run Godot-backed validation after building unless disabled.
+- Link applied patch and validation IDs back to the task record when `--task` is used.
 - Report written files and validation results.
+
+### `godotcoder tasks`
+
+Structured task-board workflow.
+
+Responsibilities:
+- Keep `.godotcoder/tasks.md` readable as the user-facing checklist.
+- Store structured task state in `.godotcoder/tasks.json`.
+- Support `list`, `show <id>`, and `update <id> --state planned|active|blocked|done`.
+- Preserve links from tasks to patches, validations, repairs, and playtests.
+- Keep markdown checkboxes synchronized with `done` versus non-done task states.
 
 ## 4. Workspace Layout
 
@@ -380,6 +393,7 @@ Responsibilities:
   gdd.md
   technical-plan.md
   tasks.md
+  tasks.json
   decisions.md
   risk-log.md
   backlog.md
@@ -389,6 +403,7 @@ Responsibilities:
   agent-memory.json
   runs/
   validations/
+  playtests/
   sessions/
   patches/
   logs/

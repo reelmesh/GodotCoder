@@ -172,6 +172,18 @@ scripts/main.gd
 
 Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
 
+Task state is stored alongside the readable checklist in `.godotcoder/tasks.json`:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js tasks
+node /path/to/GodotCoder/dist/cli.js tasks show task-001
+node /path/to/GodotCoder/dist/cli.js tasks update task-001 --state active
+node /path/to/GodotCoder/dist/cli.js build --task task-001 --preview
+node /path/to/GodotCoder/dist/cli.js build --task task-001 --apply
+```
+
+Applied task builds link their patch and validation records back to the task so later repair, playtest, and iteration context can trace what changed.
+
 Brownfield projects are treated conservatively. When an existing project has meaningful scenes, scripts, resources, input actions, autoloads, or plugins beyond the minimal scaffold, GodotCoder switches to preservation-oriented prompts and apply-time safety checks. Generated changes must stay targeted to the task, preserve existing architecture and resource paths, and avoid large script or `project.godot` rewrites unless the task explicitly asks for that rewrite. Use task intent flags when useful:
 
 ```bash
@@ -510,6 +522,7 @@ Durable project artifacts:
   gdd.md
   technical-plan.md
   tasks.md
+  tasks.json
   decisions.md
   risk-log.md
   backlog.md

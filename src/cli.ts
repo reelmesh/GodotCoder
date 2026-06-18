@@ -21,6 +21,7 @@ import { setupCommand } from "./commands/setup.js";
 import { settingsCommand } from "./commands/settings.js";
 import { startSession } from "./commands/session.js";
 import { showStatus } from "./commands/status.js";
+import { tasksCommand } from "./commands/tasks.js";
 import { validateProject } from "./commands/validate.js";
 import { CliError, formatError } from "./core/errors.js";
 
@@ -43,6 +44,7 @@ const commands: Record<string, CommandHandler> = {
   runs: runsCommand,
   build: buildProject,
   status: showStatus,
+  tasks: tasksCommand,
   inspect: inspectProject,
   validate: validateProject,
   plan: planProject,
@@ -107,6 +109,7 @@ Usage:
   godotcoder ask <prompt> [--json]
   godotcoder harness <game goal> [--apply] [--repair] [--intent feature|fix|refactor|polish] [--json]
   godotcoder build [prompt] [--preview] [--apply] [--intent feature|fix|refactor|polish] [--no-validate]
+  godotcoder tasks [list|show <task-id>|update <task-id> --state planned|active|blocked|done] [--json]
   godotcoder status [--json]
   godotcoder runtime doctor [--json]
   godotcoder runtime use <godot command>

@@ -19,6 +19,7 @@ export interface ChangeRecord {
   kind: "build" | "repair";
   status: "applied";
   prompt: string;
+  taskId?: string | null;
   summary: string;
   files: FileChange[];
   validationIds: string[];
@@ -107,5 +108,4 @@ function sha256(value: string | Buffer): string {
 function toGodotResourcePath(relativePath: string): string {
   return `res://${relativePath.split(path.sep).join("/")}`;
 }
-
 

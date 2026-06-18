@@ -158,7 +158,8 @@ node ~/GodotCoder/dist/cli.js</code></pre>
 <tr><th>Command</th><th>Alias</th><th>Flags</th><th>Description</th></tr>
 <tr><td><code>/make</code></td><td><code>/pipeline</code></td><td><code>--preview&nbsp;--play&nbsp;--json&nbsp;--no-validate&nbsp;--no-repair</code></td><td>Full pipeline: plan → build → validate</td></tr>
 <tr><td><code>/plan</code></td><td>—</td><td><code>--json</code></td><td>Write planning artifacts (brief, GDD, tasks)</td></tr>
-<tr><td><code>/build</code></td><td>—</td><td><code>--preview&nbsp;--apply&nbsp;--yes&nbsp;--no-validate</code></td><td>Build a game feature</td></tr>
+<tr><td><code>/build</code></td><td>—</td><td><code>--task&nbsp;--preview&nbsp;--apply&nbsp;--yes&nbsp;--no-validate</code></td><td>Build a game feature</td></tr>
+<tr><td><code>tasks</code></td><td>—</td><td><code>list&nbsp;show&nbsp;update&nbsp;--state&nbsp;--json</code></td><td>Manage structured task-board state</td></tr>
 <tr><td><code>/preview</code></td><td>—</td><td><code>--no-validate</code></td><td>Preview changes without writing</td></tr>
 <tr><td><code>/apply</code></td><td>—</td><td>—</td><td>Apply pending build preview</td></tr>
 <tr><td><code>/reject</code></td><td>—</td><td>—</td><td>Discard pending build preview</td></tr>
@@ -660,6 +661,7 @@ node dist/cli.js docs list --json</code></pre>
     gdd.md
     technical-plan.md
     tasks.md
+    tasks.json                    ← Structured task state and artifact links
     decisions.md
     risk-log.md
     backlog.md
@@ -671,6 +673,7 @@ node dist/cli.js docs list --json</code></pre>
     patches/                      ← Change records with SHA-256
     validations/                  ← Godot validation reports
     repairs/                      ← Repair attempts + diffs
+    playtests/                    ← Playtest timelines and records
     model-failures/               ← Failed LLM attempt logs
     cache/docs/                   ← Cached Godot documentation
   .godotcoder.local/              ← Not committed (machine-specific)

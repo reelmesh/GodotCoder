@@ -144,6 +144,7 @@ Core modules:
 - Brownfield LLM build prompts require preservation of existing architecture, scene ownership, naming, input actions, autoloads, resources, and paths.
 - Brownfield safety rejects broad rewrites, large existing script replacement, large `project.godot` rewrites, deletion-like edits, and non-Godot-native generated content unless the task explicitly asks for a rewrite.
 - Task intent modes are supported through `--intent feature|fix|refactor|polish` and aliases `--feature`, `--fix`, `--refactor`, `--polish`.
+- Structured task-board state is stored in `.godotcoder/tasks.json`, hydrated from `.godotcoder/tasks.md`, exposed through `godotcoder tasks`, surfaced in `status`, and linked from `build --task <id>` to patch/validation records.
 - Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
 - Mock OpenAI-compatible and OpenRouter provider e2e coverage for `models use`, `ask`, endpoint/header behavior, `build --preview` retry parsing, and harness fallback/model-failure artifacts.
 - RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
@@ -465,18 +466,18 @@ Automated smoke suite verified:
 npm run test:smoke
 ```
 
-The suite covers the project config mutation helper, missing scene/resource repair, Godot 3 migration repair, docs cache/context enrichment, open-ended game acceptance gates, OpenAI-compatible mock provider calls, LLM build retry parsing, model-failure fallback records, editor RPC summaries/reject acknowledgements, and RPC success/error envelopes.
+The suite covers the project config mutation helper, missing scene/resource repair, Godot 3 migration repair, docs cache/context enrichment, open-ended game acceptance gates, OpenAI-compatible mock provider calls, LLM build retry parsing, model-failure fallback records, editor RPC summaries/reject acknowledgements, task-board state/linking, and RPC success/error envelopes.
 
 ## Next Slice
 
-Recommended next: task board iteration loop.
+Recommended next: model quality and routing.
 
-The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, and playtest intelligence slices are complete. The next useful product slice is to add structured task state alongside `.godotcoder/tasks.md`:
+The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, and task board iteration loop slices are complete. The next useful product slice is to improve model quality tracking and routing:
 
-- `godotcoder tasks` list/show/update commands,
-- task states: `planned`, `active`, `blocked`, and `done`,
-- links from tasks to patches, validations, repairs, and playtests,
-- `godotcoder build --task <id>` support.
+- track provider/model failures by task type,
+- add optional planning/build/review model roles with one fallback model,
+- feed validation, repair, visual, playtest, and task findings into retries,
+- add repeatable eval prompts for arbitrary non-template game ideas.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 

@@ -9,6 +9,7 @@ export function workspacePaths(projectRoot: string) {
     gdd: path.join(workspaceRoot, "gdd.md"),
     technicalPlan: path.join(workspaceRoot, "technical-plan.md"),
     tasks: path.join(workspaceRoot, "tasks.md"),
+    tasksState: path.join(workspaceRoot, "tasks.json"),
     decisions: path.join(workspaceRoot, "decisions.md"),
     riskLog: path.join(workspaceRoot, "risk-log.md"),
     backlog: path.join(workspaceRoot, "backlog.md"),
