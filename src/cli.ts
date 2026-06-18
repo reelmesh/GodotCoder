@@ -101,7 +101,7 @@ Usage:
   godotcoder export preset linux [--apply] [--json]
   godotcoder agents [--json]
   godotcoder models [--json]
-  godotcoder models use --provider <provider> --model <model> [--base-url <url>] [--api-key-env <ENV>]
+  godotcoder models use --provider <openai|anthropic|ollama|lmstudio|openrouter|openai-compatible> --model <model> [--base-url <url>] [--api-key-env <ENV>]
   godotcoder runs
   godotcoder runs list|show <run-id>
   godotcoder ask <prompt> [--json]

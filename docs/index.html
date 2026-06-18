@@ -299,7 +299,11 @@ node dist/cli.js auth login --provider openai --api-key sk-...
 
 # Anthropic cloud
 node dist/cli.js models use --provider anthropic --model claude-sonnet-4-20250514
-node dist/cli.js auth login --provider anthropic --api-key sk-ant-...</code></pre></div>
+node dist/cli.js auth login --provider anthropic --api-key sk-ant-...
+
+# OpenRouter cloud router
+node dist/cli.js models use --provider openrouter --model openai/gpt-4o-mini
+node dist/cli.js auth login --provider openrouter --api-key sk-or-...</code></pre></div>
 <div class="step"><strong>Step 2 — Ask questions</strong>
 <pre><code>node dist/cli.js ask "How do I implement double-jumping in Godot 4 CharacterBody2D?"</code></pre></div>
 <div class="step"><strong>Step 3 — Generate code</strong>
@@ -489,6 +493,7 @@ modify res://scripts/main.gd (+3 -0, 42 → 45 lines)
 <tr><td>LM Studio</td><td>Local, free</td><td><code>http://127.0.0.1:1234</code></td><td><code>LM_API_TOKEN</code></td></tr>
 <tr><td>OpenAI</td><td>Cloud</td><td><code>https://api.openai.com/v1</code></td><td><code>OPENAI_API_KEY</code></td></tr>
 <tr><td>Anthropic</td><td>Cloud</td><td><code>https://api.anthropic.com/v1</code></td><td><code>ANTHROPIC_API_KEY</code></td></tr>
+<tr><td>OpenRouter</td><td>Cloud router</td><td><code>https://openrouter.ai/api/v1</code></td><td><code>OPENROUTER_API_KEY</code></td></tr>
 <tr><td>OpenAI-compatible</td><td>Custom</td><td>User-specified</td><td>User-specified</td></tr>
 </table>
 
@@ -500,6 +505,7 @@ modify res://scripts/main.gd (+3 -0, 42 → 45 lines)
   <li><strong>Anthropic</strong>: <code>POST /messages</code>, system prompt as top-level field</li>
   <li><strong>Ollama</strong>: <code>POST /api/chat</code></li>
   <li><strong>LM Studio</strong>: <code>POST /api/v1/chat</code>, typed input blocks, extracts from <code>output</code> arrays (skips reasoning items)</li>
+  <li><strong>OpenRouter</strong>: <code>GET /api/v1/models</code> and <code>POST /api/v1/chat/completions</code>, Bearer auth plus <code>X-OpenRouter-Title</code> and optional attribution overrides</li>
 </ul>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -730,7 +736,7 @@ node dist/cli.js docs list --json</code></pre>
     flags.ts                     Shared flag parsing + provider defaults
     session-commands.ts          Single source of truth for 29 slash commands
     completion.ts                Tab completion (derives from registry)
-    providers.ts                 LLM layer (OpenAI, Anthropic, Ollama, LM Studio)
+    providers.ts                 LLM layer (OpenAI, Anthropic, Ollama, LM Studio, OpenRouter)
     harness.ts                   BMAD-style multi-agent workflow runner
     repair.ts                    Deterministic validation repair + Godot 3→4 migration
     validation.ts                Godot headless validation (run, smoke, export)

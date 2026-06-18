@@ -26,7 +26,7 @@ async function openModelsMenu(): Promise<void> {
       console.log("GodotCoder models");
       console.log(`Current: ${config ? `${config.provider}:${config.model}` : "not configured"}`);
       const choice = await chooseMenuOption(rl, "Choose action", [
-        { value: "provider", label: "Configure provider", description: "Ollama, LM Studio, OpenAI, Anthropic, custom" },
+        { value: "provider", label: "Configure provider", description: "Ollama, LM Studio, OpenRouter, cloud API" },
         { value: "status", label: "Check provider status" },
         { value: "test", label: "Ask test prompt" },
       ]);
@@ -47,7 +47,8 @@ async function openModelsMenu(): Promise<void> {
 async function configureProvider(rl: Interface, projectRoot: string): Promise<void> {
   const provider = (await chooseMenuOption(rl, "Provider", [
     { value: "ollama", label: "Ollama", description: "local, http://127.0.0.1:11434" },
-    { value: "lmstudio", label: "LM Studio", description: "local, http://10.0.0.9:1234" },
+    { value: "lmstudio", label: "LM Studio", description: "local, http://127.0.0.1:1234" },
+    { value: "openrouter", label: "OpenRouter API", description: "https://openrouter.ai/api/v1" },
     { value: "openai", label: "OpenAI API" },
     { value: "anthropic", label: "Anthropic API" },
     { value: "openai-compatible", label: "OpenAI-compatible API" },
@@ -139,7 +140,7 @@ async function useModel(args: string[]): Promise<void> {
   const apiKeyEnv = readFlag(args, "--api-key-env");
 
   if (!provider || !model) {
-    console.log("Usage: godotcoder models use --provider <openai|anthropic|ollama|lmstudio|openai-compatible> --model <name> [--base-url <url>] [--api-key-env <ENV>]");
+    console.log("Usage: godotcoder models use --provider <openai|anthropic|ollama|lmstudio|openrouter|openai-compatible> --model <name> [--base-url <url>] [--api-key-env <ENV>]");
     return;
   }
 
@@ -166,5 +167,4 @@ async function useModel(args: string[]): Promise<void> {
     console.log(`WARN: ${diagnostic}`);
   }
 }
-
 

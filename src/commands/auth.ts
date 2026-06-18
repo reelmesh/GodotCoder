@@ -17,7 +17,7 @@ export async function authCommand(args: string[]): Promise<void> {
     await logout(rest);
     return;
   }
-  // Quick one-step: /auth openai <key> or /auth anthropic <key>
+  // Quick one-step: /auth openai <key>, /auth anthropic <key>, or /auth openrouter <key>
   const quickProvider = parseProvider(subcommand);
   if (quickProvider && rest.length > 0) {
     await quickLogin(quickProvider, rest[0]!);
@@ -80,6 +80,7 @@ async function loginFromMenu(rl: Interface, projectRoot: string): Promise<void> 
     { value: "openai", label: "OpenAI" },
     { value: "anthropic", label: "Anthropic" },
     { value: "lmstudio", label: "LM Studio" },
+    { value: "openrouter", label: "OpenRouter" },
     { value: "openai-compatible", label: "OpenAI-compatible" },
   ])) as ModelProviderKind | null;
   if (!provider) return;
@@ -98,6 +99,7 @@ async function logoutFromMenu(rl: Interface, projectRoot: string): Promise<void>
     { value: "openai", label: "OpenAI" },
     { value: "anthropic", label: "Anthropic" },
     { value: "lmstudio", label: "LM Studio" },
+    { value: "openrouter", label: "OpenRouter" },
     { value: "openai-compatible", label: "OpenAI-compatible" },
   ])) as ModelProviderKind | null;
   if (!provider) return;
@@ -135,7 +137,7 @@ async function login(args: string[]): Promise<void> {
   const provider = parseProvider(readFlag(args, "--provider"));
   const apiKey = readFlag(args, "--api-key");
   if (!provider || !apiKey) {
-    console.log("Usage: godotcoder auth login --provider <openai|anthropic|lmstudio|openai-compatible> --api-key <key>");
+    console.log("Usage: godotcoder auth login --provider <openai|anthropic|lmstudio|openrouter|openai-compatible> --api-key <key>");
     return;
   }
 
@@ -154,7 +156,7 @@ async function logout(args: string[]): Promise<void> {
   const json = args.includes("--json");
   const provider = parseProvider(readFlag(args, "--provider"));
   if (!provider) {
-    console.log("Usage: godotcoder auth logout --provider <openai|anthropic|lmstudio|openai-compatible>");
+    console.log("Usage: godotcoder auth logout --provider <openai|anthropic|lmstudio|openrouter|openai-compatible>");
     return;
   }
 
@@ -167,5 +169,4 @@ async function logout(args: string[]): Promise<void> {
 
   console.log(`Removed auth for ${provider}.`);
 }
-
 

@@ -139,7 +139,7 @@ async function verifySecretFilePermissions(filePath: string): Promise<void> {
 }
 
 function parseProvider(value: unknown, label: string): ModelProviderKind {
-  return asOneOf(value, ["openai", "anthropic", "ollama", "lmstudio", "openai-compatible"] as const, label);
+  return asOneOf(value, ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const, label);
 }
 
 function parseSecrets(value: unknown): SecretStore {
@@ -147,7 +147,7 @@ function parseSecrets(value: unknown): SecretStore {
   const providers = asObject(root.providers, "secrets providers");
   const parsed: SecretStore["providers"] = {};
 
-  for (const provider of ["openai", "anthropic", "ollama", "lmstudio", "openai-compatible"] as const) {
+  for (const provider of ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const) {
     if (!providers[provider]) continue;
     const entry = asObject(providers[provider], `secrets provider ${provider}`);
     parsed[provider] = {

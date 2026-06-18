@@ -235,6 +235,13 @@ node dist/cli.js models use --provider anthropic --model claude-sonnet-4-2025051
 node dist/cli.js auth login --provider anthropic --api-key sk-ant-...
 ```
 
+**OpenRouter** (cloud router):
+
+```bash
+node dist/cli.js models use --provider openrouter --model openai/gpt-4o-mini
+node dist/cli.js auth login --provider openrouter --api-key sk-or-...
+```
+
 **Any OpenAI-compatible API**:
 
 ```bash

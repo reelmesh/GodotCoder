@@ -141,7 +141,7 @@ Writes one local setting.
 Supported keys:
 - `defaultMode`: `plan` or `build`
 - `approvalMode`: `preview` or `auto-apply`
-- `preferredProvider`: `openai`, `anthropic`, `ollama`, `lmstudio`, or `openai-compatible`
+- `preferredProvider`: `openai`, `anthropic`, `ollama`, `lmstudio`, `openrouter`, or `openai-compatible`
 - `showDiffs`: `compact` or `full`
 
 Friendly aliases:
@@ -164,7 +164,7 @@ Responsibilities:
 Stores local provider secret.
 
 Responsibilities:
-- Support API-key providers: OpenAI, Anthropic, OpenAI-compatible APIs.
+- Support API-key providers: OpenAI, Anthropic, OpenRouter, and OpenAI-compatible APIs.
 - Store secrets under `.godotcoder.local/secrets.json`.
 - Prefer environment variables when both env and local secret exist.
 
@@ -187,7 +187,7 @@ Inspects configured model provider.
 
 Responsibilities:
 - Load `.godotcoder.local/model-config.json` or environment variables.
-- Support OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
+- Support OpenAI-compatible APIs, OpenAI API, Anthropic API, OpenRouter, Ollama, and LM Studio.
 - List models where provider exposes model listing.
 - Report missing API keys or unreachable local servers without touching game files.
 
@@ -202,6 +202,7 @@ godotcoder models use --provider ollama --model llama3.1
 godotcoder models use --provider lmstudio --model local-model
 godotcoder models use --provider openai --model your-model --api-key-env OPENAI_API_KEY
 godotcoder models use --provider anthropic --model your-model --api-key-env ANTHROPIC_API_KEY
+godotcoder models use --provider openrouter --model openai/gpt-4o-mini
 godotcoder models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
 ```
 
@@ -209,6 +210,8 @@ LM Studio defaults to `http://127.0.0.1:1234` and uses its native local API endp
 
 - `GET /api/v1/models`
 - `POST /api/v1/chat`
+
+OpenRouter defaults to `https://openrouter.ai/api/v1` with `OPENROUTER_API_KEY`, lists models from `/models`, and sends chat requests to `/chat/completions` with Bearer auth, `X-OpenRouter-Title`, and optional `OPENROUTER_HTTP_REFERER` / `OPENROUTER_APP_TITLE` attribution overrides.
 
 ### `godotcoder ask <prompt>`
 

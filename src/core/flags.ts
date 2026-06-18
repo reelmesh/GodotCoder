@@ -7,7 +7,7 @@ export function readFlag(args: string[], flag: string): string | null {
 }
 
 export function parseProvider(value: string | null): ModelProviderKind | null {
-  if (value === "openai" || value === "anthropic" || value === "ollama" || value === "lmstudio" || value === "openai-compatible") {
+  if (value === "openai" || value === "anthropic" || value === "ollama" || value === "lmstudio" || value === "openrouter" || value === "openai-compatible") {
     return value;
   }
   return null;
@@ -18,6 +18,7 @@ export function defaultBaseUrl(provider: ModelProviderKind): string | null {
   if (provider === "anthropic") return "https://api.anthropic.com/v1";
   if (provider === "ollama") return "http://127.0.0.1:11434";
   if (provider === "lmstudio") return "http://127.0.0.1:1234";
+  if (provider === "openrouter") return "https://openrouter.ai/api/v1";
   return null;
 }
 
@@ -25,5 +26,6 @@ export function defaultApiKeyEnv(provider: ModelProviderKind): string | null {
   if (provider === "openai") return "OPENAI_API_KEY";
   if (provider === "anthropic") return "ANTHROPIC_API_KEY";
   if (provider === "lmstudio") return "LM_API_TOKEN";
+  if (provider === "openrouter") return "OPENROUTER_API_KEY";
   return null;
 }

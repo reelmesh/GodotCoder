@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { findGodotProjectRoot } from "../core/godot-project.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { writeModelConfig, type ModelConfig, type ModelProviderKind } from "../core/providers.js";
-import { defaultBaseUrl } from "../core/flags.js";
+import { defaultApiKeyEnv, defaultBaseUrl } from "../core/flags.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { writeRuntimeOverride } from "../core/runtime-overrides.js";
 import { loadSettings, setSetting, writeProviderSecret } from "../core/settings.js";
@@ -31,7 +31,7 @@ async function openSetupMenu(): Promise<void> {
       console.log("GodotCoder setup");
       const choice = await chooseMenuOption(rl, "Setup area", [
         { value: "runtime", label: "Godot runtime", description: "native, Flatpak, custom" },
-        { value: "model", label: "Model provider", description: "Ollama, LM Studio, cloud API" },
+        { value: "model", label: "Model provider", description: "Ollama, LM Studio, OpenRouter, cloud API" },
         { value: "auth", label: "Auth", description: "save/remove API key" },
         { value: "settings", label: "Preferences", description: "mode, approval, diffs" },
         { value: "doctor", label: "Status summary" },
@@ -69,6 +69,7 @@ async function setupModel(rl: Interface, projectRoot: string): Promise<void> {
   const provider = (await chooseMenuOption(rl, "Provider", [
     { value: "ollama", label: "Ollama", description: "local" },
     { value: "lmstudio", label: "LM Studio", description: "local" },
+    { value: "openrouter", label: "OpenRouter" },
     { value: "openai", label: "OpenAI" },
     { value: "anthropic", label: "Anthropic" },
     { value: "openai-compatible", label: "OpenAI-compatible" },
@@ -78,7 +79,7 @@ async function setupModel(rl: Interface, projectRoot: string): Promise<void> {
   if (!model) return;
   const defaultUrl = defaultBaseUrl(provider);
   const baseUrl = (await askMenuQuestion(rl, `Base URL (${defaultUrl ?? "required"}) ▸ `)).trim() || defaultUrl;
-  const apiKeyEnv = provider === "openai" ? "OPENAI_API_KEY" : provider === "anthropic" ? "ANTHROPIC_API_KEY" : null;
+  const apiKeyEnv = defaultApiKeyEnv(provider);
   const config: ModelConfig = { schemaVersion: 1, provider, model, baseUrl, apiKeyEnv };
   await writeModelConfig(projectRoot, config);
   console.log(`Saved model: ${provider}:${model}`);
@@ -88,6 +89,7 @@ async function setupAuth(rl: Interface, projectRoot: string): Promise<void> {
   const provider = (await chooseMenuOption(rl, "Provider", [
     { value: "openai", label: "OpenAI" },
     { value: "anthropic", label: "Anthropic" },
+    { value: "openrouter", label: "OpenRouter" },
     { value: "openai-compatible", label: "OpenAI-compatible" },
   ])) as ModelProviderKind | null;
   if (!provider) return;

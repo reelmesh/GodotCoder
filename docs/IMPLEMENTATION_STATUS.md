@@ -91,11 +91,12 @@ Core modules:
 - Workspace path management.
 - Godot-specific agent roster with ownership boundaries and gates.
 - Directed harness runner with orchestrator, scout, producer, designer, architect, gameplay engineer, QA validator, and docs librarian phases.
-- Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, Ollama, and LM Studio.
+- Provider layer for OpenAI-compatible APIs, OpenAI API, Anthropic API, OpenRouter, Ollama, and LM Studio.
 - Provider policy: GodotCoder uses the configured API/model exactly as provided; it does not load, download, unload, or manage local model lifecycle.
 - Official Godot docs source interface with `docs search`, `docs list`, `docs cache <doc-id>`, and `docs show <doc-id>`.
 - Official Godot docs cache writes raw HTML, extracted text, metadata, and short excerpts for retrieval beyond source summaries.
 - LM Studio provider defaults to `http://127.0.0.1:1234` and uses native local API endpoints: `GET /api/v1/models` and `POST /api/v1/chat`.
+- OpenRouter provider defaults to `https://openrouter.ai/api/v1`, uses `OPENROUTER_API_KEY`, lists models from `/models`, sends chat requests to `/chat/completions`, and includes `X-OpenRouter-Title` plus optional attribution overrides.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
 - Interactive menu-first settings UI in TTY sessions.
@@ -134,7 +135,7 @@ Core modules:
 - Brownfield safety rejects broad rewrites, large existing script replacement, large `project.godot` rewrites, deletion-like edits, and non-Godot-native generated content unless the task explicitly asks for a rewrite.
 - Task intent modes are supported through `--intent feature|fix|refactor|polish` and aliases `--feature`, `--fix`, `--refactor`, `--polish`.
 - Repeatable Node smoke test suite for project config mutation, deterministic repair, docs cache enrichment, open-ended game acceptance gates, and mock provider e2e flows.
-- Mock OpenAI-compatible provider e2e coverage for `models use`, `ask`, `build --preview` retry parsing, and harness fallback/model-failure artifacts.
+- Mock OpenAI-compatible and OpenRouter provider e2e coverage for `models use`, `ask`, endpoint/header behavior, `build --preview` retry parsing, and harness fallback/model-failure artifacts.
 - RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
 - `build.preview` RPC returns both raw preview data and a compact `previewSummary` for editor clients.
 - Stable RPC envelope shape: `{ ok, method, result, error, diagnostics }`.

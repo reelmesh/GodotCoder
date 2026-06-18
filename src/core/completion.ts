@@ -2,7 +2,7 @@ import { allCommandNames, sessionCommands } from "./session-commands.js";
 
 const commandNames = allCommandNames();
 
-const providerNames = ["openai", "anthropic", "ollama", "lmstudio", "openai-compatible"] as const;
+const providerNames = ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const;
 const modeNames = ["plan", "build"] as const;
 const approvalNames = ["preview", "auto-apply"] as const;
 const diffNames = ["compact", "full"] as const;

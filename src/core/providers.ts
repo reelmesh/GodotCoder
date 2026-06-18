@@ -6,7 +6,7 @@ import { asLiteral, asNullableString, asObject, asOneOf, asString } from "./sche
 import { getProviderApiKey } from "./settings.js";
 import { workspacePaths } from "./workspace.js";
 
-export type ModelProviderKind = "openai" | "anthropic" | "ollama" | "lmstudio" | "openai-compatible";
+export type ModelProviderKind = "openai" | "anthropic" | "ollama" | "lmstudio" | "openrouter" | "openai-compatible";
 
 export interface ModelConfig {
   schemaVersion: 1;
@@ -77,6 +77,9 @@ export async function completeWithModel(config: ModelConfig, messages: ModelMess
   if (config.provider === "lmstudio") {
     return completeLmStudio(config, messages, projectRoot ?? null);
   }
+  if (config.provider === "openrouter") {
+    return completeOpenRouter(config, messages, projectRoot ?? null);
+  }
   return completeOpenAICompatible(config, messages, projectRoot ?? null);
 }
 
@@ -96,7 +99,7 @@ export async function inspectProvider(config: ModelConfig | null, projectRoot?: 
 
   const diagnostics: string[] = [];
   const local = config.provider === "ollama" || config.provider === "lmstudio";
-  const keyRequired = config.provider === "openai" || config.provider === "anthropic" || (config.provider === "openai-compatible" && Boolean(config.apiKeyEnv));
+  const keyRequired = config.provider === "openai" || config.provider === "anthropic" || config.provider === "openrouter" || (config.provider === "openai-compatible" && Boolean(config.apiKeyEnv));
   const apiKey = await getProviderApiKey(projectRoot ?? null, config.provider, config.apiKeyEnv);
   if (keyRequired && !apiKey) {
     diagnostics.push(`Missing API key. Set ${config.apiKeyEnv ?? "provider key"} env or run auth login.`);
@@ -140,7 +143,7 @@ function parseModelConfig(value: unknown): ModelConfig {
   const root = asObject(value, "model config");
   return {
     schemaVersion: asLiteral(root.schemaVersion, 1, "model config schemaVersion"),
-    provider: asOneOf(root.provider, ["openai", "anthropic", "ollama", "lmstudio", "openai-compatible"], "model config provider"),
+    provider: asOneOf(root.provider, ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"], "model config provider"),
     model: asString(root.model, "model config model"),
     baseUrl: asNullableString(root.baseUrl, "model config baseUrl"),
     apiKeyEnv: asNullableString(root.apiKeyEnv, "model config apiKeyEnv"),
@@ -171,6 +174,9 @@ function configFromEnv(): ModelConfig | null {
   if (process.env.LMSTUDIO_MODEL) {
     return { schemaVersion: 1, provider: "lmstudio", model: process.env.LMSTUDIO_MODEL, baseUrl: process.env.LMSTUDIO_BASE_URL ?? defaultBaseUrl("lmstudio"), apiKeyEnv: "LM_API_TOKEN" };
   }
+  if (process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_MODEL) {
+    return { schemaVersion: 1, provider: "openrouter", model: process.env.OPENROUTER_MODEL, baseUrl: process.env.OPENROUTER_BASE_URL ?? defaultBaseUrl("openrouter"), apiKeyEnv: "OPENROUTER_API_KEY" };
+  }
   return null;
 }
 
@@ -179,6 +185,7 @@ function defaultBaseUrl(provider: ModelProviderKind): string | null {
   if (provider === "anthropic") return "https://api.anthropic.com/v1";
   if (provider === "ollama") return "http://127.0.0.1:11434";
   if (provider === "lmstudio") return "http://127.0.0.1:1234";
+  if (provider === "openrouter") return "https://openrouter.ai/api/v1";
   return process.env.GODOTCODER_BASE_URL ?? null;
 }
 
@@ -186,6 +193,7 @@ function defaultApiKeyEnv(provider: ModelProviderKind): string | null {
   if (provider === "openai") return "OPENAI_API_KEY";
   if (provider === "anthropic") return "ANTHROPIC_API_KEY";
   if (provider === "lmstudio") return "LM_API_TOKEN";
+  if (provider === "openrouter") return "OPENROUTER_API_KEY";
   return null;
 }
 
@@ -216,6 +224,25 @@ async function completeOpenAICompatible(config: ModelConfig, messages: ModelMess
   const first = asObject(choices[0], "chat response choice");
   const message = asObject(first.message, "chat response message");
   return { provider: config.provider, model: config.model, content: asString(message.content, "chat response content") };
+}
+
+async function completeOpenRouter(config: ModelConfig, messages: ModelMessage[], projectRoot: string | null): Promise<ModelReply> {
+  const baseUrl = config.baseUrl ?? defaultBaseUrl("openrouter");
+  const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv ?? "OPENROUTER_API_KEY");
+  if (!apiKey) {
+    throw new CliError("MODEL_CONFIG_MISSING", "Missing OpenRouter API key. Set OPENROUTER_API_KEY or run auth login.");
+  }
+
+  const response = await fetchJson(`${trimSlash(baseUrl!)}/chat/completions`, {
+    method: "POST",
+    headers: openRouterHeaders(apiKey),
+    body: JSON.stringify({ model: config.model, messages, temperature: 0.2 }),
+  });
+  const root = asObject(response, "OpenRouter chat response");
+  const choices = Array.isArray(root.choices) ? root.choices : [];
+  const first = asObject(choices[0], "OpenRouter chat response choice");
+  const message = asObject(first.message, "OpenRouter chat response message");
+  return { provider: config.provider, model: config.model, content: asString(message.content, "OpenRouter chat response content") };
 }
 
 async function completeAnthropic(config: ModelConfig, messages: ModelMessage[], projectRoot: string | null): Promise<ModelReply> {
@@ -284,6 +311,11 @@ async function listModels(config: ModelConfig, projectRoot: string | null): Prom
     if (apiKey) headers.authorization = `Bearer ${apiKey}`;
     return extractModelIds(await fetchJson(`${lmStudioBaseUrl(config.baseUrl ?? defaultBaseUrl("lmstudio")!)}/api/v1/models`, { headers }), "LM Studio models response");
   }
+  if (config.provider === "openrouter") {
+    const apiKey = await getProviderApiKey(projectRoot, config.provider, config.apiKeyEnv ?? "OPENROUTER_API_KEY");
+    const headers = openRouterHeaders(apiKey);
+    return extractModelIds(await fetchJson(`${trimSlash(config.baseUrl ?? defaultBaseUrl("openrouter")!)}/models`, { headers }), "OpenRouter models response");
+  }
   const baseUrl = config.baseUrl ?? defaultBaseUrl(config.provider);
   if (!baseUrl) return [];
   const headers: Record<string, string> = {};
@@ -291,6 +323,20 @@ async function listModels(config: ModelConfig, projectRoot: string | null): Prom
   if (apiKey) headers.authorization = `Bearer ${apiKey}`;
   const root = asObject(await fetchJson(`${trimSlash(baseUrl)}/models`, { headers }), "models response");
   return extractModelIds(root, "models response");
+}
+
+function openRouterHeaders(apiKey: string | null): Record<string, string> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-openrouter-title": process.env.OPENROUTER_APP_TITLE ?? "GodotCoder",
+  };
+  if (process.env.OPENROUTER_HTTP_REFERER) {
+    headers["http-referer"] = process.env.OPENROUTER_HTTP_REFERER;
+  }
+  if (apiKey) {
+    headers.authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
 }
 
 function extractChatContent(value: unknown, label: string): string {

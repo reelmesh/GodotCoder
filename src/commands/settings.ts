@@ -79,6 +79,7 @@ async function openSettingsMenu(): Promise<boolean> {
           ["anthropic", "Anthropic API"],
           ["ollama", "Ollama local"],
           ["lmstudio", "LM Studio local"],
+          ["openrouter", "OpenRouter API"],
           ["openai-compatible", "Custom OpenAI-compatible API"],
         ]);
       } else if (choice === "showDiffs") {
@@ -188,7 +189,7 @@ function printSettingsHelp(): void {
   console.log("Settings commands");
   console.log("  godotcoder settings default-mode plan|build");
   console.log("  godotcoder settings approval-mode preview|auto-apply");
-  console.log("  godotcoder settings provider openai|anthropic|ollama|lmstudio|openai-compatible");
+  console.log("  godotcoder settings provider openai|anthropic|ollama|lmstudio|openrouter|openai-compatible");
   console.log("  godotcoder settings diffs compact|full");
   console.log("  godotcoder settings set <defaultMode|approvalMode|preferredProvider|showDiffs> <value>");
 }

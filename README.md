@@ -342,6 +342,10 @@ node /path/to/GodotCoder/dist/cli.js auth login --provider openai --api-key sk-.
 node /path/to/GodotCoder/dist/cli.js models use --provider anthropic --model your-model --api-key-env ANTHROPIC_API_KEY
 node /path/to/GodotCoder/dist/cli.js auth login --provider anthropic --api-key sk-ant-...
 
+# OpenRouter API
+node /path/to/GodotCoder/dist/cli.js models use --provider openrouter --model openai/gpt-4o-mini
+node /path/to/GodotCoder/dist/cli.js auth login --provider openrouter --api-key sk-or-...
+
 # Any OpenAI-compatible API
 node /path/to/GodotCoder/dist/cli.js models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
 ```
@@ -410,6 +414,7 @@ node /path/to/GodotCoder/dist/cli.js auth logout --provider openai
 
 Auth stores API keys in `.godotcoder.local/secrets.json`, ignored by git. Environment variables still win over local secrets when both exist.
 For LM Studio servers with authentication enabled, use `LM_API_TOKEN` or `auth login --provider lmstudio`. GodotCoder defaults LM Studio to `http://127.0.0.1:1234` and calls `/api/v1/models` plus `/api/v1/chat`.
+For OpenRouter, use `OPENROUTER_API_KEY` or `auth login --provider openrouter`. GodotCoder defaults OpenRouter to `https://openrouter.ai/api/v1`, calls `/models` and `/chat/completions` below that base URL, sends `X-OpenRouter-Title: GodotCoder`, and honors optional `OPENROUTER_HTTP_REFERER` / `OPENROUTER_APP_TITLE` overrides.
 
 Applied build runs record changes under:
 
@@ -544,7 +549,7 @@ src/
     flags.ts                Shared flag parsing + provider defaults
     session-commands.ts     Single source of truth for all 29 slash commands
     completion.ts           Tab completion (derives from session-commands)
-    providers.ts            LLM provider layer (OpenAI, Anthropic, Ollama, LM Studio)
+    providers.ts            LLM provider layer (OpenAI, Anthropic, Ollama, LM Studio, OpenRouter)
     harness.ts              BMAD-style multi-agent workflow runner
     repair.ts               Deterministic validation repair + Godot 3→4 migration
     validation.ts           Godot headless validation (run, smoke, export)
