@@ -91,6 +91,10 @@
     <a href="#docs-search">Godot Docs Search</a>
   </div>
   <div class="section">
+    <div class="section-title">FAQ</div>
+    <a href="FAQ.md">Common Questions</a>
+  </div>
+  <div class="section">
     <div class="section-title">Plugin</div>
     <a href="#plugin-overview">Overview</a>
     <a href="#plugin-actions">Dock Actions</a>
@@ -114,6 +118,7 @@
   <a href="#quickstart" class="toc-card"><h3>🚀 Quickstart</h3><p>60 seconds to your first playable prototype</p></a>
   <a href="#commands" class="toc-card"><h3>📋 Command Reference</h3><p>Every command, flag, and alias</p></a>
   <a href="#recipes" class="toc-card"><h3>📖 Recipes</h3><p>Step-by-step workflows for common tasks</p></a>
+  <a href="FAQ.md" class="toc-card"><h3>❓ FAQ</h3><p>Common answers on tasks, playtests, and providers</p></a>
   <a href="#plugin-overview" class="toc-card"><h3>🔌 Editor Plugin</h3><p>Godot editor integration guide</p></a>
   <a href="#rpc" class="toc-card"><h3>🔧 RPC API</h3><p>JSON envelopes for scripting and integration</p></a>
   <a href="#arch-overview" class="toc-card"><h3>🏗 Architecture</h3><p>Source layout, design, agent roles</p></a>
@@ -131,7 +136,7 @@ node dist/cli.js --help</code></pre>
 <p><strong>Requirements</strong>: Node.js ≥22.19, Godot 4.3+ (native or Flatpak), Linux.</p>
 
 <p>Run tests:</p>
-<pre><code>npm run test:smoke          # Build + 55 tests
+<pre><code>npm run test:smoke          # Build + 71 tests
 tsx --test test/schema.test.ts         # Schema validators only
 tsx --test test/godot-config-parser.test.ts  # Config parser
 tsx --test test/repair-migrations.test.ts    # Godot 3→4 migrations</code></pre>
@@ -257,7 +262,7 @@ node dist/cli.js workflow [status|init] [--json]</code></pre>
 <pre><code>mkdir ~/my-game && cd ~/my-game</code></pre></div>
 <div class="step"><strong>Step 2 — Plan the game</strong>
 <pre><code>node ~/GodotCoder/dist/cli.js plan "make a bullet heaven survivor game"</code></pre>
-<p>Writes <code>.godotcoder/brief.md</code>, <code>gdd.md</code>, <code>technical-plan.md</code>, <code>tasks.md</code>.</p></div>
+<p>Writes <code>.godotcoder/brief.md</code>, <code>gdd.md</code>, <code>technical-plan.md</code>, <code>tasks.md</code>, and <code>tasks.json</code>.</p></div>
 <div class="step"><strong>Step 3 — Build first playable slice</strong>
 <pre><code>node ~/GodotCoder/dist/cli.js pipeline "make a bullet heaven survivor game" --play</code></pre>
 <p>Builds project, validates, launches in Godot.</p></div>
@@ -815,9 +820,10 @@ node dist/cli.js docs list --json</code></pre>
 cd GodotCoder
 npm install
 npm run build
-npm run test:smoke    # Verify: 55 tests pass</code></pre>
+npm run test:smoke    # Verify: 71 tests pass</code></pre>
 
 <p><strong>Requirements</strong>: Node.js ≥22.19, npm, Godot 4.3+ (native or Flatpak), Linux. TypeScript 5.9 with strict mode enabled.</p>
+<p>FAQ: <a href="FAQ.md">common questions and workflows</a>.</p>
 
 <p style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border); color:var(--dim); font-size:0.85rem">
   GodotCoder · CLI-first AI development agent for Godot · <a href="https://github.com/reelmesh/GodotCoder">GitHub</a>

@@ -422,6 +422,7 @@ The previous slices have been fully implemented:
 - [x] **Custom Workflows**: Added `/workflow` (or `godotcoder workflow`) command and a workspace skill to initialize and customize templates.
 - [x] **Godot Editor Plugin Integration**: Created a valid Godot Editor Plugin in `addons/godotcoder/` and successfully enabled it.
 - [x] **Automated Runtime Playtesting**: Implemented a dry-run playtesting tool (`godotcoder playtest` or `play --test`) that plays the generated game headlessly for 5 seconds with random input simulation.
+- [x] **Task Board Iteration Loop**: Added `godotcoder tasks` plus structured `.godotcoder/tasks.json` state, markdown synchronization, status counts, and build linkage back to patch/validation records.
 - [x] **Interactive Repair UX**: Developed `repair list`, `repair diff`, and `repair undo/revert` commands to view history/diffs and safely restore original file states.
 - [x] **Structured JSON Output Enhancements**: Incorporated newline string repair prior to JSON parsing.
 
@@ -491,12 +492,12 @@ Full codebase review of 36 source files (~5,500 lines). Found 9 issues. All fixe
 - **Command registry**: Created `src/core/session-commands.ts` as single source of truth for all 29 slash commands with aliases, flags, and descriptions. `completion.ts` now derives command names and flag completion from registry instead of hardcoded maps.
 - **Split godot-project.ts**: Separated 555-line monolith into `godot-config-parser.ts` (INI parser/serializer), `godot-project-indexer.ts` (discovery/walk/inspect), and `godot-setting-editor.ts` (safe mutation). Original file is now a 30-line barrel.
 - **TypeScript strictness**: Enabled `noUnusedLocals` and `noUnusedParameters` in tsconfig.json. Removed 5 dead declarations (unused imports, dead functions, dead variables).
-- **Tests added**: 55 unit tests across 3 suites (schema validators, config parser, Godot 3→4 migration). The current smoke suite has since grown to 63 tests covering brownfield, export, and visual validation additions.
+- **Tests added**: 55 unit tests across 3 suites (schema validators, config parser, Godot 3→4 migration). The current smoke suite has since grown to 71 tests covering brownfield, export, visual validation, playtest heuristics, and task-board state/linking additions.
 
 Build verification:
 
 ```bash
 npm run check  # clean, no unused locals
 npm run build
-npm run test:smoke  # 63 tests, 0 failures
+npm run test:smoke  # 71 tests, 0 failures
 ```

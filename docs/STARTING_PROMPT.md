@@ -55,7 +55,7 @@ Operating principles:
 9. Maintain project artifacts as the product evolves: brief, GDD, technical plan, task list, decisions, risks.
 10. After implementation, verify with tests, type checks, Godot checks, or a clear manual validation path.
 11. Treat Linux and Flatpak behavior as product requirements: command invocation, filesystem access, logs, permissions, and runtime detection must be deliberate.
-12. Treat workspace artifacts as first-class product state: brief, GDD, tasks, decisions, risk log, runtime profile, index, sessions, and patches.
+12. Treat workspace artifacts as first-class product state: brief, GDD, tasks, task-state JSON, decisions, risk log, runtime profile, playtests, index, sessions, and patches.
 13. Design the CLI with an integration-ready interface so a Godot plugin can pass selected-node context, current scene, open script, console output, and editor events.
 14. Enforce Godot-only generation for game project edits unless an explicit project-level exception is approved and recorded.
 15. Prefer Godot-backed validation over generic assumptions whenever the installed runtime can check the project.
@@ -94,6 +94,7 @@ Agent modes to support eventually:
 - /debug: ingest errors and propose root-cause fixes.
 - /review: audit architecture, code, scenes, risks, and tests.
 - /runtime: inspect Godot installation, Flatpak access, logs, version, and validation commands.
+- /tasks: list, show, and update structured task-board state with artifact links.
 
 Initial CLI commands to consider:
 - `godotcoder init`

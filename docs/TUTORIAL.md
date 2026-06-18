@@ -193,6 +193,7 @@ brief.md              # One-paragraph pitch
 gdd.md                # Game design document
 technical-plan.md     # Architecture decisions
 tasks.md              # Implementation checklist
+tasks.json            # Structured task state
 decisions.md          # Recorded trade-offs
 risk-log.md           # Known risks
 ```

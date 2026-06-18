@@ -298,6 +298,7 @@ Store these in a project-owned folder, for example `.godotcoder/`:
 - `gdd.md`
 - `technical-plan.md`
 - `tasks.md`
+- `tasks.json`
 - `decisions.md`
 - `risk-log.md`
 - `agent-memory.json`
@@ -310,7 +311,7 @@ GodotCoder should use a modern workspace model centered on the Godot project dir
 
 Workspace behavior:
 - `godotcoder init` creates `.godotcoder/` in the current Godot project.
-- The workspace stores durable planning artifacts, agent state, task state, decisions, runtime profile, and cached project index.
+- The workspace stores durable planning artifacts, agent state, task state, decisions, runtime profile, playtest records, and cached project index.
 - Commands operate relative to the workspace root.
 - The workspace can be inspected with `godotcoder status`.
 - The workspace should be portable with the project, except for personal secrets and local machine paths.
@@ -324,6 +325,7 @@ Suggested layout:
   gdd.md
   technical-plan.md
   tasks.md
+  tasks.json
   decisions.md
   risk-log.md
   runtime-profile.json
@@ -333,6 +335,7 @@ Suggested layout:
   patches/
   logs/
   cache/
+  playtests/
 ```
 
 Suggested local-only layout:
@@ -614,6 +617,7 @@ Commit project/team artifacts:
 - `.godotcoder/gdd.md`
 - `.godotcoder/technical-plan.md`
 - `.godotcoder/tasks.md`
+- `.godotcoder/tasks.json`
 - `.godotcoder/decisions.md`
 - `.godotcoder/risk-log.md`
 - `.godotcoder/runtime-profile.json`
@@ -622,6 +626,7 @@ Keep local or generated artifacts out of version control by default:
 - `.godotcoder/cache/`
 - `.godotcoder/logs/`
 - `.godotcoder/sessions/`
+- `.godotcoder/playtests/`
 - `.godotcoder.local/`
 
 Treat `.godotcoder/patches/` as optional: useful for audit trails, but not required for MVP commits.
