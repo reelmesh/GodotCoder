@@ -2,7 +2,7 @@
 
 GodotCoder is an LLM-driven CLI agent and Godot editor plugin for building Godot games. It uses configured language models to generate complete playable game code through preview/apply boundaries, automated validation, and deterministic repair.
 
-All game code generation is LLM-driven. There are no genre templates or recipe pickers — describe any game idea and the configured model generates a first playable vertical slice. GodotCoder provides the scaffolding, planning artifacts, patch records, validation, and repair loop around the model output.
+All game code generation is LLM-driven. There are no genre templates or recipe pickers — describe any game idea and the configured model generates a first playable vertical slice. GodotCoder provides the scaffolding, planning artifacts, task board, patch records, validation, playtests, and repair loop around the model output.
 
 ## Current Status
 
@@ -27,6 +27,7 @@ This repository currently contains the first implementation slice:
 - First playable prototype build: `godotcoder build`
 - End-to-end playable pipeline: `godotcoder pipeline <game idea>`
 - Godot launch helper: `godotcoder play` (and playtesting: `godotcoder playtest` or `play --test`)
+- Task board workflow: `godotcoder tasks` and `godotcoder build --task <id>`
 - Editor-integration JSON envelope: `godotcoder rpc <method>`
 
 Model-backed code generation is the only code generation path. All writes go through LLM generation, preview/apply boundaries, path validation, patch records, and optional Godot validation.
@@ -123,6 +124,7 @@ Available slash commands:
 /harness <goal>
 /run <goal>
 /runs
+/tasks
 /status
 /runtime doctor
 /runtime use <cmd>
@@ -532,6 +534,7 @@ Durable project artifacts:
   agent-memory.json
   runs/
   model-failures/
+  playtests/
   cache/docs/context.json
 ```
 
@@ -567,7 +570,7 @@ src/
     godot-setting-editor.ts Safe project.godot mutation helpers
     godot-project.ts        Barrel re-export of the three modules above
     flags.ts                Shared flag parsing + provider defaults
-    session-commands.ts     Single source of truth for all 29 slash commands
+    session-commands.ts     Single source of truth for all 32 slash commands
     completion.ts           Tab completion (derives from session-commands)
     providers.ts            LLM provider layer (OpenAI, Anthropic, Ollama, LM Studio, OpenRouter)
     harness.ts              BMAD-style multi-agent workflow runner
@@ -585,6 +588,7 @@ src/
 
 - [HTML Documentation](docs/index.html) — complete navigable reference (open in browser)
 - [Tutorial & Examples](docs/TUTORIAL.md) — step-by-step from zero to playable game
+- [FAQ](docs/FAQ.md) — quick answers for tasks, playtests, providers, and commit policy
 - [Product Requirements](docs/PRD.md)
 - [Technical Design](docs/TECHNICAL_DESIGN.md)
 - [Starting Prompt](docs/STARTING_PROMPT.md)
@@ -595,8 +599,6 @@ src/
 
 Next implementation slices:
 
-1. Stronger LLM agent prompts and acceptance gates for open-ended game synthesis.
-2. Safe project.godot mutation helpers for input maps and project settings.
-3. Expand official Godot documentation retrieval beyond source metadata.
-4. Godot editor integration prototype using subprocess JSON.
-5. Schema guards for change records and validation reports.
+1. Model quality and routing: provider/model failure tracking, optional planning/build/review roles, retry improvements, and repeatable eval prompts.
+2. Expand editor-facing summaries for task, playtest, and validation history.
+3. Add more project-inspection and validation helpers for larger brownfield projects.
