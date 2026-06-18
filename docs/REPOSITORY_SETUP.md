@@ -22,14 +22,13 @@ Do not commit:
 - `source_projects/pi/`
 - `source_projects/gamedev_ai/`
 - `source_projects/bmad-method-instalation/`
-- Nested reference repository metadata such as `opencode/.git/`
 - `.godotcoder/cache/`
 - `.godotcoder/logs/`
 - `.godotcoder/sessions/`
 - `.godotcoder/playtests/`
 - `.godotcoder.local/`
 
-`source_projects/` and `opencode/` contain reference material and third-party codebases. Only commit them intentionally when they are needed as project references, and never commit nested `.git/` directories.
+`source_projects/` contains reference material and third-party codebases. Only commit them intentionally when they are needed as project references, and never commit nested `.git/` directories.
 
 The durable task board now keeps both the human-readable checklist and structured state. Commit `.godotcoder/tasks.md` and `.godotcoder/tasks.json` together when task state changes are part of the intended project history.
 

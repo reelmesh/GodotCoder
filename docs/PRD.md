@@ -286,7 +286,6 @@ The product should synthesize these projects rather than clone any one of them. 
 - `source_projects/gamedev_ai`: Godot plugin patterns, watch mode, diffs, context management, Godot skill docs.
 - `source_projects/pi/packages/ai`: provider abstraction, tool-calling, streaming, model registry, context persistence.
 - `source_projects/bmad-method-instalation`: planning artifacts and agent role inspiration.
-- `opencode`: terminal-agent UX, CLI ergonomics, configuration, packaging, and interactive session reference.
 - Official Godot public documentation: primary versioned source for Godot API behavior, editor concepts, command-line usage, exports, class references, tutorials, and examples.
 - `docs/TECHNICAL_DESIGN.md`: implementation architecture, workspace schemas, subprocess JSON protocol, validation ladder, patch lifecycle, runtime discovery, and first build slices.
 

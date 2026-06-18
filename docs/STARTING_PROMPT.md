@@ -37,7 +37,6 @@ Current workspace:
   - Pi Coding Agent, found under source_projects/pi: model/provider abstraction, coding-agent loop, streaming, tool calling, context persistence, model registry, OAuth/API key handling.
   - BMAD Methodology, found under source_projects/bmad-method-instalation: staged planning artifacts, specialist roles, task decomposition, acceptance criteria, delivery discipline.
   - Existing Godot AI plugin, found under source_projects/gamedev_ai: Godot editor integration, project context, diff application, watch/debug mode, scene/script awareness, Godot-specific skills.
-  - OpenCode, found under opencode: interactive terminal-agent UX, command ergonomics, configuration, packaging, and developer experience reference.
 - Product source of truth:
   - docs/PRD.md
   - docs/TECHNICAL_DESIGN.md

@@ -2,7 +2,6 @@
 node_modules/
 dist/
 source_projects/
-opencode/.git/
 /project.godot
 /scenes/
 /scripts/
@@ -12,4 +11,5 @@ opencode/.git/
 .godotcoder/logs/
 .godotcoder/sessions/
 .godotcoder.local/
+playtests/
 
