@@ -2,7 +2,7 @@
 
 Date: 2026-06-18
 
-## Recent Implementation Arc: Validation, Brownfield Safety, Export Readiness
+## Recent Implementation Arc: Validation, Brownfield Safety, Export Readiness, Editor UX
 
 Implemented and verified the next confidence-building arc:
 
@@ -26,6 +26,11 @@ Implemented and verified the next confidence-building arc:
   - `export preset linux` is preview-first and prints the exact starter Linux preset text before writing; it only writes `export_presets.cfg` with `--apply`.
   - `status` now surfaces export readiness and preset count.
   - `validate --export` reports include `exportReadiness` so future build/repair prompts can reference export facts.
+- Editor plugin review/apply UX
+  - Adds CLI-owned RPC methods for `build.apply`, `build.reject`, and `editor.summary`.
+  - Adds pending preview state, Apply, Reject, and Summaries controls to the Godot dock.
+  - Shows latest validation, visual validation, and repair artifact summaries without reading workspace files from GDScript.
+  - Keeps the plugin thin: it captures context, invokes CLI/RPC commands, stores UI history, and displays envelopes.
 
 Verification for this arc:
 
@@ -35,7 +40,7 @@ npm run build
 npm run test:smoke
 ```
 
-All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, existing parser/repair/schema tests, and RPC/provider smoke coverage.
+All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, editor RPC summaries/reject acknowledgements, existing parser/repair/schema tests, and RPC/provider smoke coverage.
 
 ## Implemented
 
@@ -138,6 +143,7 @@ Core modules:
 - Mock OpenAI-compatible and OpenRouter provider e2e coverage for `models use`, `ask`, endpoint/header behavior, `build --preview` retry parsing, and harness fallback/model-failure artifacts.
 - RPC-style JSON command for editor integration prep: `workspace.status`, `workspace.changes`, `project.inspect`, `runtime.doctor`, `validation.run`, `validation.scene`, `docs.search`, `build.preview`, `debug.current`, `editor.context`, and `editor.explain`.
 - `build.preview` RPC returns both raw preview data and a compact `previewSummary` for editor clients.
+- Editor review RPCs include `build.apply`, `build.reject`, and `editor.summary`; the Godot dock keeps pending preview state but delegates apply/reject and artifact summaries back to the CLI.
 - Stable RPC envelope shape: `{ ok, method, result, error, diagnostics }`.
 - Build preview mode before applying generated files.
 - Compact line diffs in build previews, including unchanged-file detection.
@@ -454,18 +460,18 @@ Automated smoke suite verified:
 npm run test:smoke
 ```
 
-The suite covers the project config mutation helper, missing scene/resource repair, Godot 3 migration repair, docs cache/context enrichment, open-ended game acceptance gates, OpenAI-compatible mock provider calls, LLM build retry parsing, model-failure fallback records, and RPC success/error envelopes.
+The suite covers the project config mutation helper, missing scene/resource repair, Godot 3 migration repair, docs cache/context enrichment, open-ended game acceptance gates, OpenAI-compatible mock provider calls, LLM build retry parsing, model-failure fallback records, editor RPC summaries/reject acknowledgements, and RPC success/error envelopes.
 
 ## Next Slice
 
-Recommended next: editor plugin review/apply UX.
+Recommended next: playtest intelligence.
 
-The visual validation, brownfield safety, and Linux export preset automation slices are complete. The next useful product slice is to keep the Godot editor plugin thin while adding:
+The visual validation, brownfield safety, Linux export preset automation, and editor plugin UX slices are complete. The next useful product slice is to expand `godotcoder playtest` with:
 
-- clearer pending-build summaries,
-- Apply and Reject buttons that call the CLI/RPC path,
-- latest validation/repair/visual summaries in the dock,
-- a quick `Debug last runtime error` action using `debug.current`.
+- a short input simulation timeline,
+- captured logs and visual validation artifacts,
+- heuristic interactivity signals such as input handling, frame processing, text/objective changes, restart/fail paths, or scene state changes,
+- playtest summaries that future repair/build prompts can reference.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 

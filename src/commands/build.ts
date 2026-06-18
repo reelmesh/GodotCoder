@@ -7,6 +7,19 @@ import { validateProjectRoot } from "./validate.js";
 import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
 import { previewGeneratedFiles } from "../core/preview.js";
 import { detectBrownfieldProject, inferTaskIntent, isTaskIntentFlag, parseTaskIntent } from "../core/brownfield.js";
+import type { TaskIntent } from "../core/brownfield.js";
+
+export interface BuildApplyPayload {
+  ok: boolean;
+  source: "llm";
+  scaffold: Awaited<ReturnType<typeof ensureGreenfieldGodotProject>>;
+  brownfield: ReturnType<typeof detectBrownfieldProject>;
+  intent: TaskIntent;
+  result: Awaited<ReturnType<typeof applyLlmBuild>>;
+  changeRecord: Awaited<ReturnType<typeof writeChangeRecord>>;
+  validationReport: Awaited<ReturnType<typeof validateProjectRoot>>["report"] | null;
+  validationReportPath: string | null;
+}
 
 export async function buildProject(args: string[]): Promise<void> {
   const json = args.includes("--json");
@@ -21,12 +34,43 @@ export async function buildProject(args: string[]): Promise<void> {
     return;
   }
 
+  const taskIntent = intent ?? inferTaskIntent(prompt);
+  if (apply && !preview) {
+    const payload = await applyBuildTask(prompt || "build first playable", { shouldValidate, intent: taskIntent });
+
+    if (json) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else {
+      if (payload.scaffold.createdProjectFile) {
+        console.log("No project.godot found. Created a minimal greenfield Godot project.");
+      }
+      if (payload.brownfield.isBrownfield) {
+        console.log(`Brownfield safety: ${payload.result.brownfieldSafety?.findings.length ?? 0} findings.`);
+      }
+      console.log(payload.result.summary);
+      for (const file of payload.result.filesWritten) {
+        console.log(`Wrote ${file}`);
+      }
+      console.log(`Recorded change: .godotcoder/patches/${payload.changeRecord.id}/record.json`);
+      if (payload.validationReport) {
+        console.log("Godot validation");
+        console.log(`Report: ${payload.validationReportPath}`);
+        console.log(`Exit code: ${payload.validationReport.exitCode ?? "not run"}`);
+        console.log(`Errors: ${payload.validationReport.summary.errors}`);
+        console.log(`Warnings: ${payload.validationReport.summary.warnings}`);
+        for (const finding of payload.validationReport.findings) {
+          console.log(`${finding.severity.toUpperCase()}: ${finding.message}`);
+        }
+      }
+    }
+    return;
+  }
+
   const existingRoot = await tryFindGodotProjectRoot(process.cwd());
   const projectRoot = existingRoot ?? process.cwd();
   const scaffold = await ensureGreenfieldGodotProject(projectRoot, prompt || "GodotCoder Game");
   const projectIndex = await inspectGodotProject(projectRoot);
   const brownfield = detectBrownfieldProject(projectIndex, scaffold.createdProjectFile);
-  const taskIntent = intent ?? inferTaskIntent(prompt);
 
   const modelConfig = await loadModelConfig(projectRoot);
   if (!modelConfig) {
@@ -55,7 +99,26 @@ export async function buildProject(args: string[]): Promise<void> {
     console.log("Apply with: godotcoder build <task> --apply, or /apply in the interactive shell.");
     return;
   }
+}
 
+export async function applyBuildTask(prompt: string, options: { shouldValidate?: boolean; intent?: TaskIntent | null } = {}): Promise<BuildApplyPayload> {
+  const existingRoot = await tryFindGodotProjectRoot(process.cwd());
+  const projectRoot = existingRoot ?? process.cwd();
+  const scaffold = await ensureGreenfieldGodotProject(projectRoot, prompt || "GodotCoder Game");
+  const projectIndex = await inspectGodotProject(projectRoot);
+  const brownfield = detectBrownfieldProject(projectIndex, scaffold.createdProjectFile);
+  const taskIntent = options.intent ?? inferTaskIntent(prompt);
+  const shouldValidate = options.shouldValidate ?? true;
+
+  const modelConfig = await loadModelConfig(projectRoot);
+  if (!modelConfig) {
+    throw new CliError("MODEL_CONFIG_MISSING", "No model provider configured. GodotCoder is LLM-driven — configure a provider first:\n  godotcoder models use --provider ollama --model llama3.1");
+  }
+
+  const plan = await generateLlmBuild(projectRoot, prompt || "build requested game feature", {
+    intent: taskIntent,
+    brownfieldProfile: brownfield,
+  });
   const result = await applyLlmBuild(projectRoot, plan, {
     prompt: prompt || "build first playable",
     intent: taskIntent,
@@ -70,8 +133,8 @@ export async function buildProject(args: string[]): Promise<void> {
     validationIds: [],
   });
 
-  let validationReport = null;
-  let validationReportPath = null;
+  let validationReport: BuildApplyPayload["validationReport"] = null;
+  let validationReportPath: string | null = null;
   if (shouldValidate) {
     const validation = await validateProjectRoot(projectRoot);
     validationReport = validation.report;
@@ -79,31 +142,17 @@ export async function buildProject(args: string[]): Promise<void> {
     changeRecord = await updateChangeRecordValidation(projectRoot, changeRecord, validationReport.id);
   }
 
-  if (json) {
-    console.log(JSON.stringify({ ok: validationReport ? validationReport.summary.errors === 0 : true, source: "llm", scaffold, brownfield, intent: taskIntent, result, changeRecord, validationReport, validationReportPath }, null, 2));
-  } else {
-    if (scaffold.createdProjectFile) {
-      console.log("No project.godot found. Created a minimal greenfield Godot project.");
-    }
-    if (brownfield.isBrownfield) {
-      console.log(`Brownfield safety: ${result.brownfieldSafety?.findings.length ?? 0} findings.`);
-    }
-    console.log(result.summary);
-    for (const file of result.filesWritten) {
-      console.log(`Wrote ${file}`);
-    }
-    console.log(`Recorded change: .godotcoder/patches/${changeRecord.id}/record.json`);
-    if (validationReport) {
-      console.log("Godot validation");
-      console.log(`Report: ${validationReportPath}`);
-      console.log(`Exit code: ${validationReport.exitCode ?? "not run"}`);
-      console.log(`Errors: ${validationReport.summary.errors}`);
-      console.log(`Warnings: ${validationReport.summary.warnings}`);
-      for (const finding of validationReport.findings) {
-        console.log(`${finding.severity.toUpperCase()}: ${finding.message}`);
-      }
-    }
-  }
+  return {
+    ok: validationReport ? validationReport.summary.errors === 0 : true,
+    source: "llm",
+    scaffold,
+    brownfield,
+    intent: taskIntent,
+    result,
+    changeRecord,
+    validationReport,
+    validationReportPath,
+  };
 }
 
 function isBuildFlag(arg: string, previous: string | undefined): boolean {

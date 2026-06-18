@@ -14,7 +14,10 @@ const RPC_METHODS := [
 	"validation.scene",
 	"docs.search",
 	"build.preview",
+	"build.apply",
+	"build.reject",
 	"debug.current",
+	"editor.summary",
 	"editor.context",
 	"editor.explain",
 ]
@@ -25,6 +28,7 @@ var status_view: Label
 var output_view: TextEdit
 var stderr_view: TextEdit
 var context_view: TextEdit
+var summary_view: TextEdit
 var history_view: TextEdit
 var history_picker: OptionButton
 var query_field: LineEdit
@@ -33,6 +37,9 @@ var error_field: TextEdit
 var command_field: LineEdit
 var history: Array = []
 var debugger_plugin: GodotCoderDebuggerPlugin
+var pending_preview_prompt := ""
+var pending_preview_summary := {}
+var pending_preview_context: Variant = null
 
 func _enter_tree() -> void:
 	_ensure_storage_dir()
@@ -77,6 +84,12 @@ func _build_dock() -> void:
 	status_view.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dock.add_child(status_view)
 
+	summary_view = TextEdit.new()
+	summary_view.editable = false
+	summary_view.custom_minimum_size = Vector2(0, 90)
+	summary_view.placeholder_text = "Latest validation, repair, and pending build summaries"
+	dock.add_child(summary_view)
+
 	query_field = LineEdit.new()
 	query_field.placeholder_text = "docs.search query"
 	dock.add_child(query_field)
@@ -100,6 +113,9 @@ func _build_dock() -> void:
 	buttons.add_child(_make_button("Review", "_on_review_pressed"))
 	buttons.add_child(_make_button("Debug", "_on_debug_pressed"))
 	buttons.add_child(_make_button("Preview", "_on_preview_pressed"))
+	buttons.add_child(_make_button("Apply", "_on_apply_pressed"))
+	buttons.add_child(_make_button("Reject", "_on_reject_pressed"))
+	buttons.add_child(_make_button("Summaries", "_on_summary_pressed"))
 	buttons.add_child(_make_button("Replay Last", "_on_replay_last_pressed"))
 	buttons.add_child(_make_button("Replay Selected", "_on_replay_selected_pressed"))
 	buttons.add_child(_make_button("Clear", "_on_clear_pressed"))
@@ -155,6 +171,7 @@ func _on_inspect_pressed() -> void:
 
 func _on_validate_pressed() -> void:
 	_run_rpc("validation.run")
+	_run_rpc("editor.summary")
 
 func _on_scene_pressed() -> void:
 	_run_rpc("validation.scene")
@@ -169,7 +186,39 @@ func _on_debug_pressed() -> void:
 	_run_rpc("debug.current", PackedStringArray(["--error", error_field.text]))
 
 func _on_preview_pressed() -> void:
-	_run_rpc("build.preview", PackedStringArray(["--prompt", prompt_field.text]))
+	var prompt := prompt_field.text.strip_edges()
+	var envelope := _run_rpc("build.preview", PackedStringArray(["--prompt", prompt]))
+	if bool(envelope.get("ok", false)):
+		var result = envelope.get("result", {})
+		if typeof(result) == TYPE_DICTIONARY:
+			pending_preview_prompt = prompt
+			pending_preview_summary = result.get("previewSummary", {})
+			pending_preview_context = result.get("editorContext", _capture_editor_context())
+			_refresh_pending_summary()
+
+func _on_apply_pressed() -> void:
+	if pending_preview_prompt.strip_edges().is_empty():
+		output_view.text = "No pending build preview to apply."
+		status_view.text = "Preview a build before applying."
+		return
+	var envelope := _run_rpc("build.apply", PackedStringArray(["--prompt", pending_preview_prompt]), pending_preview_context)
+	if bool(envelope.get("ok", false)):
+		pending_preview_prompt = ""
+		pending_preview_summary = {}
+		pending_preview_context = null
+		_run_rpc("editor.summary")
+
+func _on_reject_pressed() -> void:
+	var prompt := pending_preview_prompt
+	var envelope := _run_rpc("build.reject", PackedStringArray(["--prompt", prompt]), pending_preview_context)
+	if bool(envelope.get("ok", false)):
+		pending_preview_prompt = ""
+		pending_preview_summary = {}
+		pending_preview_context = null
+		_refresh_pending_summary()
+
+func _on_summary_pressed() -> void:
+	_run_rpc("editor.summary")
 
 func _on_run_pressed() -> void:
 	var method := method_picker.get_item_text(method_picker.selected)
@@ -178,6 +227,10 @@ func _on_run_pressed() -> void:
 		extra.append_array(["--query", query_field.text])
 	elif method == "build.preview":
 		extra.append_array(["--prompt", prompt_field.text])
+	elif method == "build.apply":
+		extra.append_array(["--prompt", pending_preview_prompt if not pending_preview_prompt.is_empty() else prompt_field.text])
+	elif method == "build.reject":
+		extra.append_array(["--prompt", pending_preview_prompt])
 	elif method == "debug.current":
 		extra.append_array(["--error", error_field.text])
 	_run_rpc(method, extra)
@@ -204,7 +257,7 @@ func _on_clear_pressed() -> void:
 	status_view.text = "RPC history cleared."
 	_refresh_history_view()
 
-func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(), context: Variant = null) -> void:
+func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(), context: Variant = null) -> Dictionary:
 	var cli := command_field.text.strip_edges()
 	if cli.is_empty():
 		cli = "godotcoder"
@@ -214,9 +267,9 @@ func _run_rpc(method: String, extra_args: PackedStringArray = PackedStringArray(
 	if method != "editor.context" and captured_context is Dictionary and not captured_context.is_empty():
 		args.append_array(["--context", JSON.stringify(captured_context)])
 	args.append_array(extra_args)
-	_run_cli_args(method, cli, args, captured_context)
+	return _run_cli_args(method, cli, args, captured_context)
 
-func _run_cli_args(method: String, cli: String, args: Array, context: Variant, append_history := true) -> void:
+func _run_cli_args(method: String, cli: String, args: Array, context: Variant, append_history := true) -> Dictionary:
 	var execution := _execute_cli(cli, args)
 	var exit_code := int(execution.get("exit_code", -1))
 	var stdout_text := str(execution.get("stdout", ""))
@@ -233,6 +286,9 @@ func _run_cli_args(method: String, cli: String, args: Array, context: Variant, a
 	if append_history:
 		_append_history(method, cli, args, exit_code, stdout_text, stderr_text, context)
 		_refresh_history_view()
+	if not envelope.is_empty():
+		_update_summary_from_envelope(envelope)
+	return envelope
 
 func _append_history(method: String, cli: String, args: Array, exit_code: int, output: String, stderr: String, context: Variant) -> void:
 	var entry := {
@@ -337,6 +393,82 @@ func _preview_summary_text(envelope: Dictionary) -> String:
 		for path in changed_paths:
 			lines.append("    %s" % str(path))
 	return "\n".join(lines)
+
+func _editor_summary_text(envelope: Dictionary) -> String:
+	var result := envelope.get("result", {})
+	if typeof(result) != TYPE_DICTIONARY:
+		return ""
+	var has_summary := result.has("latestValidation") or result.has("latestVisualValidation") or result.has("latestRepair")
+	if not has_summary:
+		return ""
+	var lines: PackedStringArray = []
+	lines.append("Latest summaries")
+	lines.append(_artifact_summary_line("validation", result.get("latestValidation", null)))
+	lines.append(_artifact_summary_line("visual", result.get("latestVisualValidation", null)))
+	lines.append(_artifact_summary_line("repair", result.get("latestRepair", null)))
+	return "\n".join(lines)
+
+func _artifact_summary_line(label: String, value: Variant) -> String:
+	if typeof(value) != TYPE_DICTIONARY:
+		return "  %s: none" % label
+	if label == "repair":
+		return "  repair: %s | %s | actions=%s" % [
+			str(value.get("id", "unknown")),
+			str(value.get("status", "unknown")),
+			str(value.get("actionCount", 0)),
+		]
+	var visual = value.get("visual", null)
+	var visual_text := ""
+	if typeof(visual) == TYPE_DICTIONARY:
+		visual_text = " | blank=%s nearBlank=%s" % [str(visual.get("blank", null)), str(visual.get("nearBlank", null))]
+	return "  %s: %s | errors=%s warnings=%s%s" % [
+		label,
+		str(value.get("id", "unknown")),
+		str(value.get("errors", "?")),
+		str(value.get("warnings", "?")),
+		visual_text,
+	]
+
+func _update_summary_from_envelope(envelope: Dictionary) -> void:
+	if summary_view == null:
+		return
+	var summary_text := _editor_summary_text(envelope)
+	if not summary_text.is_empty():
+		summary_view.text = summary_text
+		return
+	if str(envelope.get("method", "")) == "validation.run":
+		var result := envelope.get("result", {})
+		if typeof(result) == TYPE_DICTIONARY and result.has("report"):
+			var report = result.get("report", {})
+			if typeof(report) == TYPE_DICTIONARY:
+				var summary = report.get("summary", {})
+				if typeof(summary) == TYPE_DICTIONARY:
+					summary_view.text = "Validation: %s errors, %s warnings" % [str(summary.get("errors", "?")), str(summary.get("warnings", "?"))]
+	if str(envelope.get("method", "")) == "build.preview":
+		_refresh_pending_summary()
+
+func _refresh_pending_summary() -> void:
+	if summary_view == null:
+		return
+	var lines: PackedStringArray = []
+	if not pending_preview_prompt.is_empty():
+		lines.append("Pending build")
+		lines.append("  prompt: %s" % pending_preview_prompt)
+		if typeof(pending_preview_summary) == TYPE_DICTIONARY and not pending_preview_summary.is_empty():
+			lines.append("  files: %s | +%s -%s" % [
+				str(pending_preview_summary.get("fileCount", 0)),
+				str(pending_preview_summary.get("addedLines", 0)),
+				str(pending_preview_summary.get("removedLines", 0)),
+			])
+			var changed_paths = pending_preview_summary.get("changedPaths", [])
+			if typeof(changed_paths) == TYPE_ARRAY and not changed_paths.is_empty():
+				var path_text: PackedStringArray = []
+				for path in changed_paths:
+					path_text.append(str(path))
+				lines.append("  changed: %s" % ", ".join(path_text))
+	else:
+		lines.append("No pending build preview.")
+	summary_view.text = "\n".join(lines)
 
 func _capture_editor_context() -> Dictionary:
 	var editor := get_editor_interface()
@@ -531,4 +663,3 @@ class GodotCoderDebuggerPlugin extends EditorDebuggerPlugin:
 			var full_warning = "WARNING: %s\n  at %s:%s" % [warning_msg, script_path, line_num]
 			main_plugin.call_deferred("_on_debugger_warning", full_warning)
 		return false
-

@@ -217,6 +217,15 @@ OpenRouter defaults to `https://openrouter.ai/api/v1` with `OPENROUTER_API_KEY`,
 
 Runs one model prompt with GodotCoder system prompt.
 
+### Editor Plugin Review Loop
+
+The editor plugin remains a thin companion:
+- `build.preview` returns raw preview data plus a compact summary for the dock.
+- `build.apply` routes through the existing CLI build command with `--apply --json`.
+- `build.reject` records a structured non-mutating rejection acknowledgement.
+- `editor.summary` reads the latest validation, visual validation, and repair artifacts from `.godotcoder/`.
+- The dock owns only UI state such as the current prompt, captured editor context, and pending preview summary.
+
 Responsibilities:
 - Keep response advisory.
 - Enforce Godot-only/GDScript-first instruction in system prompt.

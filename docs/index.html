@@ -524,7 +524,10 @@ modify res://scripts/main.gd (+3 -0, 42 → 45 lines)
 <tr><td><code>validation.scene</code></td><td><code>--scene</code></td><td>Check if scene exists in project index</td></tr>
 <tr><td><code>docs.search</code></td><td><code>--query</code></td><td>Search official Godot docs</td></tr>
 <tr><td><code>build.preview</code></td><td><code>--prompt</code></td><td>Preview build changes without applying</td></tr>
+<tr><td><code>build.apply</code></td><td><code>--prompt</code></td><td>Apply a pending build through the CLI build path</td></tr>
+<tr><td><code>build.reject</code></td><td><code>--prompt</code></td><td>Clear a pending build preview without writing files</td></tr>
 <tr><td><code>debug.current</code></td><td><code>--error</code></td><td>Parse Godot error text: subsystem, source file, root cause, next steps</td></tr>
+<tr><td><code>editor.summary</code></td><td>—</td><td>Latest validation, visual validation, and repair summaries</td></tr>
 <tr><td><code>editor.context</code></td><td><code>--context</code></td><td>Capture raw editor context JSON</td></tr>
 <tr><td><code>editor.explain</code></td><td><code>--context</code></td><td>Summarize editor context against project index</td></tr>
 </table>
@@ -538,7 +541,10 @@ node dist/cli.js rpc validation.run --json
 node dist/cli.js rpc validation.scene --scene res://scenes/main.tscn --json
 node dist/cli.js rpc docs.search --query input --json
 node dist/cli.js rpc build.preview --prompt "add a health bar" --json
+node dist/cli.js rpc build.apply --prompt "add a health bar" --json
+node dist/cli.js rpc build.reject --prompt "add a health bar" --json
 node dist/cli.js rpc debug.current --error "Parse Error at res://scripts/player.gd:42" --json
+node dist/cli.js rpc editor.summary --json
 node dist/cli.js rpc editor.context --context '{"current_path":"res://scenes/main.tscn"}' --json
 node dist/cli.js rpc editor.explain --context '{"current_path":"res://scenes/main.tscn","selected_nodes":[{"name":"Player","class":"CharacterBody2D"}]}' --json</code></pre>
 
@@ -562,6 +568,9 @@ node dist/cli.js rpc editor.explain --context '{"current_path":"res://scenes/mai
 <tr><td><strong>Scene</strong></td><td><code>validation.scene</code></td><td>Checks if current scene exists in project index</td></tr>
 <tr><td><strong>Debug</strong></td><td><code>debug.current</code></td><td>Paste Godot console error, get subsystem classification + fix guidance</td></tr>
 <tr><td><strong>Preview</strong></td><td><code>build.preview</code></td><td>Preview build changes: file counts, line counts, changed paths</td></tr>
+<tr><td><strong>Apply</strong></td><td><code>build.apply</code></td><td>Apply the pending build preview through the CLI build path</td></tr>
+<tr><td><strong>Reject</strong></td><td><code>build.reject</code></td><td>Clear pending preview state without writing files</td></tr>
+<tr><td><strong>Summaries</strong></td><td><code>editor.summary</code></td><td>Show latest validation, visual validation, and repair artifacts</td></tr>
 </table>
 
 <h3 id="plugin-context">Editor Context JSON</h3>
@@ -591,6 +600,9 @@ node dist/cli.js rpc editor.explain --context '{"current_path":"res://scenes/mai
   <li>Click <strong>Scene</strong> — confirm scene existence check against project index</li>
   <li>Paste a Godot error, click <strong>Debug</strong> — confirm subsystem, source file, next steps</li>
   <li>Enter a build prompt, click <strong>Preview</strong> — confirm file counts + changed paths (no writes)</li>
+  <li>Click <strong>Reject</strong> — confirm pending preview state clears without writes</li>
+  <li>Preview again, click <strong>Apply</strong> — confirm the dock calls CLI-owned apply orchestration</li>
+  <li>Click <strong>Summaries</strong> — confirm latest validation, visual, and repair summaries render</li>
   <li>Use <strong>Replay Selected</strong> on an older entry — confirm exact command is replayed</li>
   <li>Change CLI path to invalid value — confirm dock shows clear failure message</li>
   <li>Change selection, capture again — confirm history grows and context updates</li>

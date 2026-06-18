@@ -297,7 +297,10 @@ node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
 node /path/to/GodotCoder/dist/cli.js rpc validation.scene --scene res://scenes/main.tscn --json
 node /path/to/GodotCoder/dist/cli.js rpc docs.search --query input --json
 node /path/to/GodotCoder/dist/cli.js rpc build.preview --prompt "make a 2d platformer" --json
+node /path/to/GodotCoder/dist/cli.js rpc build.apply --prompt "make a 2d platformer" --json
+node /path/to/GodotCoder/dist/cli.js rpc build.reject --prompt "make a 2d platformer" --json
 node /path/to/GodotCoder/dist/cli.js rpc debug.current --error "Parse Error at res://scripts/player.gd:12" --json
+node /path/to/GodotCoder/dist/cli.js rpc editor.summary --json
 node /path/to/GodotCoder/dist/cli.js rpc editor.context --context '{"current_path":"res://scenes/main.tscn"}' --json
 node /path/to/GodotCoder/dist/cli.js rpc editor.explain --context '{"current_path":"res://scenes/main.tscn"}' --json
 ```
@@ -469,13 +472,15 @@ The dock captures editor context, keeps recent RPC history in
 through `godotcoder rpc editor.context --json`. RPC output is parsed into a
 structured envelope view, stdout and stderr are shown separately, exit codes
 are surfaced, and raw stdout stays visible for debugging. Regular dock RPC
-calls also attach captured editor context when available. The dock also exposes
-a `Debug` action that sends pasted console/error text to `debug.current`, and a
-preview action that summarizes `build.preview` file counts and changed paths
-without applying edits. `Explain` summarizes the selected scene/node/script
-context against the inspected project. `Review` summarizes current git changes
-without modifying the project. `Scene` resolves the current scene against the
-project index before running broader validation.
+calls also attach captured editor context when available. The dock exposes
+`Debug` for pasted console/error text through `debug.current`, `Preview` for
+compact `build.preview` file counts and changed paths, `Apply` and `Reject`
+buttons for the pending preview through CLI-owned RPC methods, and `Summaries`
+for the latest validation, visual validation, and repair artifacts. `Explain`
+summarizes the selected scene/node/script context against the inspected project.
+`Review` summarizes current git changes without modifying the project. `Scene`
+resolves the current scene against the project index before running broader
+validation.
 
 Machine-readable output:
 

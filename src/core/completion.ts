@@ -16,7 +16,7 @@ const exportPresetTargets = ["linux"] as const;
 const runsCommands = ["list", "show", "help"] as const;
 const workflowCommands = ["status", "init"] as const;
 const repairCommands = ["list", "status", "diff", "undo", "revert"] as const;
-const rpcMethods = ["workspace.status", "workspace.changes", "project.inspect", "runtime.doctor", "validation.run", "validation.scene", "docs.search", "build.preview", "debug.current", "editor.context", "editor.explain"] as const;
+const rpcMethods = ["workspace.status", "workspace.changes", "project.inspect", "runtime.doctor", "validation.run", "validation.scene", "docs.search", "build.preview", "build.apply", "build.reject", "debug.current", "editor.summary", "editor.context", "editor.explain"] as const;
 
 export function completeSessionLine(line: string): [string[], string] {
   const endsWithSpace = /\s$/.test(line);

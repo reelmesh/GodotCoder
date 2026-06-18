@@ -16,6 +16,9 @@ Goal: verify Godot editor plugin can capture editor context, round-trip it throu
 - Scene action for current-scene project-index prechecks through `validation.scene`.
 - Debug action for pasted Godot console/error text through `debug.current`.
 - Preview action for `build.preview`, showing compact file counts and changed paths.
+- Apply action for a pending preview through `build.apply`.
+- Reject action for a pending preview through `build.reject`.
+- Summaries action through `editor.summary`, showing latest validation, visual validation, and repair artifacts.
 - Replay last, replay selected, and clear controls on the dock.
 
 ## Manual Checks
@@ -32,10 +35,13 @@ Goal: verify Godot editor plugin can capture editor context, round-trip it throu
 10. Click `Scene` and confirm `validation.scene` reports whether the current scene exists in the project index.
 11. Paste a Godot error into the debug field, click `Debug`, and confirm `debug.current` returns subsystem, source file, and next-step guidance.
 12. Enter a build prompt, click `Preview`, and confirm the output shows file counts, line counts, and changed paths without applying edits.
-13. Use `Replay Selected` on an older entry and confirm the stored command payload is replayed.
-14. Use `Replay Last` and confirm dock refreshes output.
-15. Change the CLI path setting to a bogus command and confirm the dock surfaces the failure path clearly.
-16. Change selection and repeat capture to verify history grows and context changes.
+13. Click `Reject` and confirm pending preview state clears without modifying files.
+14. Enter another build prompt, click `Preview`, then `Apply`, and confirm the dock calls `build.apply` and reports the CLI build result.
+15. Click `Summaries` and confirm latest validation, visual validation, and repair summaries are shown when artifacts exist.
+16. Use `Replay Selected` on an older entry and confirm the stored command payload is replayed.
+17. Use `Replay Last` and confirm dock refreshes output.
+18. Change the CLI path setting to a bogus command and confirm the dock surfaces the failure path clearly.
+19. Change selection and repeat capture to verify history grows and context changes.
 
 ## CLI Checks
 
@@ -52,6 +58,7 @@ Expect:
 - `rpc` success envelopes for `editor.explain`.
 - `rpc` success envelopes for `debug.current`.
 - `rpc` success envelopes for `build.preview` include `previewSummary`.
+- `rpc` success envelopes for `build.reject` and `editor.summary`.
 - `rpc` error envelope for unknown methods.
 - No regressions in build, repair, docs, or provider smoke tests.
 
@@ -68,5 +75,7 @@ Expect:
 - History picker selects the newest entry after refresh and replay selected uses the chosen item.
 - Missing or invalid CLI paths produce a readable failure in the dock instead of silent breakage.
 - Debug action preserves editor context and returns deterministic triage for pasted errors.
-- Preview action remains read-only and shows compact review data before any apply path exists.
+- Preview action remains read-only and shows compact review data before apply.
+- Apply and reject actions use CLI/RPC orchestration instead of duplicating build logic in the plugin.
+- Summary action displays latest validation, visual validation, and repair artifacts without reading workspace files from GDScript.
 - Regular RPC calls include captured editor context when available.

@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { CliError, formatError } from "../core/errors.js";
 import { pathExists } from "../core/files.js";
 import { readFlag } from "../core/flags.js";
@@ -11,6 +12,7 @@ import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
 import { validateProjectRoot } from "./validate.js";
 import { workspacePaths } from "../core/workspace.js";
+import { applyBuildTask } from "./build.js";
 
 export interface RpcEnvelope {
   ok: boolean;
@@ -80,12 +82,26 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
     const preview = await previewGeneratedFiles(projectRoot, plan.summary, plan.files);
     return attachContext({ source: "llm", prompt, preview, previewSummary: summarizeBuildPreview(preview), model: { provider: plan.reply.provider, model: plan.reply.model } }, editorContext);
   }
+  if (method === "build.apply") {
+    const prompt = readFlag(filteredArgs, "--prompt") ?? filteredArgs.join(" ").trim();
+    if (!prompt) {
+      throw new CliError("RPC_USAGE", "build.apply requires --prompt <task>.");
+    }
+    return attachContext(await applyBuildFromRpc(prompt), editorContext);
+  }
+  if (method === "build.reject") {
+    const prompt = readFlag(filteredArgs, "--prompt") ?? filteredArgs.join(" ").trim();
+    return attachContext({ status: "rejected", applied: false, prompt: prompt || null, rejectedAt: new Date().toISOString() }, editorContext);
+  }
   if (method === "debug.current") {
     const errorText = readFlag(filteredArgs, "--error") ?? filteredArgs.join(" ").trim();
     if (!errorText) {
       throw new CliError("RPC_USAGE", "debug.current requires --error <message>.");
     }
     return attachContext(debugCurrent(errorText), editorContext);
+  }
+  if (method === "editor.summary") {
+    return attachContext(await editorSummary(), editorContext);
   }
   if (method === "editor.explain") {
     if (!editorContext) {
@@ -104,6 +120,25 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
   }
 
   throw new CliError("RPC_METHOD_NOT_FOUND", `Unknown RPC method: ${method}`);
+}
+
+async function applyBuildFromRpc(prompt: string): Promise<unknown> {
+  return {
+    applied: true,
+    prompt,
+    build: await applyBuildTask(prompt),
+  };
+}
+
+async function editorSummary(): Promise<unknown> {
+  const projectRoot = await findGodotProjectRoot(process.cwd());
+  const paths = workspacePaths(projectRoot);
+  return {
+    projectRoot,
+    latestValidation: await latestValidationSummary(paths.validationsDir, false),
+    latestVisualValidation: await latestValidationSummary(paths.validationsDir, true),
+    latestRepair: await latestRepairSummary(paths.repairsDir),
+  };
 }
 
 async function workspaceStatus(): Promise<unknown> {
@@ -158,6 +193,111 @@ async function workspaceChanges(): Promise<unknown> {
     files,
     counts,
     summary: changed === 0 ? "Workspace is clean." : `${changed} changed file${changed === 1 ? "" : "s"} in git status.`,
+  };
+}
+
+async function latestValidationSummary(validationsDir: string, requireVisual: boolean): Promise<unknown | null> {
+  const files = await latestJsonFiles(validationsDir);
+  for (const file of files) {
+    const report = await readJsonFile(file.path);
+    if (!report) continue;
+    const root = asRecord(report);
+    const visual = asRecord(root.visual);
+    if (requireVisual && Object.keys(visual).length === 0) {
+      continue;
+    }
+    const summary = asRecord(root.summary);
+    const findings = Array.isArray(root.findings) ? root.findings.map(asRecord) : [];
+    const visualFindings = Array.isArray(visual.findings) ? visual.findings.map(asRecord) : [];
+    return {
+      id: asStringValue(root.id),
+      path: file.path,
+      checkedAt: asStringValue(root.checkedAt) ?? asStringValue(root.createdAt),
+      exitCode: typeof root.exitCode === "number" ? root.exitCode : null,
+      errors: typeof summary.errors === "number" ? summary.errors : null,
+      warnings: typeof summary.warnings === "number" ? summary.warnings : null,
+      visual: Object.keys(visual).length === 0
+        ? null
+        : {
+            artifactPath: asStringValue(visual.artifactPath),
+            width: typeof visual.width === "number" ? visual.width : null,
+            height: typeof visual.height === "number" ? visual.height : null,
+            blank: typeof visual.blank === "boolean" ? visual.blank : null,
+            nearBlank: typeof visual.nearBlank === "boolean" ? visual.nearBlank : null,
+            findings: visualFindings.map(compactFinding),
+          },
+      findings: findings.slice(0, 5).map(compactFinding),
+    };
+  }
+  return null;
+}
+
+async function latestRepairSummary(repairsDir: string): Promise<unknown | null> {
+  const files = await latestJsonFiles(repairsDir);
+  const latest = files[0];
+  if (!latest) {
+    return null;
+  }
+  const repair = await readJsonFile(latest.path);
+  if (!repair) {
+    return null;
+  }
+  const root = asRecord(repair);
+  const actions = Array.isArray(root.actions) ? root.actions.map(asRecord) : [];
+  const validationAfter = asRecord(root.validationAfter);
+  const validationSummary = asRecord(validationAfter.summary);
+  return {
+    id: asStringValue(root.id),
+    path: latest.path,
+    status: asStringValue(root.status),
+    summary: asStringValue(root.summary),
+    actionCount: actions.length,
+    actions: actions.slice(0, 5).map((action) => ({
+      type: asStringValue(action.type),
+      path: asStringValue(action.path),
+      description: asStringValue(action.description),
+    })),
+    validationAfter: Object.keys(validationAfter).length === 0
+      ? null
+      : {
+          id: asStringValue(validationAfter.id),
+          errors: typeof validationSummary.errors === "number" ? validationSummary.errors : null,
+          warnings: typeof validationSummary.warnings === "number" ? validationSummary.warnings : null,
+        },
+  };
+}
+
+async function latestJsonFiles(dir: string): Promise<Array<{ path: string; mtimeMs: number }>> {
+  if (!(await pathExists(dir))) {
+    return [];
+  }
+  const names = await readdir(dir);
+  const files: Array<{ path: string; mtimeMs: number }> = [];
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const filePath = path.join(dir, name);
+    const stats = await stat(filePath);
+    if (stats.isFile()) {
+      files.push({ path: filePath, mtimeMs: stats.mtimeMs });
+    }
+  }
+  return files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+}
+
+async function readJsonFile(filePath: string): Promise<unknown | null> {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function compactFinding(finding: Record<string, unknown>): Record<string, unknown> {
+  return {
+    severity: asStringValue(finding.severity),
+    message: asStringValue(finding.message),
+    file: asStringValue(finding.file),
+    line: typeof finding.line === "number" ? finding.line : null,
   };
 }
 
