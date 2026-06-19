@@ -369,6 +369,19 @@ node /path/to/GodotCoder/dist/cli.js auth login --provider openrouter --api-key 
 node /path/to/GodotCoder/dist/cli.js models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
 ```
 
+Optional model roles let controlled workflows use a specialized build model or a fallback model without changing the default provider:
+
+```bash
+node /path/to/GodotCoder/dist/cli.js models role list
+node /path/to/GodotCoder/dist/cli.js models role set build --provider openrouter --model openai/gpt-4o-mini
+node /path/to/GodotCoder/dist/cli.js models role set fallback --provider lmstudio --model local-fallback
+node /path/to/GodotCoder/dist/cli.js models report
+node /path/to/GodotCoder/dist/cli.js models eval --prompt-set arcade --limit 5
+node /path/to/GodotCoder/dist/cli.js models recommend
+```
+
+Controlled implementation resolves the `build` role first, then `fallback`, then the default model from `models use` or environment variables. `models report` summarizes observed success, failure, and retry recovery from `.godotcoder/model-runs/`. `models eval` runs fixed preview-only prompt sets through controlled generation and records one model run per prompt. `models recommend` turns local evidence into advisory routing suggestions without changing configuration.
+
 Use configured model:
 
 ```bash
@@ -383,6 +396,10 @@ node /path/to/GodotCoder/dist/cli.js build "add a dash move and cooldown UI" --a
 For open-ended game creation prompts, controlled model output must pass first
 playable acceptance gates: scene/script presence, input or frame processing,
 visible feedback, an objective/fail/restart loop, and Godot 4.3+ API syntax.
+Build prompts live in `src/prompts/` so the controlled generation contract can
+be reviewed and improved without digging through TypeScript control flow.
+The built CLI also falls back to those source templates when running from this
+checkout, so local development does not need a separate asset-copy step.
 
 GodotCoder does not load, download, or unload local models. For local providers such as LM Studio or Ollama, start/load the model in that tool first, then point GodotCoder at the running API endpoint and model name.
 
@@ -563,6 +580,7 @@ Common local config files:
 src/
   cli.ts                    Entry point, command routing
   commands/                 17 CLI command handlers (auth, build, harness, etc.)
+  prompts/                  Controlled LLM build/retry prompt templates
   core/                     Business logic
     builders/               Deterministic game builders (asteroid-shooter, platformer)
     godot-config-parser.ts  project.godot INI parser + serializer
@@ -572,7 +590,9 @@ src/
     flags.ts                Shared flag parsing + provider defaults
     session-commands.ts     Single source of truth for all 32 slash commands
     completion.ts           Tab completion (derives from session-commands)
-    providers.ts            LLM provider layer (OpenAI, Anthropic, Ollama, LM Studio, OpenRouter)
+    providers.ts            LLM provider layer + role/fallback config
+    model-runs.ts           Model telemetry, reports, and routing recommendations
+    model-evals.ts          Preview-only model eval prompt sets
     harness.ts              BMAD-style multi-agent workflow runner
     repair.ts               Deterministic validation repair + Godot 3→4 migration
     validation.ts           Godot headless validation (run, smoke, export)
@@ -599,6 +619,6 @@ src/
 
 Next implementation slices:
 
-1. Model quality and routing: provider/model failure tracking, optional planning/build/review roles, retry improvements, and repeatable eval prompts.
+1. Continue model quality and routing: route planning/review roles and surface model quality signals in editor-facing summaries.
 2. Expand editor-facing summaries for task, playtest, and validation history.
 3. Add more project-inspection and validation helpers for larger brownfield projects.

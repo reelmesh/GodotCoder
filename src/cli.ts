@@ -53,6 +53,7 @@ const commands: Record<string, CommandHandler> = {
   playtest: (args) => playCommand(["--test", ...args]),
   repair: repairCommand,
   rpc: rpcCommand,
+  runtime: runtimeCommand,
 };
 
 async function main(argv: string[]): Promise<void> {
@@ -65,11 +66,6 @@ async function main(argv: string[]): Promise<void> {
 
   if (command === "--help" || command === "-h") {
     printHelp();
-    return;
-  }
-
-  if (command === "runtime") {
-    await runtimeCommand([subcommand, ...rest].filter((arg): arg is string => Boolean(arg)));
     return;
   }
 
@@ -104,6 +100,10 @@ Usage:
   godotcoder agents [--json]
   godotcoder models [--json]
   godotcoder models use --provider <openai|anthropic|ollama|lmstudio|openrouter|openai-compatible> --model <model> [--base-url <url>] [--api-key-env <ENV>]
+  godotcoder models role list|set <planning|build|review|fallback> [--json]
+  godotcoder models report [--limit <n>] [--json]
+  godotcoder models eval [--prompt-set mixed|arcade|edits] [--limit <n>] [--json]
+  godotcoder models recommend [--json]
   godotcoder runs
   godotcoder runs list|show <run-id>
   godotcoder ask <prompt> [--json]

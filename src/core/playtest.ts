@@ -164,6 +164,7 @@ export async function runPlaytest(projectRoot: string): Promise<PlaytestResult> 
         height: fallbackVisual.height,
         blank: fallbackVisual.blank,
         nearBlank: fallbackVisual.nearBlank,
+        pixelCount: fallbackVisual.width && fallbackVisual.height ? fallbackVisual.width * fallbackVisual.height : 0,
       };
     }
   }

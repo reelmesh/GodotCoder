@@ -68,7 +68,7 @@ function deriveProjectName(idea?: string): string | null {
     .replace(/[^A-Za-z0-9 ]+/g, " ")
     .trim()
     .split(/\s+/)
-    .filter((word) => !["make", "create", "build", "a", "an", "the", "game"].includes(word.toLowerCase()))
+    .filter((word) => !["make", "create", "build", "a", "an", "the", "of", "game"].includes(word.toLowerCase()))
     .slice(0, 5);
 
   if (words.length === 0) return null;

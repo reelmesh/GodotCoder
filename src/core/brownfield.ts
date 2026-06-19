@@ -54,8 +54,8 @@ export function isTaskIntentFlag(arg: string, previous?: string): boolean {
   return ["--feature", "--fix", "--refactor", "--polish", "--intent"].includes(arg) || arg.startsWith("--intent=");
 }
 
-export function detectBrownfieldProject(projectIndex: ProjectIndex, createdProjectFile = false): BrownfieldProfile {
-  if (createdProjectFile) {
+export function detectBrownfieldProject(projectIndex: ProjectIndex, wasGreenfield = false): BrownfieldProfile {
+  if (wasGreenfield) {
     return { isBrownfield: false, meaningfulFileCount: 0, reasons: ["created greenfield scaffold"] };
   }
 
@@ -171,7 +171,12 @@ async function evaluateBrownfieldSafety(
 }
 
 function resourceToRelativePath(value: string): string {
-  return value.replace(/^res:\/\//, "");
+  const raw = value.replace(/^res:\/\//, "");
+  const normalized = path.normalize(raw);
+  if (normalized.startsWith("..") || path.isAbsolute(normalized)) {
+    throw new CliError("BROWNFIELD_SAFETY_REJECTED", `Path traversal blocked: ${value}`);
+  }
+  return normalized;
 }
 
 async function readExistingText(projectRoot: string, relativePath: string): Promise<string> {

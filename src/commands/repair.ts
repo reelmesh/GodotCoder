@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
 import { attemptRepair, type RepairAttempt } from "../core/repair.js";
@@ -22,15 +22,17 @@ export async function repairCommand(args: string[]): Promise<void> {
   }
 
   if (subcommand === "diff") {
-    const idx = args.indexOf("diff");
-    const targetId = args[idx + 1];
+    const nonFlags = args.filter(arg => !arg.startsWith("--"));
+    const diffIdx = nonFlags.indexOf("diff");
+    const targetId = diffIdx >= 0 ? nonFlags[diffIdx + 1] ?? null : null;
     await showRepairDiff(projectRoot, targetId ?? null, json);
     return;
   }
 
   if (subcommand === "undo" || subcommand === "revert") {
-    const idx = args.indexOf(subcommand);
-    const targetId = args[idx + 1];
+    const nonFlags = args.filter(arg => !arg.startsWith("--"));
+    const subIdx = nonFlags.indexOf(subcommand);
+    const targetId = subIdx >= 0 ? nonFlags[subIdx + 1] ?? null : null;
     if (!targetId) {
       console.log(`Usage: godotcoder repair ${subcommand} <repair-id>`);
       return;
@@ -228,7 +230,8 @@ async function undoRepair(projectRoot: string, targetId: string, json: boolean):
     summary: `Reverted by user. ${attempt.summary}`,
     finishedAt: new Date().toISOString(),
   };
-  await writeFile(attemptFile, JSON.stringify(updatedAttempt, null, 2) + "\n");
+  await writeFile(attemptFile + ".tmp", JSON.stringify(updatedAttempt, null, 2) + "\n");
+  await rename(attemptFile + ".tmp", attemptFile);
 
   const validation = await validateProjectRoot(projectRoot);
 

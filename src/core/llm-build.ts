@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { writeTrackedFile, type FileChange } from "./change-records.js";
 import { assertBrownfieldSafety, brownfieldPromptGuidance, detectBrownfieldProject, inferTaskIntent, type BrownfieldProfile, type BrownfieldSafetyReport, type TaskIntent } from "./brownfield.js";
 import { CliError } from "./errors.js";
@@ -7,14 +8,34 @@ import type { GeneratedFile } from "./builders/types.js";
 import { docsPromptContextWithExcerpts } from "./godot-docs.js";
 import { inspectGodotProject } from "./godot-project.js";
 import { pathExists } from "./files.js";
-import { completeWithModel, loadModelConfig, modelSystemPrompt, type ModelReply } from "./providers.js";
+import { completeWithModel, loadModelConfigForRole, modelSystemPrompt, type ModelReply } from "./providers.js";
 import { asObject, asString } from "./schema.js";
 import { workspacePaths } from "./workspace.js";
+import { formatModelRetryContext, latestModelContext, writeModelRun, type ModelRunRecord } from "./model-runs.js";
+
+async function loadPrompt(name: string): Promise<string> {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(moduleDir, "..", "prompts", name),
+    path.join(moduleDir, "..", "..", "src", "prompts", name),
+  ];
+  for (const candidate of candidates) {
+    if (await pathExists(candidate)) {
+      return readFile(candidate, "utf8");
+    }
+  }
+  throw new CliError("PROMPT_TEMPLATE_MISSING", `Missing prompt template: ${name}`);
+}
+
+function fillTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+}
 
 export interface LlmBuildPlan {
   summary: string;
   files: GeneratedFile[];
   reply: ModelReply;
+  modelRun: ModelRunRecord;
 }
 
 export interface LlmBuildResult {
@@ -34,29 +55,32 @@ export interface LlmBuildAttempt {
   stage: "initial" | "retry";
   provider: string | null;
   model: string | null;
-  error: string;
+  error: string | null;
   content: string | null;
 }
 
 export class LlmBuildError extends CliError {
-  constructor(message: string, public readonly attempts: LlmBuildAttempt[]) {
+  constructor(message: string, public readonly attempts: LlmBuildAttempt[], public readonly modelRun: ModelRunRecord | null = null) {
     super("MODEL_OUTPUT_INVALID", message);
   }
 }
 
 export async function generateLlmBuild(projectRoot: string, prompt: string, options: { intent?: TaskIntent; brownfieldProfile?: BrownfieldProfile } = {}): Promise<LlmBuildPlan> {
-  const config = await loadModelConfig(projectRoot);
+  const modelSelection = await loadModelConfigForRole(projectRoot, "build");
+  const config = modelSelection.config;
   if (!config) {
     throw new CliError("MODEL_CONFIG_MISSING", "No model provider configured. Use `godotcoder models use ...` first.");
   }
+  const modelSource = modelSelection.source === "missing" ? "default" : modelSelection.source;
 
   const projectIndex = await inspectGodotProject(projectRoot);
   const intent = options.intent ?? inferTaskIntent(prompt);
   const brownfieldProfile = options.brownfieldProfile ?? detectBrownfieldProject(projectIndex);
   const artifacts = await readPlanningContext(projectRoot);
+  const modelContext = await latestModelContext(projectRoot);
   const docsContext = await docsPromptContextWithExcerpts(projectRoot, prompt);
   const systemPrompt = `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.`;
-  const userPrompt = buildPrompt({ prompt, projectIndex, artifacts, docsContext, intent, brownfieldProfile });
+  const userPrompt = await buildPrompt({ prompt, projectIndex, artifacts, docsContext, intent, brownfieldProfile });
   const totalLength = systemPrompt.length + userPrompt.length;
   if (totalLength > 24_000) {
     console.warn(`Warning: LLM prompt is ${totalLength} characters. Some local models may truncate.`);
@@ -77,13 +101,14 @@ export async function generateLlmBuild(projectRoot: string, prompt: string, opti
       parsed = { ok: false, error: `Generated game slice missed acceptance gates: ${gates.missing.join("; ")}` };
     }
   }
+  let recoveredOnRetry = false;
   if (!parsed.ok) {
     attempts.push(createAttempt("initial", reply, parsed.error));
     reply = await completeWithModel(config, [
       { role: "system", content: "Return only valid JSON. No prose. No markdown. First character must be { and last character must be }." },
       {
         role: "user",
-        content: buildRetryPrompt({ prompt, projectIndex, parseError: parsed.error, intent, brownfieldProfile }),
+        content: await buildRetryPrompt({ prompt, projectIndex, parseError: parsed.error, intent, brownfieldProfile, modelContext }),
       },
     ], projectRoot);
     parsed = parseLlmBuildReply(reply.content);
@@ -95,12 +120,42 @@ export async function generateLlmBuild(projectRoot: string, prompt: string, opti
     }
     if (!parsed.ok) {
       attempts.push(createAttempt("retry", reply, parsed.error));
+    } else {
+      recoveredOnRetry = true;
     }
   }
   if (!parsed.ok) {
-    throw new LlmBuildError(parsed.error, attempts);
+    const modelRun = await writeModelRun(projectRoot, {
+      command: "build",
+      taskType: intent,
+      provider: config.provider,
+      model: config.model,
+      modelSource,
+      outcome: "failed",
+      recoveredOnRetry: false,
+      promptPreview: prompt.slice(0, 1000),
+      summary: null,
+      error: parsed.error,
+      attempts,
+      context: modelContext,
+    });
+    throw new LlmBuildError(parsed.error, attempts, modelRun);
   }
-  return { summary: parsed.summary, files: parsed.files, reply };
+  const modelRun = await writeModelRun(projectRoot, {
+    command: "build",
+    taskType: intent,
+    provider: config.provider,
+    model: config.model,
+    modelSource,
+    outcome: "success",
+    recoveredOnRetry,
+    promptPreview: prompt.slice(0, 1000),
+    summary: parsed.summary,
+    error: null,
+    attempts: recoveredOnRetry ? [...attempts, createAttempt("retry", reply, null)] : attempts,
+    context: modelContext,
+  });
+  return { summary: parsed.summary, files: parsed.files, reply, modelRun };
 }
 
 export async function applyLlmBuild(
@@ -182,7 +237,7 @@ function readGeneratedContents(file: Record<string, unknown>, index: number): st
   throw new CliError("MODEL_OUTPUT_INVALID", `LLM build reply files[${index}] must include contents string or lines array.`);
 }
 
-function createAttempt(stage: LlmBuildAttempt["stage"], reply: ModelReply, error: string): LlmBuildAttempt {
+function createAttempt(stage: LlmBuildAttempt["stage"], reply: ModelReply, error: string | null): LlmBuildAttempt {
   return {
     stage,
     provider: reply.provider,
@@ -306,119 +361,45 @@ async function readPlanningContext(projectRoot: string): Promise<Record<string, 
   return artifacts;
 }
 
-function buildPrompt(input: {
+async function buildPrompt(input: {
   prompt: string;
   projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>;
   artifacts: Record<string, string>;
   docsContext: string;
   intent: TaskIntent;
   brownfieldProfile: BrownfieldProfile;
-}): string {
-  return `Create a controlled Godot implementation patch for this user task.
-
-Task:
-${input.prompt}
-
-Project:
-- Godot target: 4.3+
-- Main scene: ${input.projectIndex.mainScene ?? "unknown"}
-- Scripts: ${input.projectIndex.scripts.join(", ") || "none"}
-- Scenes: ${input.projectIndex.scenes.join(", ") || "none"}
-- Resources: ${input.projectIndex.resources.join(", ") || "none"}
-- Autoloads: ${input.projectIndex.autoloads.join(", ") || "none"}
-
-${brownfieldPromptGuidance(input.brownfieldProfile, input.intent)}
-
-Planning artifacts:
-${Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none"}
-
-Official Godot docs sources to prefer:
-${input.docsContext}
-
-Open-ended game request acceptance gates:
-- If the task asks to make, create, build, or prototype a game, produce a first playable vertical slice, not a placeholder.
-- Include or update a main scene and at least one GDScript gameplay script.
-- Include input handling through Input actions, _input, _process, or _physics_process.
-- Include visible player feedback such as movement, score, health, labels, animation, color, spawning, or collision response.
-- Include a simple objective, fail state, restart path, collectible, enemy, timer, score target, or win condition.
-- Use Godot 4.3+ APIs only; do not use yield(...), Pool*Array, KinematicBody*, export var, onready var, or .instance().
-
-Return JSON exactly matching this shape:
-{
-  "summary": "one sentence describing the patch",
-  "files": [
-    {
-      "path": "scripts/example.gd",
-      "lines": [
-        "extends Node2D",
-        "",
-        "func _ready() -> void:",
-        "\\tprint(\\"ready\\")"
-      ]
-    }
-  ]
+}): Promise<string> {
+  const template = await loadPrompt("build.txt");
+  return fillTemplate(template, {
+    prompt: input.prompt,
+    mainScene: input.projectIndex.mainScene ?? "unknown",
+    scripts: input.projectIndex.scripts.join(", ") || "none",
+    scenes: input.projectIndex.scenes.join(", ") || "none",
+    resources: input.projectIndex.resources.join(", ") || "none",
+    autoloads: input.projectIndex.autoloads.join(", ") || "none",
+    brownfieldGuidance: brownfieldPromptGuidance(input.brownfieldProfile, input.intent),
+    artifacts: Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none",
+    docsContext: input.docsContext,
+  });
 }
 
-Rules:
-- Return full file contents as a JSON array named "lines", one source line per JSON string.
-- Complete the code fully! DO NOT leave comments like "# TODO: implement combat" or use placeholders. All generated files must be production-ready and fully written.
-- Escape tabs as \\t and quotes as \\" inside JSON strings.
-- Do not put raw newline characters inside a JSON string.
-- Do not use markdown fences.
-- Do not return partial patches.
-- Use only Godot-native project files: .gd, .tscn, .tres, .gdshader, project.godot, export_presets.cfg, or small project metadata files.
-- Keep patch small enough to review.
-- Prefer GDScript.
-- No external dependencies.
-- No files under .godot, .godotcoder, .godotcoder.local, node_modules, or absolute paths.
-- Use Godot 4.3+ APIs.`;
-}
-
-function buildRetryPrompt(input: {
+async function buildRetryPrompt(input: {
   prompt: string;
   projectIndex: Awaited<ReturnType<typeof inspectGodotProject>>;
   parseError: string;
   intent: TaskIntent;
   brownfieldProfile: BrownfieldProfile;
-}): string {
-  return `Previous response failed validation: ${input.parseError}
-
-Generate a small Godot 4.3+ implementation for:
-${input.prompt}
-
-Current project:
-- Main scene: ${input.projectIndex.mainScene ?? "unknown"}
-- Scripts: ${input.projectIndex.scripts.join(", ") || "none"}
-
-${brownfieldPromptGuidance(input.brownfieldProfile, input.intent)}
-
-Return exactly this JSON shape and nothing else:
-{
-  "summary": "short patch summary",
-  "files": [
-    {
-      "path": "scripts/main.gd",
-      "lines": [
-        "extends Node2D",
-        "",
-        "func _ready() -> void:",
-        "\\tprint(\\"ready\\")"
-      ]
-    }
-  ]
-}
-
-Rules:
-- Write full, complete, and fully functional files. DO NOT leave comments like "# TODO" or use placeholders.
-- First character of final answer must be {.
-- Last character of final answer must be }.
-- Use "lines", not "contents".
-- One source line per JSON string.
-- For open-ended game creation, include playable input, visible feedback, and an objective/fail/restart loop.
-- Use Godot 4.3+ APIs only.
-- No markdown.
-- No explanation.
-- No reasoning in final message.`;
+  modelContext: ModelRunRecord["context"];
+}): Promise<string> {
+  const template = await loadPrompt("build-retry.txt");
+  return fillTemplate(template, {
+    parseError: input.parseError,
+    prompt: input.prompt,
+    mainScene: input.projectIndex.mainScene ?? "unknown",
+    scripts: input.projectIndex.scripts.join(", ") || "none",
+    brownfieldGuidance: brownfieldPromptGuidance(input.brownfieldProfile, input.intent),
+    modelContext: formatModelRetryContext(input.modelContext),
+  });
 }
 
 function evaluateGeneratedGameGates(

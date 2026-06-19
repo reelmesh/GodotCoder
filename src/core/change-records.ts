@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { pathExists } from "./files.js";
@@ -27,11 +27,16 @@ export interface ChangeRecord {
   updatedAt: string;
 }
 
+const MAX_BEFORE_CONTENT_BYTES = 100_000;
+
 export async function writeTrackedFile(projectRoot: string, relativePath: string, contents: string): Promise<FileChange> {
   const absolutePath = path.join(projectRoot, relativePath);
   const beforeExists = await pathExists(absolutePath);
-  const beforeContent = beforeExists ? await readFile(absolutePath, "utf8") : null;
-  const beforeSha256 = beforeContent !== null ? sha256(beforeContent) : null;
+  const beforeContentRaw = beforeExists ? await readFile(absolutePath, "utf8") : null;
+  const beforeContent = beforeContentRaw !== null && Buffer.byteLength(beforeContentRaw, "utf8") <= MAX_BEFORE_CONTENT_BYTES
+    ? beforeContentRaw
+    : null;
+  const beforeSha256 = beforeContentRaw !== null ? sha256(beforeContentRaw) : null;
   const afterSha256 = sha256(contents);
 
   await mkdir(path.dirname(absolutePath), { recursive: true });
@@ -59,7 +64,10 @@ export async function writeChangeRecord(projectRoot: string, record: Omit<Change
   const paths = workspacePaths(projectRoot);
   const recordDir = path.join(paths.patchesDir, id);
   await mkdir(recordDir, { recursive: true });
-  await writeFile(path.join(recordDir, "record.json"), JSON.stringify(fullRecord, null, 2) + "\n");
+  const recordPath = path.join(recordDir, "record.json");
+  const tmpPath = recordPath + ".tmp";
+  await writeFile(tmpPath, JSON.stringify(fullRecord, null, 2) + "\n");
+  await rename(tmpPath, recordPath);
   return fullRecord;
 }
 
@@ -70,7 +78,10 @@ export async function updateChangeRecordValidation(projectRoot: string, record: 
     updatedAt: new Date().toISOString(),
   };
   const paths = workspacePaths(projectRoot);
-  await writeFile(path.join(paths.patchesDir, record.id, "record.json"), JSON.stringify(updated, null, 2) + "\n");
+  const recordPath = path.join(paths.patchesDir, record.id, "record.json");
+  const tmpPath = recordPath + ".tmp";
+  await writeFile(tmpPath, JSON.stringify(updated, null, 2) + "\n");
+  await rename(tmpPath, recordPath);
   return updated;
 }
 
@@ -95,7 +106,9 @@ export async function revertChangeRecord(projectRoot: string, recordId: string):
     } else if (file.operation === "modify") {
       if (file.beforeContent !== undefined && file.beforeContent !== null) {
         await mkdir(path.dirname(absolutePath), { recursive: true });
-        await writeFile(absolutePath, file.beforeContent, "utf8");
+        const tmpPath = absolutePath + ".gc-tmp";
+        await writeFile(tmpPath, file.beforeContent, "utf8");
+        await rename(tmpPath, absolutePath);
       }
     }
   }

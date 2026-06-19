@@ -129,6 +129,7 @@ function appendVersionDiagnostics(diagnostics: Diagnostic[], version: string | n
 }
 
 async function discoverFlatpakApps(): Promise<Array<{ application: string; name: string; branch: string }>> {
+  if (process.platform !== "linux") return [];
   const result = await runProcess(["flatpak", "list", "--app", "--columns=application,name,branch"], { timeoutMs: 5000 });
   if (result.exitCode !== 0) {
     return [];

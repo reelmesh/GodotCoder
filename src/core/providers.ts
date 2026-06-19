@@ -7,6 +7,9 @@ import { getProviderApiKey } from "./settings.js";
 import { workspacePaths } from "./workspace.js";
 
 export type ModelProviderKind = "openai" | "anthropic" | "ollama" | "lmstudio" | "openrouter" | "openai-compatible";
+export type ModelRole = "planning" | "build" | "review" | "fallback";
+
+export const modelRoles = ["planning", "build", "review", "fallback"] as const;
 
 export interface ModelConfig {
   schemaVersion: 1;
@@ -14,6 +17,11 @@ export interface ModelConfig {
   model: string;
   baseUrl: string | null;
   apiKeyEnv: string | null;
+}
+
+export interface ModelRolesConfig {
+  schemaVersion: 1;
+  roles: Partial<Record<ModelRole, ModelConfig>>;
 }
 
 export interface ModelMessage {
@@ -47,6 +55,72 @@ export async function loadModelConfig(projectRoot: string): Promise<ModelConfig 
   return configFromEnv();
 }
 
+export async function loadModelConfigForRole(projectRoot: string, role: ModelRole): Promise<{ config: ModelConfig | null; source: "role" | "fallback" | "default" | "missing"; role: ModelRole }> {
+  const roles = await loadModelRoles(projectRoot);
+  const roleConfig = roles.roles[role];
+  if (roleConfig) {
+    return { config: roleConfig, source: "role", role };
+  }
+
+  const fallback = roles.roles.fallback;
+  if (fallback) {
+    return { config: fallback, source: "fallback", role };
+  }
+
+  const config = await loadModelConfig(projectRoot);
+  return { config, source: config ? "default" : "missing", role };
+}
+
+export async function loadModelRoles(projectRoot: string): Promise<ModelRolesConfig> {
+  const rolesPath = workspacePaths(projectRoot).modelRoles;
+  if (await pathExists(rolesPath)) {
+    return parseModelRolesConfig(JSON.parse(await readFile(rolesPath, "utf8")));
+  }
+
+  return { schemaVersion: 1, roles: {} };
+}
+
+export async function writeModelRole(projectRoot: string, role: ModelRole, config: ModelConfig): Promise<ModelRolesConfig> {
+  const paths = workspacePaths(projectRoot);
+  const current = await loadModelRoles(projectRoot);
+  const next: ModelRolesConfig = {
+    schemaVersion: 1,
+    roles: {
+      ...current.roles,
+      [role]: config,
+    },
+  };
+  await mkdir(path.dirname(paths.modelRoles), { recursive: true });
+  await writeFile(paths.modelRoles, JSON.stringify(next, null, 2) + "\n");
+  await writeModelRolesExample(projectRoot);
+  return next;
+}
+
+export async function writeModelRolesExample(projectRoot: string): Promise<void> {
+  const paths = workspacePaths(projectRoot);
+  const example: ModelRolesConfig = {
+    schemaVersion: 1,
+    roles: {
+      build: {
+        schemaVersion: 1,
+        provider: "ollama",
+        model: "llama3.1",
+        baseUrl: "http://127.0.0.1:11434",
+        apiKeyEnv: null,
+      },
+      fallback: {
+        schemaVersion: 1,
+        provider: "lmstudio",
+        model: "local-fallback-model",
+        baseUrl: "http://127.0.0.1:1234",
+        apiKeyEnv: "LM_API_TOKEN",
+      },
+    },
+  };
+  await mkdir(path.dirname(paths.modelRolesExample), { recursive: true });
+  await writeFile(paths.modelRolesExample, JSON.stringify(example, null, 2) + "\n");
+}
+
 export async function writeModelConfig(projectRoot: string, config: ModelConfig): Promise<void> {
   const paths = workspacePaths(projectRoot);
   await mkdir(path.dirname(paths.modelConfig), { recursive: true });
@@ -67,7 +141,7 @@ export async function writeModelConfigExample(projectRoot: string): Promise<void
   await writeFile(paths.modelConfigExample, JSON.stringify(example, null, 2) + "\n");
 }
 
-export async function completeWithModel(config: ModelConfig, messages: ModelMessage[], projectRoot?: string | null): Promise<ModelReply> {
+export async function completeWithModel(config: ModelConfig, messages: ModelMessage[], projectRoot: string | null = null): Promise<ModelReply> {
   if (config.provider === "anthropic") {
     return completeAnthropic(config, messages, projectRoot ?? null);
   }
@@ -83,7 +157,7 @@ export async function completeWithModel(config: ModelConfig, messages: ModelMess
   return completeOpenAICompatible(config, messages, projectRoot ?? null);
 }
 
-export async function inspectProvider(config: ModelConfig | null, projectRoot?: string | null): Promise<ProviderStatus> {
+export async function inspectProvider(config: ModelConfig | null, projectRoot: string | null = null): Promise<ProviderStatus> {
   if (!config) {
     return {
       provider: "openai-compatible",
@@ -147,6 +221,22 @@ function parseModelConfig(value: unknown): ModelConfig {
     model: asString(root.model, "model config model"),
     baseUrl: asNullableString(root.baseUrl, "model config baseUrl"),
     apiKeyEnv: asNullableString(root.apiKeyEnv, "model config apiKeyEnv"),
+  };
+}
+
+function parseModelRolesConfig(value: unknown): ModelRolesConfig {
+  const root = asObject(value, "model roles config");
+  const rolesRoot = asObject(root.roles ?? {}, "model roles config roles");
+  const roles: Partial<Record<ModelRole, ModelConfig>> = {};
+  for (const role of modelRoles) {
+    const config = rolesRoot[role];
+    if (config !== undefined) {
+      roles[role] = parseModelConfig(config);
+    }
+  }
+  return {
+    schemaVersion: asLiteral(root.schemaVersion, 1, "model roles config schemaVersion"),
+    roles,
   };
 }
 
@@ -393,16 +483,28 @@ function messagesToPrompt(messages: ModelMessage[]): string {
   return messages.map((message) => `${message.role.toUpperCase()}:\n${message.content}`).join("\n\n");
 }
 
-async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 30_000): Promise<unknown> {
+async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 30_000, retries = 2): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
     const text = await response.text();
     if (!response.ok) {
+      if (retries > 0 && (response.status === 429 || response.status >= 500)) {
+        const delay = response.status === 429 ? 2000 : 1000 * (3 - retries);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        clearTimeout(timeout);
+        return fetchJson(url, init, timeoutMs, retries - 1);
+      }
       throw new CliError("MODEL_REQUEST_FAILED", `${response.status} ${response.statusText}: ${text.slice(0, 500)}`);
     }
     return text ? JSON.parse(text) : {};
+  } catch (error) {
+    if (retries > 0 && !(error instanceof CliError) && (error as Error).name === "AbortError") {
+      clearTimeout(timeout);
+      return fetchJson(url, init, timeoutMs, retries - 1);
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }

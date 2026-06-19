@@ -2,7 +2,7 @@
 
 Date: 2026-06-18
 
-## Recent Implementation Arc: Validation, Brownfield Safety, Export Readiness, Editor UX
+## Recent Implementation Arc: Validation, Brownfield Safety, Export Readiness, Editor UX, Model Quality
 
 Implemented and verified the next confidence-building arc:
 
@@ -36,6 +36,35 @@ Implemented and verified the next confidence-building arc:
   - Captures frame artifacts directly when possible and records fallback visual validation artifact/report paths when the headless playtest viewport cannot be analyzed.
   - Reports heuristic interactivity signals: input simulated, frame/physics processing active, scene state changed, text changed, visual nonblank status, runtime errors, and premature exit.
   - Adds `.godotcoder/playtests/latest.json` to future LLM build context.
+- Model quality telemetry and retry context
+  - Adds durable model-run records under `.godotcoder/model-runs/`.
+  - Tracks command, task intent, provider/model, outcome, retry recovery, prompt preview, model attempts, and compact context used for the run.
+  - Feeds recent validation, visual validation, repair, playtest, and task findings into the retry prompt after an invalid model response or failed acceptance gate.
+  - Preserves existing `.godotcoder/model-failures/` artifacts for failed harness runs while adding a broader success/failure ledger for quality analysis.
+- Review-driven prompt and artifact hardening
+  - Moves controlled build/retry prompt text into `src/prompts/build.txt` and `src/prompts/build-retry.txt`.
+  - Keeps built-checkout execution working by resolving prompt templates from compiled `dist` locations or source templates.
+  - Adds safer atomic writes for change records, task state, and repair undo status updates.
+  - Adds safer process results with error/truncation fields and SIGKILL fallback after timeout SIGTERM.
+- Role-aware model selection
+  - Adds optional `planning`, `build`, `review`, and `fallback` model roles under `.godotcoder.local/model-roles.json`.
+  - Adds `godotcoder models role list` and `godotcoder models role set <role> --provider <provider> --model <model>`.
+  - Controlled build, harness, and pipeline implementation use the `build` role when configured, then the `fallback` role, then the default model config.
+  - Model-run records include the model source (`role`, `fallback`, or `default`) for later outcome reporting.
+- Model outcome reporting
+  - Adds `godotcoder models report [--json] [--limit <n>]`.
+  - Summarizes model-run totals, success/failure counts, retry recoveries, success rate, latest runs, and grouped provider/model/source/task-type outcomes.
+  - Keeps the report grounded in `.godotcoder/model-runs/` so routing decisions can be based on observed project-local behavior.
+- Repeatable model eval prompts
+  - Adds `godotcoder models eval [--json] [--prompt-set mixed|arcade|edits] [--limit <n>]`.
+  - Runs fixed prompt sets through the same controlled build generation, JSON parsing, acceptance gates, retry, and model-run recording path.
+  - Keeps evals preview-only: generated files are scored and recorded but not applied to the project.
+  - Reports prompt IDs, pass/fail status, provider/model, retry recovery, generated file count, errors, and model-run IDs.
+- Model routing recommendations
+  - Adds `godotcoder models recommend [--json]`.
+  - Aggregates `.godotcoder/model-runs/` by provider, model, and model source across task types.
+  - Recommends the strongest observed build candidate using success rate, retry dependence, and evidence volume.
+  - Keeps recommendations advisory only; GodotCoder does not automatically switch or manage model routing.
 
 Verification for this arc:
 
@@ -45,7 +74,7 @@ npm run build
 npm run test:smoke
 ```
 
-All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, playtest interactivity heuristics, editor RPC summaries/reject acknowledgements, existing parser/repair/schema tests, and RPC/provider smoke coverage.
+All passed. The smoke suite now covers brownfield detection/safety, export doctor/preset automation, visual validation frame analysis, playtest interactivity heuristics, editor RPC summaries/reject acknowledgements, role-aware model selection, model outcome reporting, repeatable model eval prompts, model routing recommendations, model-run telemetry, artifact-aware retry prompts, existing parser/repair/schema tests, and RPC/provider smoke coverage.
 
 ## Implemented
 
@@ -118,6 +147,11 @@ Core modules:
 - Advisory LLM calls through `ask`.
 - Controlled LLM implementation through `build`, `harness`, and `pipeline`.
 - Failed controlled harness/pipeline model attempts are recorded under `.godotcoder/model-failures/` with parse error, provider/model, and truncated raw model output for debugging.
+- Controlled build model attempts are recorded under `.godotcoder/model-runs/` with provider/model, task intent, outcome, retry recovery, attempt errors/content excerpts, and recent validation/repair/playtest/task context.
+- Optional model roles are stored in `.godotcoder.local/model-roles.json`; controlled implementation resolves `build` first, then `fallback`, then the default `.godotcoder.local/model-config.json` or env config.
+- `godotcoder models report` summarizes `.godotcoder/model-runs/` by provider, model, source, and task intent for quality tracking.
+- `godotcoder models eval` runs fixed preview-only prompt sets through controlled generation and records model-run evidence for each prompt.
+- `godotcoder models recommend` turns local model-run evidence into advisory routing recommendations without changing configured models.
 - Godot project root discovery.
 - Typed `project.godot` parsing for strings, numbers, booleans, dictionaries, `PackedStringArray`, slash keys, feature tags, main scene, app name, renderer, display settings, input map, autoloads, and enabled editor plugins.
 - Project index generation.
@@ -473,12 +507,11 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 Recommended next: model quality and routing.
 
-The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, and task board iteration loop slices are complete. The next useful product slice is to improve model quality tracking and routing:
+The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, and advisory routing recommendation slices are complete. The next useful product slice is to continue model quality and routing:
 
-- track provider/model failures by task type,
-- add optional planning/build/review model roles with one fallback model,
-- feed validation, repair, visual, playtest, and task findings into retries,
-- add repeatable eval prompts for arbitrary non-template game ideas.
+- route planning and review calls through their optional model roles,
+- feed post-apply validation, repair, visual, playtest, and task findings into follow-up build attempts,
+- surface model quality signals in editor-facing summaries.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 

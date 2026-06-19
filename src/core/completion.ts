@@ -9,7 +9,10 @@ const diffNames = ["compact", "full"] as const;
 const runtimeCommands = ["doctor", "use"] as const;
 const authCommands = ["login", "logout"] as const;
 const settingsCommands = ["set", "default-mode", "approval-mode", "provider", "diffs", "init", "help"] as const;
-const modelsCommands = ["use"] as const;
+const modelsCommands = ["use", "role", "roles", "report", "eval", "recommend", "recommendation"] as const;
+const modelEvalPromptSets = ["mixed", "arcade", "edits"] as const;
+const modelRoleCommands = ["list", "set", "show"] as const;
+const modelRoleNames = ["planning", "build", "review", "fallback"] as const;
 const docsCommands = ["search", "list", "cache", "show"] as const;
 const exportCommands = ["doctor", "preset"] as const;
 const exportPresetTargets = ["linux"] as const;
@@ -86,6 +89,32 @@ export function completeSessionLine(line: string): [string[], string] {
         return completeToken(providerNames, currentToken, line);
       }
       return completeToken(modelsCommands, currentToken, line);
+    }
+    if (second === "role" || second === "roles") {
+      if (parts.length === 3 && !endsWithSpace) {
+        return completeToken(modelRoleCommands, currentToken, line);
+      }
+      if (parts[2] === "set") {
+        if (parts.length === 4 && !endsWithSpace) {
+          return completeToken(modelRoleNames, currentToken, line);
+        }
+        if (currentToken.startsWith("--provider")) {
+          return completeToken(providerNames, currentToken, line);
+        }
+      }
+      return completeToken(modelRoleCommands, currentToken, line);
+    }
+    if (second === "eval") {
+      if (parts[parts.length - 2] === "--prompt-set") {
+        return completeToken(modelEvalPromptSets, currentToken, line);
+      }
+      return completeToken(["--prompt-set", "--limit", "--json"], currentToken, line);
+    }
+    if (second === "report") {
+      return completeToken(["--limit", "--json"], currentToken, line);
+    }
+    if (second === "recommend" || second === "recommendation") {
+      return completeToken(["--json"], currentToken, line);
     }
     return completeToken(modelsCommands, currentToken, line);
   }

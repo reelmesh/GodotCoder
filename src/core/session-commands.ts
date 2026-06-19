@@ -18,7 +18,7 @@ export const sessionCommands: SessionCommand[] = [
   { name: "/auth", aliases: ["/login"], handler: "auth", description: "Manage provider auth", flags: ["--json"] },
   { name: "/agents", handler: "agents", description: "Show agent roster" },
   { name: "/docs", handler: "docs", description: "Search official Godot docs", flags: ["--json"] },
-  { name: "/models", handler: "models", description: "Configure model provider", flags: ["--json"] },
+  { name: "/models", handler: "models", description: "Configure model provider", flags: ["use", "role", "roles", "report", "eval", "recommend", "recommendation", "list", "set", "planning", "build", "review", "fallback", "mixed", "arcade", "edits", "--provider", "--model", "--base-url", "--api-key-env", "--prompt-set", "--limit", "--json"] },
   { name: "/runs", aliases: ["/history"], handler: "runs", description: "Browse harness run history", flags: ["--json"] },
   { name: "/tasks", handler: "tasks", description: "Manage task board", flags: ["list", "show", "update", "--state", "--json"] },
   { name: "/ask", aliases: ["/chat"], handler: "ask", description: "Ask configured LLM", flags: ["--json"] },

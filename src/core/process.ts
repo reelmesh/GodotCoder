@@ -6,6 +6,9 @@ export interface ProcessResult {
   stdout: string;
   stderr: string;
   timedOut: boolean;
+  error: string | null;
+  stdoutTruncated: boolean;
+  stderrTruncated: boolean;
 }
 
 export function runProcess(command: string[], options: { cwd?: string; timeoutMs?: number; env?: NodeJS.ProcessEnv } = {}): Promise<ProcessResult> {
@@ -22,10 +25,14 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
     let stdoutTruncated = false;
     let stderrTruncated = false;
     let timedOut = false;
+    let sigkillTimer: ReturnType<typeof setTimeout> | null = null;
     const timeout = options.timeoutMs
       ? setTimeout(() => {
           timedOut = true;
           child.kill("SIGTERM");
+          sigkillTimer = setTimeout(() => {
+            child.kill("SIGKILL");
+          }, 5000);
         }, options.timeoutMs)
       : null;
 
@@ -40,25 +47,33 @@ export function runProcess(command: string[], options: { cwd?: string; timeoutMs
       else stderrTruncated = true;
     });
 
-    child.on("error", (error) => {
+    child.on("error", (err) => {
       if (timeout) clearTimeout(timeout);
+      if (sigkillTimer) clearTimeout(sigkillTimer);
       resolve({
         command,
         exitCode: null,
         stdout: stdout + (stdoutTruncated ? `\nOutput truncated at ${MAX_BUFFER} bytes.` : ""),
-        stderr: stderr + error.message + (timedOut ? "\nTimed out." : "") + (stderrTruncated ? `\nStderr truncated at ${MAX_BUFFER} bytes.` : ""),
+        stderr,
         timedOut,
+        error: err.message,
+        stdoutTruncated,
+        stderrTruncated,
       });
     });
 
     child.on("close", (exitCode) => {
       if (timeout) clearTimeout(timeout);
+      if (sigkillTimer) clearTimeout(sigkillTimer);
       resolve({
         command,
         exitCode,
         stdout: stdout + (stdoutTruncated ? `\nOutput truncated at ${MAX_BUFFER} bytes.` : ""),
         stderr: stderr + (timedOut ? "\nTimed out." : "") + (stderrTruncated ? `\nStderr truncated at ${MAX_BUFFER} bytes.` : ""),
         timedOut,
+        error: null,
+        stdoutTruncated,
+        stderrTruncated,
       });
     });
   });

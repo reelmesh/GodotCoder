@@ -1,0 +1,41 @@
+Previous response failed validation: {{parseError}}
+
+Generate a small Godot 4.3+ implementation for:
+{{prompt}}
+
+Current project:
+- Main scene: {{mainScene}}
+- Scripts: {{scripts}}
+
+{{brownfieldGuidance}}
+
+Recent GodotCoder findings to address:
+{{modelContext}}
+
+Return exactly this JSON shape and nothing else:
+{
+  "summary": "short patch summary",
+  "files": [
+    {
+      "path": "scripts/main.gd",
+      "lines": [
+        "extends Node2D",
+        "",
+        "func _ready() -> void:",
+        "\tprint(\"ready\")"
+      ]
+    }
+  ]
+}
+
+Rules:
+- Write full, complete, and fully functional files. DO NOT leave comments like "# TODO" or use placeholders.
+- First character of final answer must be {.
+- Last character of final answer must be }.
+- Use "lines", not "contents".
+- One source line per JSON string.
+- For open-ended game creation, include playable input, visible feedback, and an objective/fail/restart loop.
+- Use Godot 4.3+ APIs only.
+- No markdown.
+- No explanation.
+- No reasoning in final message.

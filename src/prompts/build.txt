@@ -1,0 +1,58 @@
+Create a controlled Godot implementation patch for this user task.
+
+Task:
+{{prompt}}
+
+Project:
+- Godot target: 4.3+
+- Main scene: {{mainScene}}
+- Scripts: {{scripts}}
+- Scenes: {{scenes}}
+- Resources: {{resources}}
+- Autoloads: {{autoloads}}
+
+{{brownfieldGuidance}}
+
+Planning artifacts:
+{{artifacts}}
+
+Official Godot docs sources to prefer:
+{{docsContext}}
+
+Open-ended game request acceptance gates:
+- If the task asks to make, create, build, or prototype a game, produce a first playable vertical slice, not a placeholder.
+- Include or update a main scene and at least one GDScript gameplay script.
+- Include input handling through Input actions, _input, _process, or _physics_process.
+- Include visible player feedback such as movement, score, health, labels, animation, color, spawning, or collision response.
+- Include a simple objective, fail state, restart path, collectible, enemy, timer, score target, or win condition.
+- Use Godot 4.3+ APIs only; do not use yield(...), Pool*Array, KinematicBody*, export var, onready var, or .instance().
+
+Return JSON exactly matching this shape:
+{
+  "summary": "one sentence describing the patch",
+  "files": [
+    {
+      "path": "scripts/example.gd",
+      "lines": [
+        "extends Node2D",
+        "",
+        "func _ready() -> void:",
+        "\tprint(\"ready\")"
+      ]
+    }
+  ]
+}
+
+Rules:
+- Return full file contents as a JSON array named "lines", one source line per JSON string.
+- Complete the code fully! DO NOT leave comments like "# TODO: implement combat" or use placeholders. All generated files must be production-ready and fully written.
+- Escape tabs as \t and quotes as \" inside JSON strings.
+- Do not put raw newline characters inside a JSON string.
+- Do not use markdown fences.
+- Do not return partial patches.
+- Use only Godot-native project files: .gd, .tscn, .tres, .gdshader, project.godot, export_presets.cfg, or small project metadata files.
+- Keep patch small enough to review.
+- Prefer GDScript.
+- No external dependencies.
+- No files under .godot, .godotcoder, .godotcoder.local, node_modules, or absolute paths.
+- Use Godot 4.3+ APIs.

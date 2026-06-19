@@ -9,7 +9,7 @@ import { writeDocsContext } from "./godot-docs.js";
 import { applyLlmBuild, generateLlmBuild, LlmBuildError, type LlmBuildPlan } from "./llm-build.js";
 import { writePlanningArtifacts } from "./planning.js";
 import { previewGeneratedFiles, type BuildPreview } from "./preview.js";
-import { loadModelConfig, type ModelReply } from "./providers.js";
+import { loadModelConfigForRole, type ModelReply } from "./providers.js";
 import { attemptRepair, type RepairAttempt } from "./repair.js";
 import { createRuntimeProfile } from "./runtime-profile.js";
 import { discoverRuntime } from "./runtime-discovery.js";
@@ -144,8 +144,8 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   let llmPlan: LlmBuildPlan | null = null;
 
   // LLM-driven implementation is the only path.
-  const modelConfig = await loadModelConfig(projectRoot);
-  if (!modelConfig) {
+  const modelSelection = await loadModelConfigForRole(projectRoot, "build");
+  if (!modelSelection.config) {
     steps.push({
       id: "model-implementation",
       agent: "orchestrator+gameplay-engineer",
@@ -195,56 +195,9 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   const preview = await previewGeneratedFiles(projectRoot, llmPlan.summary, llmPlan.files);
 
   if (apply) {
-    const result = await applyLlmBuild(projectRoot, llmPlan, { prompt: goal, intent: taskIntent, brownfieldProfile: brownfield });
-    let record = await writeChangeRecord(projectRoot, {
-      kind: "build",
-      status: "applied",
-      prompt: goal,
-      summary: result.summary,
-      files: result.changes,
-      validationIds: [],
-    });
-    steps.push({
-      id: "implementation",
-      agent: "gameplay-engineer",
-      status: "done",
-      summary: result.summary,
-      artifacts: [path.join(paths.patchesDir, record.id, "record.json"), ...result.filesWritten],
-      gates: ["changes applied", "patch record written"],
-    });
-
-    if (options.validate) {
-      validation = await runValidation(projectRoot, runtimeProfile);
-      const reportPath = path.join(paths.validationsDir, `${validation.id}.json`);
-      await writeFile(reportPath, JSON.stringify(validation, null, 2) + "\n");
-      record = await updateChangeRecordValidation(projectRoot, record, validation.id);
-      steps.push({
-        id: "qa-validation",
-        agent: "qa-validator",
-        status: validation.summary.errors === 0 ? "done" : "failed",
-        summary: `Godot validation: ${validation.summary.errors} errors, ${validation.summary.warnings} warnings.`,
-        artifacts: [reportPath, path.join(paths.patchesDir, record.id, "record.json")],
-        gates: [`exit code: ${validation.exitCode ?? "not run"}`],
-      });
-
-      if (options.repair && validation && validation.summary.errors > 0) {
-        const repair = await attemptRepair(projectRoot, validation, runtimeProfile);
-        repairs.push(repair.attempt);
-        steps.push({
-          id: "qa-repair",
-          agent: "qa-validator+gameplay-engineer",
-          status: repair.attempt.status === "repaired" ? "done" : repair.attempt.status === "skipped" ? "skipped" : "failed",
-          summary: repair.attempt.summary,
-          artifacts: [repair.attemptPath],
-          gates: repair.attempt.validationAfter
-            ? [`post-repair errors: ${repair.attempt.validationAfter.summary.errors}`, `post-repair warnings: ${repair.attempt.validationAfter.summary.warnings}`]
-            : ["no post-repair validation"],
-        });
-        if (repair.attempt.validationAfter) {
-          validation = repair.attempt.validationAfter;
-        }
-      }
-    }
+    const result = await applyHarnessBuild(projectRoot, goal, llmPlan, preview, runtimeProfile, steps, paths, taskIntent, brownfield, options);
+    validation = result.validation;
+    repairs.push(...result.repairs);
   } else {
     steps.push({
       id: "implementation-preview",
@@ -260,6 +213,75 @@ export async function runHarness(startDir: string, goal: string, options: { appl
   const runPath = path.join(paths.runsDir, `${run.id}.json`);
   await writeFile(runPath, JSON.stringify(run, null, 2) + "\n");
   return { run, runPath };
+}
+
+async function applyHarnessBuild(
+  projectRoot: string,
+  goal: string,
+  llmPlan: LlmBuildPlan,
+  _preview: BuildPreview,
+  runtimeProfile: ReturnType<typeof createRuntimeProfile>,
+  steps: HarnessStep[],
+  paths: ReturnType<typeof workspacePaths>,
+  taskIntent: TaskIntent,
+  brownfield: BrownfieldProfile,
+  options: { validate: boolean; repair?: boolean },
+): Promise<{ validation: ValidationReport | null; repairs: RepairAttempt[] }> {
+  let validation: ValidationReport | null = null;
+  const repairs: RepairAttempt[] = [];
+
+  const result = await applyLlmBuild(projectRoot, llmPlan, { prompt: goal, intent: taskIntent, brownfieldProfile: brownfield });
+  let record = await writeChangeRecord(projectRoot, {
+    kind: "build",
+    status: "applied",
+    prompt: goal,
+    summary: result.summary,
+    files: result.changes,
+    validationIds: [],
+  });
+  steps.push({
+    id: "implementation",
+    agent: "gameplay-engineer",
+    status: "done",
+    summary: result.summary,
+    artifacts: [path.join(paths.patchesDir, record.id, "record.json"), ...result.filesWritten],
+    gates: ["changes applied", "patch record written"],
+  });
+
+  if (options.validate) {
+    validation = await runValidation(projectRoot, runtimeProfile);
+    const reportPath = path.join(paths.validationsDir, `${validation.id}.json`);
+    await writeFile(reportPath, JSON.stringify(validation, null, 2) + "\n");
+    record = await updateChangeRecordValidation(projectRoot, record, validation.id);
+    steps.push({
+      id: "qa-validation",
+      agent: "qa-validator",
+      status: validation.summary.errors === 0 ? "done" : "failed",
+      summary: `Godot validation: ${validation.summary.errors} errors, ${validation.summary.warnings} warnings.`,
+      artifacts: [reportPath, path.join(paths.patchesDir, record.id, "record.json")],
+      gates: [`exit code: ${validation.exitCode ?? "not run"}`],
+    });
+
+    if (options.repair && validation && validation.summary.errors > 0) {
+      const repair = await attemptRepair(projectRoot, validation, runtimeProfile);
+      repairs.push(repair.attempt);
+      steps.push({
+        id: "qa-repair",
+        agent: "qa-validator+gameplay-engineer",
+        status: repair.attempt.status === "repaired" ? "done" : repair.attempt.status === "skipped" ? "skipped" : "failed",
+        summary: repair.attempt.summary,
+        artifacts: [repair.attemptPath],
+        gates: repair.attempt.validationAfter
+          ? [`post-repair errors: ${repair.attempt.validationAfter.summary.errors}`, `post-repair warnings: ${repair.attempt.validationAfter.summary.warnings}`]
+          : ["no post-repair validation"],
+      });
+      if (repair.attempt.validationAfter) {
+        validation = repair.attempt.validationAfter;
+      }
+    }
+  }
+
+  return { validation, repairs };
 }
 
 function buildRun(

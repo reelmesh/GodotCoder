@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, rename, stat } from "node:fs/promises";
 import path from "node:path";
 import { pathExists } from "./files.js";
 import { workspacePaths } from "./workspace.js";
@@ -44,7 +44,10 @@ export function isTaskState(value: string): value is TaskState {
 export async function loadTaskBoard(projectRoot: string): Promise<TaskBoard> {
   const paths = workspacePaths(projectRoot);
   const existing = await readTaskBoardFile(paths.tasksState);
-  const markdownTasks = await readMarkdownTasks(paths.tasks);
+
+  // Only re-read markdown if the file changed since last sync
+  const shouldReadMarkdown = await shouldSyncMarkdown(paths.tasks, existing);
+  const markdownTasks = shouldReadMarkdown ? await readMarkdownTasks(paths.tasks) : [];
   const board = existing ?? emptyBoard();
   let changed = false;
 
@@ -85,7 +88,9 @@ export async function saveTaskBoard(projectRoot: string, board: TaskBoard): Prom
     tasks: board.tasks.map((task) => ({ ...task, links: normalizeLinks(task.links) })),
   };
   await mkdir(paths.workspaceRoot, { recursive: true });
-  await writeFile(paths.tasksState, JSON.stringify(updated, null, 2) + "\n");
+  const tmpPath = paths.tasksState + ".tmp";
+  await writeFile(tmpPath, JSON.stringify(updated, null, 2) + "\n");
+  await rename(tmpPath, paths.tasksState);
   await syncTasksMarkdown(paths.tasks, updated);
   return updated;
 }
@@ -232,7 +237,20 @@ async function syncTasksMarkdown(filePath: string, board: TaskBoard): Promise<vo
   }
 
   await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, nextLines.join("\n").replace(/\n*$/, "\n"));
+  const tmpPath = filePath + ".tmp";
+  await writeFile(tmpPath, nextLines.join("\n").replace(/\n*$/, "\n"));
+  await rename(tmpPath, filePath);
+}
+
+async function shouldSyncMarkdown(tasksMdPath: string, board: TaskBoard | null): Promise<boolean> {
+  try {
+    const mdStat = await stat(tasksMdPath);
+    if (!board) return true;
+    const boardTime = new Date(board.updatedAt).getTime();
+    return mdStat.mtimeMs > boardTime;
+  } catch {
+    return false;
+  }
 }
 
 function normalizeTitle(title: string): string {

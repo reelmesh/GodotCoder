@@ -2,7 +2,7 @@ import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
 import { inspectGodotProject, tryFindGodotProjectRoot } from "../core/godot-project.js";
 import { applyLlmBuild, generateLlmBuild } from "../core/llm-build.js";
 import { CliError } from "../core/errors.js";
-import { loadModelConfig } from "../core/providers.js";
+import { loadModelConfigForRole } from "../core/providers.js";
 import { validateProjectRoot } from "./validate.js";
 import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
 import { previewGeneratedFiles } from "../core/preview.js";
@@ -45,6 +45,18 @@ export async function buildProject(args: string[]): Promise<void> {
 
   const taskIntent = intent ?? inferTaskIntent(buildPrompt);
   if (apply && !preview) {
+    // Brownfield safety: require preview before blind apply
+    const existingBrownfieldCheck = await tryFindGodotProjectRoot(process.cwd());
+    if (existingBrownfieldCheck) {
+      const idx = await inspectGodotProject(existingBrownfieldCheck);
+      const bf = detectBrownfieldProject(idx);
+      if (bf.isBrownfield) {
+        console.log("Brownfield project detected. Use --preview before --apply, or pass --apply --preview together for explicit confirmation.");
+        return;
+      }
+    }
+  }
+  if (apply && !preview) {
     const payload = await applyBuildTask(buildPrompt || "build first playable", { shouldValidate, intent: taskIntent, taskId: task?.id ?? null });
 
     if (json) {
@@ -82,8 +94,8 @@ export async function buildProject(args: string[]): Promise<void> {
   const projectIndex = await inspectGodotProject(projectRoot);
   const brownfield = detectBrownfieldProject(projectIndex, scaffold.createdProjectFile);
 
-  const modelConfig = await loadModelConfig(projectRoot);
-  if (!modelConfig) {
+  const modelSelection = await loadModelConfigForRole(projectRoot, "build");
+  if (!modelSelection.config) {
     throw new CliError("MODEL_CONFIG_MISSING", "No model provider configured. GodotCoder is LLM-driven — configure a provider first:\n  godotcoder models use --provider ollama --model llama3.1");
   }
 
@@ -124,8 +136,8 @@ export async function applyBuildTask(prompt: string, options: { shouldValidate?:
   const shouldValidate = options.shouldValidate ?? true;
   const task = options.taskId ? await updateTask(projectRoot, options.taskId, { state: "active" }).then((result) => result.task) : null;
 
-  const modelConfig = await loadModelConfig(projectRoot);
-  if (!modelConfig) {
+  const modelSelection = await loadModelConfigForRole(projectRoot, "build");
+  if (!modelSelection.config) {
     throw new CliError("MODEL_CONFIG_MISSING", "No model provider configured. GodotCoder is LLM-driven — configure a provider first:\n  godotcoder models use --provider ollama --model llama3.1");
   }
 

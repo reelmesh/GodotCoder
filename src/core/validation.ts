@@ -405,6 +405,7 @@ export interface FrameAnalysis {
   height: number;
   blank: boolean;
   nearBlank: boolean;
+  pixelCount: number;
 }
 
 export async function analyzePngFrame(filePath: string): Promise<FrameAnalysis> {
@@ -450,8 +451,9 @@ export function analyzePngBytes(bytes: Buffer): FrameAnalysis {
   if (!width || !height) {
     throw new Error("PNG image is missing dimensions");
   }
-  if (bitDepth !== 8) {
-    throw new Error(`PNG bit depth ${bitDepth} is not supported`);
+  if (bitDepth !== 8 || ![2, 6].includes(colorType)) {
+    // Palette-based or non-RGB/RGBA PNG — treat as non-blank without detailed analysis
+    return { width, height, blank: false, nearBlank: false, pixelCount: width * height };
   }
 
   const channels = pngChannels(colorType);
@@ -500,6 +502,7 @@ export function analyzePngBytes(bytes: Buffer): FrameAnalysis {
     height,
     blank: visiblePixels === 0 || (rgbRange <= 2 && alphaRange <= 2),
     nearBlank: visiblePixels === 0 || (rgbRange <= 10 && alphaRange <= 10),
+    pixelCount: visiblePixels,
   };
 }
 

@@ -36,7 +36,6 @@ export async function previewGeneratedFiles(projectRoot: string, summary: string
     const beforeLines = splitLines(before);
     const afterLines = splitLines(file.contents);
     const diff = lineDiff(beforeLines, afterLines);
-    const maxDiffLines = 160;
 
     previews.push({
       path: `res://${file.path}`,
@@ -45,8 +44,8 @@ export async function previewGeneratedFiles(projectRoot: string, summary: string
       afterLines: afterLines.length,
       addedLines: diff.added,
       removedLines: diff.removed,
-      diff: diff.lines.slice(0, maxDiffLines),
-      diffTruncated: diff.lines.length > maxDiffLines,
+      diff: diff.lines,
+      diffTruncated: diff.truncated,
     });
   }
 
@@ -58,13 +57,19 @@ function splitLines(value: string): string[] {
   return value.replace(/\n$/, "").split(/\r?\n/);
 }
 
-function lineDiff(before: string[], after: string[]): { added: number; removed: number; lines: PreviewDiffLine[] } {
+function lineDiff(before: string[], after: string[]): { added: number; removed: number; lines: PreviewDiffLine[]; truncated: boolean } {
+  const maxDiffLines = 160;
+  const maxLcsLines = 2000;
+
   if (before.length === 0) {
-    return {
-      added: after.length,
-      removed: 0,
-      lines: after.map((text, index) => ({ kind: "add", beforeLine: null, afterLine: index + 1, text })),
-    };
+    const lines = after.map((text, index) => ({ kind: "add" as const, beforeLine: null, afterLine: index + 1, text }));
+    const truncated = lines.length > maxDiffLines;
+    const sliced = lines.slice(0, maxDiffLines);
+    return { added: after.length, removed: 0, lines: collapseContext(sliced, 3), truncated };
+  }
+
+  if (before.length + after.length > maxLcsLines) {
+    return simpleDiff(before, after, maxDiffLines);
   }
 
   const table = buildLcsTable(before, after);
@@ -104,7 +109,53 @@ function lineDiff(before: string[], after: string[]): { added: number; removed: 
     }
   }
 
-  return { added, removed, lines: collapseContext(lines, 3) };
+  const truncated = lines.length > maxDiffLines;
+  const sliced = lines.slice(0, maxDiffLines);
+  return { added, removed, lines: collapseContext(sliced, 3), truncated };
+}
+
+function simpleDiff(before: string[], after: string[], maxLines: number): { added: number; removed: number; lines: PreviewDiffLine[]; truncated: boolean } {
+  const lines: PreviewDiffLine[] = [];
+  let added = 0;
+  let removed = 0;
+  let i = 0;
+  let j = 0;
+
+  while (i < before.length && j < after.length) {
+    if (before[i] === after[j]) {
+      lines.push({ kind: "context", beforeLine: i + 1, afterLine: j + 1, text: before[i]! });
+      i += 1;
+      j += 1;
+    } else {
+      const nextInAfter = after.indexOf(before[i]!, j);
+      const nextInBefore = before.indexOf(after[j]!, i);
+      if (nextInAfter !== -1 && (nextInBefore === -1 || nextInAfter - j <= nextInBefore - i)) {
+        for (; j < nextInAfter; j += 1) {
+          lines.push({ kind: "add", beforeLine: null, afterLine: j + 1, text: after[j]! });
+          added += 1;
+        }
+      } else if (nextInBefore !== -1) {
+        for (; i < nextInBefore; i += 1) {
+          lines.push({ kind: "remove", beforeLine: i + 1, afterLine: null, text: before[i]! });
+          removed += 1;
+        }
+      } else {
+        lines.push({ kind: "remove", beforeLine: i + 1, afterLine: null, text: before[i]! });
+        lines.push({ kind: "add", beforeLine: null, afterLine: j + 1, text: after[j]! });
+        removed += 1;
+        added += 1;
+        i += 1;
+        j += 1;
+      }
+    }
+  }
+
+  for (; i < before.length; i += 1) { lines.push({ kind: "remove", beforeLine: i + 1, afterLine: null, text: before[i]! }); removed += 1; }
+  for (; j < after.length; j += 1) { lines.push({ kind: "add", beforeLine: null, afterLine: j + 1, text: after[j]! }); added += 1; }
+
+  const truncated = lines.length > maxLines;
+  const sliced = lines.slice(0, maxLines);
+  return { added, removed, lines: collapseContext(sliced, 3), truncated };
 }
 
 function buildLcsTable(before: string[], after: string[]): number[][] {
