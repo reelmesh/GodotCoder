@@ -3,7 +3,7 @@ import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-pro
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { listModelEvalPromptSets, runModelEval } from "../core/model-evals.js";
 import { modelRoutingRecommendation, modelRunReport } from "../core/model-runs.js";
-import { completeWithModel, inspectProvider, loadModelConfig, loadModelRoles, modelRoles, modelSystemPrompt, writeModelConfig, writeModelConfigExample, writeModelRole, writeModelRolesExample, type ModelConfig, type ModelProviderKind, type ModelRole } from "../core/providers.js";
+import { completeWithModel, inspectProvider, loadModelConfig, loadModelConfigForRole, loadModelRoles, modelRoles, modelSystemPrompt, writeModelConfig, writeModelConfigExample, writeModelRole, writeModelRolesExample, type ModelConfig, type ModelProviderKind, type ModelRole } from "../core/providers.js";
 import { readFlag, parseProvider, defaultBaseUrl, defaultApiKeyEnv } from "../core/flags.js";
 
 export async function modelsCommand(args: string[]): Promise<void> {
@@ -103,23 +103,23 @@ export async function askModel(args: string[]): Promise<void> {
   }
 
   const projectRoot = (await tryFindGodotProjectRoot(process.cwd())) ?? process.cwd();
-  const config = await loadModelConfig(projectRoot);
-  if (!config) {
+  const modelSelection = await loadModelConfigForRole(projectRoot, "planning");
+  if (!modelSelection.config) {
     console.log("No model provider configured. Use `godotcoder models use ...` first.");
     return;
   }
 
-  const reply = await completeWithModel(config, [
+  const reply = await completeWithModel(modelSelection.config, [
     { role: "system", content: modelSystemPrompt() },
     { role: "user", content: prompt },
   ], projectRoot);
 
   if (json) {
-    console.log(JSON.stringify({ ok: true, reply }, null, 2));
+    console.log(JSON.stringify({ ok: true, modelSource: modelSelection.source, reply }, null, 2));
     return;
   }
 
-  console.log(`${reply.provider}:${reply.model}`);
+  console.log(`${reply.provider}:${reply.model} [${modelSelection.source}]`);
   console.log(reply.content);
 }
 

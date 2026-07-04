@@ -32,7 +32,7 @@ export const sessionCommands: SessionCommand[] = [
   { name: "/validate", aliases: ["/check"], handler: "validate", description: "Validate project", flags: ["--json", "--smoke", "--visual", "--export"] },
   { name: "/export", handler: "export", description: "Inspect or create export presets", flags: ["doctor", "preset", "linux", "--json", "--apply"] },
   { name: "/repair", handler: "repair", description: "Repair validation errors", flags: ["--json"] },
-  { name: "/rpc", handler: "rpc", description: "JSON RPC envelope", flags: ["--json", "--query", "--prompt", "--error", "--scene", "--context"] },
+  { name: "/rpc", handler: "rpc", description: "JSON RPC envelope", flags: ["--json", "--llm", "--query", "--prompt", "--error", "--scene", "--context"] },
   { name: "/preview", handler: "preview", description: "Preview build changes", flags: ["--no-validate"] },
   { name: "/build", handler: "build", description: "Build game feature", flags: ["--task", "--preview", "--apply", "--yes", "--no-validate", "--intent", "--feature", "--fix", "--refactor", "--polish"] },
   { name: "/apply", handler: "apply", description: "Apply pending build" },

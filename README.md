@@ -307,6 +307,7 @@ Editor integration and external tools can use stable RPC-style JSON envelopes:
 ```bash
 node /path/to/GodotCoder/dist/cli.js rpc workspace.status --json
 node /path/to/GodotCoder/dist/cli.js rpc workspace.changes --json
+node /path/to/GodotCoder/dist/cli.js rpc workspace.changes --llm --json
 node /path/to/GodotCoder/dist/cli.js rpc project.inspect --json
 node /path/to/GodotCoder/dist/cli.js rpc runtime.doctor --json
 node /path/to/GodotCoder/dist/cli.js rpc validation.run --json
@@ -369,11 +370,13 @@ node /path/to/GodotCoder/dist/cli.js auth login --provider openrouter --api-key 
 node /path/to/GodotCoder/dist/cli.js models use --provider openai-compatible --model your-model --base-url https://example.com/v1 --api-key-env YOUR_API_KEY_ENV
 ```
 
-Optional model roles let controlled workflows use a specialized build model or a fallback model without changing the default provider:
+Optional model roles let planning, build, review, and fallback workflows use specialized models without changing the default provider. `ask` resolves the `planning` role; controlled implementation resolves `build`; `rpc workspace.changes --llm` resolves `review`.
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js models role list
+node /path/to/GodotCoder/dist/cli.js models role set planning --provider openrouter --model openai/gpt-4o-mini
 node /path/to/GodotCoder/dist/cli.js models role set build --provider openrouter --model openai/gpt-4o-mini
+node /path/to/GodotCoder/dist/cli.js models role set review --provider openrouter --model openai/gpt-4o-mini
 node /path/to/GodotCoder/dist/cli.js models role set fallback --provider lmstudio --model local-fallback
 node /path/to/GodotCoder/dist/cli.js models report
 node /path/to/GodotCoder/dist/cli.js models eval --prompt-set arcade --limit 5
@@ -619,6 +622,6 @@ src/
 
 Next implementation slices:
 
-1. Continue model quality and routing: route planning/review roles and surface model quality signals in editor-facing summaries.
+1. Continue model quality and routing: surface richer model quality signals in editor-facing summaries.
 2. Expand editor-facing summaries for task, playtest, and validation history.
 3. Add more project-inspection and validation helpers for larger brownfield projects.

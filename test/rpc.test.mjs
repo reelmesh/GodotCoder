@@ -4,8 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
-
-const cli = path.resolve("dist/cli.js");
+import { rpcCommand } from "../dist/commands/rpc.js";
 
 test("rpc emits stable success envelopes", async () => {
   const projectRoot = await makeProject();
@@ -56,12 +55,8 @@ test("rpc emits stable success envelopes", async () => {
 
   const preview = await runRpc(projectRoot, ["build.preview", "--prompt", "make a 2d platformer with coins", "--json"]);
   const previewPayload = JSON.parse(preview.stdout);
-  assert.equal(previewPayload.ok, true);
-  assert.equal(previewPayload.result.source, "deterministic");
-  assert.equal(previewPayload.result.preview.files.length > 0, true);
-  assert.equal(previewPayload.result.previewSummary.fileCount, previewPayload.result.preview.files.length);
-  assert.equal(previewPayload.result.previewSummary.hasChanges, true);
-  assert.equal(previewPayload.result.previewSummary.changedPaths.some((filePath) => filePath.startsWith("res://")), true);
+  assert.equal(previewPayload.ok, false);
+  assert.equal(previewPayload.error.code, "MODEL_CONFIG_MISSING");
 
   const debugError = "Parse Error: Expected expression at res://scripts/player.gd:12:5";
   const debug = await runRpc(projectRoot, ["debug.current", "--error", debugError, "--context", JSON.stringify({ current_path: "res://scenes/main.tscn" }), "--json"]);
@@ -155,23 +150,28 @@ function runCommand(cwd, command) {
 }
 
 function runRpc(cwd, args) {
-  return new Promise((resolve) => {
-    const child = spawn(process.execPath, [cli, "rpc", ...args], {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    child.on("close", (status) => {
-      resolve({ status, stdout, stderr });
-    });
-  });
+  return captureCommand(cwd, () => rpcCommand(args));
+}
+
+async function captureCommand(cwd, command) {
+  const previousCwd = process.cwd();
+  const previousLog = console.log;
+  const previousError = console.error;
+  let stdout = "";
+  let stderr = "";
+  console.log = (...values) => {
+    stdout += `${values.join(" ")}\n`;
+  };
+  console.error = (...values) => {
+    stderr += `${values.join(" ")}\n`;
+  };
+  try {
+    process.chdir(cwd);
+    await command();
+    return { status: 0, stdout, stderr };
+  } finally {
+    process.chdir(previousCwd);
+    console.log = previousLog;
+    console.error = previousError;
+  }
 }

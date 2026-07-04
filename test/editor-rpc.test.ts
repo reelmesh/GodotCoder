@@ -6,6 +6,7 @@ import path from "node:path";
 import { it } from "node:test";
 
 const cli = path.resolve("dist/cli.js");
+const nodeBin = process.argv0 || process.execPath;
 
 it("editor RPC exposes latest artifact summaries and reject acknowledgements", async () => {
   const projectRoot = await makeProject();
@@ -90,7 +91,7 @@ async function writeArtifactFixtures(projectRoot: string): Promise<void> {
 
 function runRpc(cwd: string, args: string[]): Promise<{ status: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [cli, "rpc", ...args], {
+    const child = spawn(nodeBin, [cli, "rpc", ...args], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
     });

@@ -8,6 +8,7 @@ import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type Proje
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { previewGeneratedFiles } from "../core/preview.js";
 import { runProcess } from "../core/process.js";
+import { completeWithModel, loadModelConfigForRole, modelSystemPrompt } from "../core/providers.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
 import { validateProjectRoot } from "./validate.js";
@@ -49,7 +50,7 @@ async function runRpcMethod(method: string, args: string[]): Promise<unknown> {
     return attachContext(await projectInspect(), editorContext);
   }
   if (method === "workspace.changes") {
-    return attachContext(await workspaceChanges(), editorContext);
+    return attachContext(await workspaceChanges(filteredArgs.includes("--llm")), editorContext);
   }
   if (method === "runtime.doctor") {
     return attachContext(await runtimeDoctorRpc(), editorContext);
@@ -169,7 +170,7 @@ async function projectInspect(): Promise<unknown> {
   return { projectIndex: index };
 }
 
-async function workspaceChanges(): Promise<unknown> {
+async function workspaceChanges(useModel: boolean): Promise<unknown> {
   const projectRoot = await findGodotProjectRoot(process.cwd());
   const status = await runProcess(["git", "status", "--porcelain=v1"], { cwd: projectRoot, timeoutMs: 5000 });
   if (status.exitCode !== 0) {
@@ -186,6 +187,7 @@ async function workspaceChanges(): Promise<unknown> {
   const files = parseGitStatus(status.stdout);
   const counts = summarizeGitStatus(files);
   const changed = files.length;
+  const modelReview = useModel ? await reviewWorkspaceChanges(projectRoot, files) : null;
   return {
     vcs: "git",
     available: true,
@@ -193,6 +195,25 @@ async function workspaceChanges(): Promise<unknown> {
     files,
     counts,
     summary: changed === 0 ? "Workspace is clean." : `${changed} changed file${changed === 1 ? "" : "s"} in git status.`,
+    modelReview,
+  };
+}
+
+async function reviewWorkspaceChanges(projectRoot: string, files: Array<{ path: string; status: string }>): Promise<unknown> {
+  const modelSelection = await loadModelConfigForRole(projectRoot, "review");
+  if (!modelSelection.config) {
+    return { available: false, summary: "No model provider configured.", modelSource: "missing" };
+  }
+  const reply = await completeWithModel(modelSelection.config, [
+    { role: "system", content: `${modelSystemPrompt()}\n\nYou are reviewing git status, not editing files. Be concise and call out risk areas only.` },
+    { role: "user", content: `Review this workspace status:\n${files.map((file) => `${file.status}: ${file.path}`).join("\n") || "clean"}` },
+  ], projectRoot);
+  return {
+    available: true,
+    modelSource: modelSelection.source,
+    provider: reply.provider,
+    model: reply.model,
+    summary: reply.content,
   };
 }
 

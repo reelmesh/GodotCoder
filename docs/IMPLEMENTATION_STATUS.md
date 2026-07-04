@@ -144,11 +144,12 @@ Core modules:
 - Local provider secrets in `.godotcoder.local/secrets.json`, with redacted auth status.
 - LM Studio bearer token support through `LM_API_TOKEN` or `auth login --provider lmstudio`.
 - LM Studio base URLs accept either full URLs or bare `host:port` values, normalizing bare values to `http://host:port`.
-- Advisory LLM calls through `ask`.
+- Advisory LLM calls through `ask`, resolving the optional `planning` model role before fallback/default config.
 - Controlled LLM implementation through `build`, `harness`, and `pipeline`.
 - Failed controlled harness/pipeline model attempts are recorded under `.godotcoder/model-failures/` with parse error, provider/model, and truncated raw model output for debugging.
 - Controlled build model attempts are recorded under `.godotcoder/model-runs/` with provider/model, task intent, outcome, retry recovery, attempt errors/content excerpts, and recent validation/repair/playtest/task context.
-- Optional model roles are stored in `.godotcoder.local/model-roles.json`; controlled implementation resolves `build` first, then `fallback`, then the default `.godotcoder.local/model-config.json` or env config.
+- First-attempt build prompts include recent validation, visual validation, repair, playtest, and task findings so follow-up builds can address known project evidence before retry handling is needed.
+- Optional model roles are stored in `.godotcoder.local/model-roles.json`; `ask` resolves `planning`, controlled implementation resolves `build`, and `rpc workspace.changes --llm` resolves `review`, each falling back through `fallback` then the default `.godotcoder.local/model-config.json` or env config.
 - `godotcoder models report` summarizes `.godotcoder/model-runs/` by provider, model, source, and task intent for quality tracking.
 - `godotcoder models eval` runs fixed preview-only prompt sets through controlled generation and records model-run evidence for each prompt.
 - `godotcoder models recommend` turns local model-run evidence into advisory routing recommendations without changing configured models.
@@ -509,8 +510,6 @@ Recommended next: model quality and routing.
 
 The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, and advisory routing recommendation slices are complete. The next useful product slice is to continue model quality and routing:
 
-- route planning and review calls through their optional model roles,
-- feed post-apply validation, repair, visual, playtest, and task findings into follow-up build attempts,
 - surface model quality signals in editor-facing summaries.
 
 ## Third Review: Architecture Hardening (2026-06-16)

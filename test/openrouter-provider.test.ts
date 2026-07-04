@@ -7,6 +7,7 @@ import path from "node:path";
 import { it } from "node:test";
 
 const cli = path.resolve("dist/cli.js");
+const nodeBin = process.argv0 || process.execPath;
 
 it("OpenRouter provider uses /api/v1 endpoints, auth, headers, and chat response parsing", async (t) => {
   const projectRoot = await makeProject("godotcoder-openrouter-");
@@ -123,7 +124,7 @@ function readBody(request: IncomingMessage): Promise<string> {
 
 function runCli(cwd: string, args: string[], env: NodeJS.ProcessEnv): Promise<{ status: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [cli, ...args], {
+    const child = spawn(nodeBin, [cli, ...args], {
       cwd,
       env,
       stdio: ["ignore", "pipe", "pipe"],

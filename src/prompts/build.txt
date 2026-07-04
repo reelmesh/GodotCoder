@@ -16,6 +16,9 @@ Project:
 Planning artifacts:
 {{artifacts}}
 
+Recent GodotCoder findings to account for:
+{{modelContext}}
+
 Official Godot docs sources to prefer:
 {{docsContext}}
 

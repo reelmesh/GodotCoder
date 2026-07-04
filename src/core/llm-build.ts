@@ -80,7 +80,7 @@ export async function generateLlmBuild(projectRoot: string, prompt: string, opti
   const modelContext = await latestModelContext(projectRoot);
   const docsContext = await docsPromptContextWithExcerpts(projectRoot, prompt);
   const systemPrompt = `${modelSystemPrompt()}\n\nReturn only one JSON object. No markdown fences. No prose outside JSON. Final message must start with { and end with }.`;
-  const userPrompt = await buildPrompt({ prompt, projectIndex, artifacts, docsContext, intent, brownfieldProfile });
+  const userPrompt = await buildPrompt({ prompt, projectIndex, artifacts, docsContext, intent, brownfieldProfile, modelContext });
   const totalLength = systemPrompt.length + userPrompt.length;
   if (totalLength > 24_000) {
     console.warn(`Warning: LLM prompt is ${totalLength} characters. Some local models may truncate.`);
@@ -368,6 +368,7 @@ async function buildPrompt(input: {
   docsContext: string;
   intent: TaskIntent;
   brownfieldProfile: BrownfieldProfile;
+  modelContext: ModelRunRecord["context"];
 }): Promise<string> {
   const template = await loadPrompt("build.txt");
   return fillTemplate(template, {
@@ -379,6 +380,7 @@ async function buildPrompt(input: {
     autoloads: input.projectIndex.autoloads.join(", ") || "none",
     brownfieldGuidance: brownfieldPromptGuidance(input.brownfieldProfile, input.intent),
     artifacts: Object.entries(input.artifacts).map(([name, text]) => `## ${name}\n${text}`).join("\n\n") || "none",
+    modelContext: formatModelRetryContext(input.modelContext),
     docsContext: input.docsContext,
   });
 }

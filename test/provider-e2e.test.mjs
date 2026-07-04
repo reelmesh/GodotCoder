@@ -7,6 +7,7 @@ import { spawn } from "node:child_process";
 import test from "node:test";
 
 const cli = path.resolve("dist/cli.js");
+const nodeBin = process.argv0 || process.execPath;
 
 test("OpenAI-compatible mock supports models use, ask, and build retry", async (t) => {
   const projectRoot = await makeProject("godotcoder-provider-ok-");
@@ -97,6 +98,8 @@ test("OpenAI-compatible mock supports models use, ask, and build retry", async (
     assert.equal(payload.preview.files.some((file) => file.path === "res://scripts/main.gd"), true);
     assert.equal(chatCalls, 3);
     assert.equal(JSON.parse(server.requests[3].body).model, "mock-build");
+    assert.match(server.requests[3].body, /Latest validation: id=val_recent/);
+    assert.match(server.requests[3].body, /Missing restart flow/);
     assert.equal(JSON.parse(server.requests[4].body).model, "mock-build");
     assert.match(server.requests[4].body, /Latest validation: id=val_recent/);
     assert.match(server.requests[4].body, /Missing restart flow/);
@@ -162,7 +165,7 @@ test("harness records model failure and falls back when mock returns invalid JSO
     const harnessResult = await runCli(projectRoot, ["harness", "make a 2d arcade game", "--llm", "--json"]);
     assert.equal(harnessResult.status, 0, harnessResult.stderr);
     const payload = JSON.parse(harnessResult.stdout);
-    assert.equal(payload.run.implementationSource, "deterministic");
+    assert.equal(payload.run.modelImplementation, null);
     assert.equal(payload.run.steps.some((step) => step.id === "model-implementation" && step.status === "failed"), true);
 
     const failureDir = path.join(projectRoot, ".godotcoder/model-failures");
@@ -186,6 +189,39 @@ test("harness records model failure and falls back when mock returns invalid JSO
     assert.equal(reportPayload.report.failures, 1);
     assert.equal(reportPayload.report.groups[0].modelSource, "fallback");
     assert.equal(reportPayload.report.groups[0].successRate, 0);
+  } finally {
+    await server.close();
+  }
+});
+
+test("rpc workspace changes can use review model role", async (t) => {
+  const projectRoot = await makeProject("godotcoder-review-role-");
+  const server = await startMockServer({
+    chat() {
+      return "Review role saw the workspace changes.";
+    },
+  });
+  if (!server) {
+    t.skip("localhost listen unavailable in this sandbox");
+    return;
+  }
+
+  try {
+    const gitInit = await runCommand(projectRoot, ["git", "init"]);
+    assert.equal(gitInit.status, 0, gitInit.stderr);
+
+    const roleResult = await runCli(projectRoot, ["models", "role", "set", "review", "--provider", "openai-compatible", "--model", "mock-review", "--base-url", server.url, "--json"]);
+    assert.equal(roleResult.status, 0, roleResult.stderr);
+
+    const changes = await runCli(projectRoot, ["rpc", "workspace.changes", "--llm", "--json"]);
+    assert.equal(changes.status, 0, changes.stderr);
+    const payload = JSON.parse(changes.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.result.modelReview.available, true);
+    assert.equal(payload.result.modelReview.model, "mock-review");
+    assert.equal(payload.result.modelReview.modelSource, "role");
+    assert.equal(payload.result.modelReview.summary, "Review role saw the workspace changes.");
+    assert.equal(JSON.parse(server.requests.at(-1).body).model, "mock-review");
   } finally {
     await server.close();
   }
@@ -274,9 +310,31 @@ function readBody(request) {
   });
 }
 
+function runCommand(cwd, command) {
+  return new Promise((resolve) => {
+    const child = spawn(command[0], command.slice(1), {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (status) => {
+      resolve({ status, stdout, stderr });
+    });
+  });
+}
+
 function runCli(cwd, args) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [cli, ...args], {
+    const child = spawn(nodeBin, [cli, ...args], {
       cwd,
       env: { ...process.env },
       stdio: ["ignore", "pipe", "pipe"],
