@@ -87,7 +87,7 @@ func _build_dock() -> void:
 	summary_view = TextEdit.new()
 	summary_view.editable = false
 	summary_view.custom_minimum_size = Vector2(0, 90)
-	summary_view.placeholder_text = "Latest validation, repair, and pending build summaries"
+	summary_view.placeholder_text = "Latest validation, repair, model, and pending build summaries"
 	dock.add_child(summary_view)
 
 	query_field = LineEdit.new()
@@ -398,7 +398,7 @@ func _editor_summary_text(envelope: Dictionary) -> String:
 	var result := envelope.get("result", {})
 	if typeof(result) != TYPE_DICTIONARY:
 		return ""
-	var has_summary := result.has("latestValidation") or result.has("latestVisualValidation") or result.has("latestRepair")
+	var has_summary := result.has("latestValidation") or result.has("latestVisualValidation") or result.has("latestRepair") or result.has("modelQuality")
 	if not has_summary:
 		return ""
 	var lines: PackedStringArray = []
@@ -406,6 +406,8 @@ func _editor_summary_text(envelope: Dictionary) -> String:
 	lines.append(_artifact_summary_line("validation", result.get("latestValidation", null)))
 	lines.append(_artifact_summary_line("visual", result.get("latestVisualValidation", null)))
 	lines.append(_artifact_summary_line("repair", result.get("latestRepair", null)))
+	for line in _model_quality_lines(result.get("modelQuality", null)):
+		lines.append(line)
 	return "\n".join(lines)
 
 func _artifact_summary_line(label: String, value: Variant) -> String:
@@ -428,6 +430,42 @@ func _artifact_summary_line(label: String, value: Variant) -> String:
 		str(value.get("warnings", "?")),
 		visual_text,
 	]
+
+func _model_quality_lines(value: Variant) -> PackedStringArray:
+	var lines: PackedStringArray = []
+	if typeof(value) != TYPE_DICTIONARY:
+		lines.append("  model: no runs")
+		return lines
+	if int(value.get("total", 0)) == 0:
+		lines.append("  model: no runs")
+		return lines
+	lines.append("  model: %s/%s success | retry=%s | confidence=%s" % [
+		str(value.get("successes", 0)),
+		str(value.get("total", 0)),
+		str(value.get("recoveredOnRetry", 0)),
+		str(value.get("confidence", "none")),
+	])
+	var latest = value.get("latest", null)
+	if typeof(latest) == TYPE_DICTIONARY:
+		lines.append("  latest model: %s:%s [%s] %s" % [
+			str(latest.get("provider", "unknown")),
+			str(latest.get("model", "unknown")),
+			str(latest.get("modelSource", "unknown")),
+			str(latest.get("outcome", "unknown")),
+		])
+	var recommended = value.get("recommendation", null)
+	if typeof(recommended) == TYPE_DICTIONARY:
+		lines.append("  recommended: %s:%s [%s]" % [
+			str(recommended.get("provider", "unknown")),
+			str(recommended.get("model", "unknown")),
+			str(recommended.get("modelSource", "unknown")),
+		])
+	var latest_failure = value.get("latestFailure", null)
+	if typeof(latest_failure) == TYPE_DICTIONARY:
+		var error_text := str(latest_failure.get("error", ""))
+		if not error_text.is_empty():
+			lines.append("  latest failure: %s" % error_text)
+	return lines
 
 func _update_summary_from_envelope(envelope: Dictionary) -> void:
 	if summary_view == null:

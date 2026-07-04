@@ -18,7 +18,7 @@ Goal: verify Godot editor plugin can capture editor context, round-trip it throu
 - Preview action for `build.preview`, showing compact file counts and changed paths.
 - Apply action for a pending preview through `build.apply`.
 - Reject action for a pending preview through `build.reject`.
-- Summaries action through `editor.summary`, showing latest validation, visual validation, and repair artifacts.
+- Summaries action through `editor.summary`, showing latest validation, visual validation, repair, and model quality artifacts.
 - Replay last, replay selected, and clear controls on the dock.
 
 ## Manual Checks
@@ -37,7 +37,7 @@ Goal: verify Godot editor plugin can capture editor context, round-trip it throu
 12. Enter a build prompt, click `Preview`, and confirm the output shows file counts, line counts, and changed paths without applying edits.
 13. Click `Reject` and confirm pending preview state clears without modifying files.
 14. Enter another build prompt, click `Preview`, then `Apply`, and confirm the dock calls `build.apply` and reports the CLI build result.
-15. Click `Summaries` and confirm latest validation, visual validation, and repair summaries are shown when artifacts exist.
+15. Click `Summaries` and confirm latest validation, visual validation, repair, and model quality summaries are shown when artifacts exist.
 16. Use `Replay Selected` on an older entry and confirm the stored command payload is replayed.
 17. Use `Replay Last` and confirm dock refreshes output.
 18. Change the CLI path setting to a bogus command and confirm the dock surfaces the failure path clearly.
@@ -58,7 +58,7 @@ Expect:
 - `rpc` success envelopes for `editor.explain`.
 - `rpc` success envelopes for `debug.current`.
 - `rpc` success envelopes for `build.preview` include `previewSummary`.
-- `rpc` success envelopes for `build.reject` and `editor.summary`.
+- `rpc` success envelopes for `build.reject` and `editor.summary`, including model quality.
 - `rpc` error envelope for unknown methods.
 - No regressions in build, repair, docs, or provider smoke tests.
 
@@ -77,5 +77,5 @@ Expect:
 - Debug action preserves editor context and returns deterministic triage for pasted errors.
 - Preview action remains read-only and shows compact review data before apply.
 - Apply and reject actions use CLI/RPC orchestration instead of duplicating build logic in the plugin.
-- Summary action displays latest validation, visual validation, and repair artifacts without reading workspace files from GDScript.
+- Summary action displays latest validation, visual validation, repair, and model quality artifacts without reading workspace files from GDScript.
 - Regular RPC calls include captured editor context when available.

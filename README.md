@@ -512,8 +512,8 @@ calls also attach captured editor context when available. The dock exposes
 `Debug` for pasted console/error text through `debug.current`, `Preview` for
 compact `build.preview` file counts and changed paths, `Apply` and `Reject`
 buttons for the pending preview through CLI-owned RPC methods, and `Summaries`
-for the latest validation, visual validation, and repair artifacts. `Explain`
-summarizes the selected scene/node/script context against the inspected project.
+for the latest validation, visual validation, repair, and model quality
+artifacts. `Explain` summarizes the selected scene/node/script context against the inspected project.
 `Review` summarizes current git changes without modifying the project. `Scene`
 resolves the current scene against the project index before running broader
 validation.
@@ -622,6 +622,6 @@ src/
 
 Next implementation slices:
 
-1. Continue model quality and routing: surface richer model quality signals in editor-facing summaries.
-2. Expand editor-facing summaries for task, playtest, and validation history.
-3. Add more project-inspection and validation helpers for larger brownfield projects.
+1. Expand editor-facing summaries for task, playtest, and validation history.
+2. Add more project-inspection and validation helpers for larger brownfield projects.
+3. Improve patch recovery and versioning workflows for applied AI changes.

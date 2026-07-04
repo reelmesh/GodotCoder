@@ -543,7 +543,7 @@ modify res://scripts/main.gd (+3 -0, 42 → 45 lines)
 <tr><td><code>build.apply</code></td><td><code>--prompt</code></td><td>Apply a pending build through the CLI build path</td></tr>
 <tr><td><code>build.reject</code></td><td><code>--prompt</code></td><td>Clear a pending build preview without writing files</td></tr>
 <tr><td><code>debug.current</code></td><td><code>--error</code></td><td>Parse Godot error text: subsystem, source file, root cause, next steps</td></tr>
-<tr><td><code>editor.summary</code></td><td>—</td><td>Latest validation, visual validation, and repair summaries</td></tr>
+<tr><td><code>editor.summary</code></td><td>—</td><td>Latest validation, visual validation, repair, and model quality summaries</td></tr>
 <tr><td><code>editor.context</code></td><td><code>--context</code></td><td>Capture raw editor context JSON</td></tr>
 <tr><td><code>editor.explain</code></td><td><code>--context</code></td><td>Summarize editor context against project index</td></tr>
 </table>
@@ -586,7 +586,7 @@ node dist/cli.js rpc editor.explain --context '{"current_path":"res://scenes/mai
 <tr><td><strong>Preview</strong></td><td><code>build.preview</code></td><td>Preview build changes: file counts, line counts, changed paths</td></tr>
 <tr><td><strong>Apply</strong></td><td><code>build.apply</code></td><td>Apply the pending build preview through the CLI build path</td></tr>
 <tr><td><strong>Reject</strong></td><td><code>build.reject</code></td><td>Clear pending preview state without writing files</td></tr>
-<tr><td><strong>Summaries</strong></td><td><code>editor.summary</code></td><td>Show latest validation, visual validation, and repair artifacts</td></tr>
+<tr><td><strong>Summaries</strong></td><td><code>editor.summary</code></td><td>Show latest validation, visual validation, repair, and model quality artifacts</td></tr>
 </table>
 
 <h3 id="plugin-context">Editor Context JSON</h3>

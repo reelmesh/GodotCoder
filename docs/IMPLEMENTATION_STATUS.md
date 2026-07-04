@@ -29,7 +29,7 @@ Implemented and verified the next confidence-building arc:
 - Editor plugin review/apply UX
   - Adds CLI-owned RPC methods for `build.apply`, `build.reject`, and `editor.summary`.
   - Adds pending preview state, Apply, Reject, and Summaries controls to the Godot dock.
-  - Shows latest validation, visual validation, and repair artifact summaries without reading workspace files from GDScript.
+  - Shows latest validation, visual validation, repair, and model quality artifact summaries without reading workspace files from GDScript.
   - Keeps the plugin thin: it captures context, invokes CLI/RPC commands, stores UI history, and displays envelopes.
 - Playtest intelligence
   - Expands `godotcoder playtest` with a simulated input timeline, stdout/stderr logs, Godot engine logs, and durable records under `.godotcoder/playtests/`.
@@ -65,6 +65,10 @@ Implemented and verified the next confidence-building arc:
   - Aggregates `.godotcoder/model-runs/` by provider, model, and model source across task types.
   - Recommends the strongest observed build candidate using success rate, retry dependence, and evidence volume.
   - Keeps recommendations advisory only; GodotCoder does not automatically switch or manage model routing.
+- Editor-facing model quality summaries
+  - Adds compact model quality data to `godotcoder rpc editor.summary`.
+  - Surfaces total runs, successes, failures, retry recoveries, latest run, latest failure, recommendation, and confidence in the Godot dock.
+  - Reuses `.godotcoder/model-runs/` rather than adding a second telemetry store.
 
 Verification for this arc:
 
@@ -506,11 +510,11 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 ## Next Slice
 
-Recommended next: model quality and routing.
+Recommended next: editor-facing history summaries.
 
-The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, and advisory routing recommendation slices are complete. The next useful product slice is to continue model quality and routing:
+The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, advisory routing recommendation, and editor-facing model quality summary slices are complete. The next useful product slice is to continue editor context quality:
 
-- surface model quality signals in editor-facing summaries.
+- expand editor-facing summaries for task, playtest, and validation history.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 

@@ -228,7 +228,7 @@ The editor plugin remains a thin companion:
 - `build.preview` returns raw preview data plus a compact summary for the dock.
 - `build.apply` routes through the existing CLI build command with `--apply --json`.
 - `build.reject` records a structured non-mutating rejection acknowledgement.
-- `editor.summary` reads the latest validation, visual validation, and repair artifacts from `.godotcoder/`.
+- `editor.summary` reads the latest validation, visual validation, repair, and model quality artifacts from `.godotcoder/`.
 - The dock owns only UI state such as the current prompt, captured editor context, and pending preview summary.
 
 ### Playtest Intelligence

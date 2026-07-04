@@ -22,4 +22,4 @@ Commit the durable project artifacts under `.godotcoder/`, including planning fi
 
 ## What is the current next slice?
 
-The implementation roadmap now points at model quality and routing: provider/model failure tracking, optional planning/build/review roles, retry improvements, and repeatable model eval prompts.
+The implementation roadmap now points at richer editor-facing summaries for task, playtest, and validation history. Model quality telemetry, optional planning/build/review roles, eval prompts, routing recommendations, and editor-facing model quality summaries are already in place.

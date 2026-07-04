@@ -24,6 +24,14 @@ it("editor RPC exposes latest artifact summaries and reject acknowledgements", a
   assert.equal(summaryPayload.result.latestRepair.id, "repair_1");
   assert.equal(summaryPayload.result.latestRepair.status, "repaired");
   assert.equal(summaryPayload.result.latestRepair.actionCount, 1);
+  assert.equal(summaryPayload.result.modelQuality.total, 2);
+  assert.equal(summaryPayload.result.modelQuality.successes, 1);
+  assert.equal(summaryPayload.result.modelQuality.failures, 1);
+  assert.equal(summaryPayload.result.modelQuality.recoveredOnRetry, 1);
+  assert.equal(summaryPayload.result.modelQuality.latest.id, "model_run_success");
+  assert.equal(summaryPayload.result.modelQuality.latest.modelSource, "role");
+  assert.equal(summaryPayload.result.modelQuality.latestFailure.id, "model_run_failure");
+  assert.equal(summaryPayload.result.modelQuality.recommendation.model, "mock-build");
 
   const reject = await runRpc(projectRoot, ["build.reject", "--prompt", "add a pause menu", "--context", JSON.stringify({ source: "editor" }), "--json"]);
   assert.equal(reject.status, 0, reject.stderr);
@@ -56,8 +64,10 @@ config/features=PackedStringArray("4.x")
 async function writeArtifactFixtures(projectRoot: string): Promise<void> {
   const validationsDir = path.join(projectRoot, ".godotcoder", "validations");
   const repairsDir = path.join(projectRoot, ".godotcoder", "repairs");
+  const modelRunsDir = path.join(projectRoot, ".godotcoder", "model-runs");
   await mkdir(validationsDir, { recursive: true });
   await mkdir(repairsDir, { recursive: true });
+  await mkdir(modelRunsDir, { recursive: true });
   await writeFile(path.join(validationsDir, "val_visual.json"), JSON.stringify({
     id: "val_visual",
     checkedAt: "2026-06-18T10:00:00.000Z",
@@ -86,6 +96,40 @@ async function writeArtifactFixtures(projectRoot: string): Promise<void> {
     summary: "Created missing scene placeholder.",
     actions: [{ type: "create-file", path: "scenes/main.tscn", description: "Created scene." }],
     validationAfter: { id: "val_after", summary: { errors: 0, warnings: 0 } },
+  }, null, 2) + "\n");
+  await writeFile(path.join(modelRunsDir, "model_run_failure.json"), JSON.stringify({
+    schemaVersion: 1,
+    id: "model_run_failure",
+    createdAt: "2026-06-18T10:02:00.000Z",
+    command: "build",
+    taskType: "feature",
+    provider: "openai-compatible",
+    model: "mock-fail",
+    modelSource: "default",
+    outcome: "failed",
+    recoveredOnRetry: false,
+    promptPreview: "add movement",
+    summary: null,
+    error: "Invalid JSON response",
+    attempts: [],
+    context: {},
+  }, null, 2) + "\n");
+  await writeFile(path.join(modelRunsDir, "model_run_success.json"), JSON.stringify({
+    schemaVersion: 1,
+    id: "model_run_success",
+    createdAt: "2026-06-18T10:03:00.000Z",
+    command: "build",
+    taskType: "feature",
+    provider: "openai-compatible",
+    model: "mock-build",
+    modelSource: "role",
+    outcome: "success",
+    recoveredOnRetry: true,
+    promptPreview: "add movement",
+    summary: "Added movement.",
+    error: null,
+    attempts: [],
+    context: {},
   }, null, 2) + "\n");
 }
 

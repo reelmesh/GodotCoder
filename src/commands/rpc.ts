@@ -6,6 +6,7 @@ import { readFlag } from "../core/flags.js";
 import { generateLlmBuild } from "../core/llm-build.js";
 import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
+import { modelQualitySummary } from "../core/model-runs.js";
 import { previewGeneratedFiles } from "../core/preview.js";
 import { runProcess } from "../core/process.js";
 import { completeWithModel, loadModelConfigForRole, modelSystemPrompt } from "../core/providers.js";
@@ -139,6 +140,7 @@ async function editorSummary(): Promise<unknown> {
     latestValidation: await latestValidationSummary(paths.validationsDir, false),
     latestVisualValidation: await latestValidationSummary(paths.validationsDir, true),
     latestRepair: await latestRepairSummary(paths.repairsDir),
+    modelQuality: await modelQualitySummary(projectRoot),
   };
 }
 

@@ -78,6 +78,38 @@ export interface ModelRoutingRecommendation {
   notes: string[];
 }
 
+export interface ModelQualitySummary {
+  total: number;
+  successes: number;
+  failures: number;
+  recoveredOnRetry: number;
+  successRate: number;
+  latest: {
+    id: string;
+    createdAt: string;
+    provider: string;
+    model: string;
+    modelSource: "role" | "fallback" | "default" | "unknown";
+    taskType: string;
+    outcome: "success" | "failed";
+    recoveredOnRetry: boolean;
+    summary: string | null;
+    error: string | null;
+  } | null;
+  latestFailure: {
+    id: string;
+    createdAt: string;
+    provider: string;
+    model: string;
+    modelSource: "role" | "fallback" | "default" | "unknown";
+    taskType: string;
+    error: string | null;
+  } | null;
+  recommendation: ModelRoutingCandidate | null;
+  confidence: "none" | "low" | "medium" | "high";
+  notes: string[];
+}
+
 export async function writeModelRun(projectRoot: string, input: Omit<ModelRunRecord, "schemaVersion" | "id" | "createdAt">): Promise<ModelRunRecord> {
   const paths = workspacePaths(projectRoot);
   await mkdir(paths.modelRunsDir, { recursive: true });
@@ -113,6 +145,10 @@ export async function modelRunReport(projectRoot: string, limit = 5): Promise<Mo
 
 export async function modelRoutingRecommendation(projectRoot: string): Promise<ModelRoutingRecommendation> {
   return recommendModelRouting(await loadModelRuns(projectRoot));
+}
+
+export async function modelQualitySummary(projectRoot: string): Promise<ModelQualitySummary> {
+  return summarizeModelQuality(await loadModelRuns(projectRoot));
 }
 
 export function summarizeModelRuns(records: ModelRunRecord[], limit = 5): ModelRunReport {
@@ -179,6 +215,25 @@ export function recommendModelRouting(records: ModelRunRecord[]): ModelRoutingRe
     recommended,
     candidates,
     notes,
+  };
+}
+
+export function summarizeModelQuality(records: ModelRunRecord[]): ModelQualitySummary {
+  const report = summarizeModelRuns(records, 1);
+  const recommendation = recommendModelRouting(records);
+  const latest = report.latest[0] ?? null;
+  const latestFailure = records.find((record) => record.outcome === "failed") ?? null;
+  return {
+    total: report.total,
+    successes: report.successes,
+    failures: report.failures,
+    recoveredOnRetry: report.recoveredOnRetry,
+    successRate: report.successRate,
+    latest: latest ? compactLatestRun(latest) : null,
+    latestFailure: latestFailure ? compactLatestFailure(latestFailure) : null,
+    recommendation: recommendation.recommended,
+    confidence: recommendation.recommended?.confidence ?? "none",
+    notes: recommendation.notes,
   };
 }
 
@@ -335,6 +390,33 @@ function summarizeModelCandidates(records: ModelRunRecord[]): ModelRoutingCandid
   }
 
   return Array.from(candidates.values()).sort((a, b) => b.score - a.score || b.total - a.total || a.provider.localeCompare(b.provider));
+}
+
+function compactLatestRun(record: ModelRunRecord): ModelQualitySummary["latest"] {
+  return {
+    id: record.id,
+    createdAt: record.createdAt,
+    provider: record.provider,
+    model: record.model,
+    modelSource: record.modelSource ?? "unknown",
+    taskType: record.taskType,
+    outcome: record.outcome,
+    recoveredOnRetry: record.recoveredOnRetry,
+    summary: record.summary,
+    error: record.error,
+  };
+}
+
+function compactLatestFailure(record: ModelRunRecord): ModelQualitySummary["latestFailure"] {
+  return {
+    id: record.id,
+    createdAt: record.createdAt,
+    provider: record.provider,
+    model: record.model,
+    modelSource: record.modelSource ?? "unknown",
+    taskType: record.taskType,
+    error: record.error,
+  };
 }
 
 function recommendationScore(candidate: ModelRoutingCandidate): number {
