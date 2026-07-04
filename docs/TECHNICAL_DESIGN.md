@@ -75,10 +75,13 @@ Responsibilities:
 
 ### `godotcoder`
 
-Starts the default interactive terminal agent session.
+Starts the default interactive terminal app. TTY sessions open the beginner
+home menu first, then fall back to the slash-command prompt when the user
+chooses Back.
 
 Responsibilities:
-- Present a Codex/OpenCode-style prompt.
+- Present a beginner home with project, workspace, runtime, model, and next-action status.
+- Preserve the Codex/OpenCode-style prompt for power users.
 - Accept slash commands for implemented workflows.
 - Accept natural-language prompts for model-backed workflows once the provider layer is wired.
 - Keep subcommands available for scripting and editor integration.

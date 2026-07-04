@@ -31,7 +31,8 @@ cd ~/my-first-game
 node ~/GodotCoder/dist/cli.js
 ```
 
-Inside the interactive shell:
+GodotCoder opens the home menu first. Choose `Make a new playable slice`, or
+choose `Back` to use the slash-command prompt:
 
 ```text
 > /make make a 2d asteroid shooter where you dodge rocks and collect stars
@@ -67,11 +68,15 @@ Start anywhere (inside or outside a Godot project):
 node dist/cli.js
 ```
 
+The default TTY launch opens the beginner home menu. It shows project,
+workspace, Godot runtime, build model, and a suggested next action before you
+choose a workflow. Choose `Back` to reach the prompt.
+
 ### Navigation
 
 | Command | What it does |
 |---------|-------------|
-| `/menu` | Open the home menu with all actions |
+| `/menu` | Reopen the beginner home menu |
 | `/help` | Show the command palette |
 | `/clear` | Clear the terminal |
 | `/exit` | Quit |

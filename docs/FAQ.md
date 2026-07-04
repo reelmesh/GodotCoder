@@ -22,4 +22,4 @@ Commit the durable project artifacts under `.godotcoder/`, including planning fi
 
 ## What is the current next slice?
 
-The implementation roadmap now points at richer editor-facing summaries for task, playtest, and validation history. Model quality telemetry, optional planning/build/review roles, eval prompts, routing recommendations, and editor-facing model quality summaries are already in place.
+The implementation roadmap now points at the beginner TUI: a guided setup checklist for workspace, Godot runtime, model provider, and first validation. Model quality telemetry, optional planning/build/review roles, eval prompts, routing recommendations, editor-facing model quality summaries, and the first home TUI are already in place.

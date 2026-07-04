@@ -42,6 +42,7 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
     const render = () => {
       cursorTo(output, 0, 0);
       clearScreenDown(output);
+      const promptLines = prompt.split(/\r?\n/).length;
       output.write(`${prompt}\n`);
       output.write("Use arrow keys, type to jump, space, enter.\n");
       if (filterText) {
@@ -52,7 +53,7 @@ export async function chooseMenuOption(rl: Interface, prompt: string, options: M
         const selected = i === index;
         output.write(`${selected ? "[*]" : "[ ]"} ${option.label}${option.description ? `  ${option.description}` : ""}\n`);
       }
-      renderedLines = menuItems.length + 2 + (filterText ? 1 : 0);
+      renderedLines = menuItems.length + promptLines + 1 + (filterText ? 1 : 0);
     };
 
     const resetFilter = () => {

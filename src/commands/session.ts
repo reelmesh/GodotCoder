@@ -52,6 +52,8 @@ export async function startSession(): Promise<void> {
     return;
   }
 
+  await homeCommand(["--embedded"]);
+
   while (true) {
     const rl = readline.createInterface({ input, output, completer: sessionCompleter });
     let line: string;

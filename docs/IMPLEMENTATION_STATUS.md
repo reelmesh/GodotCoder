@@ -142,6 +142,8 @@ Core modules:
 - OpenRouter provider defaults to `https://openrouter.ai/api/v1`, uses `OPENROUTER_API_KEY`, lists models from `/models`, sends chat requests to `/chat/completions`, and includes `X-OpenRouter-Title` plus optional attribution overrides.
 - Model config in `.godotcoder.local/model-config.json`.
 - User settings in `.godotcoder.local/user-settings.json`.
+- Beginner home TUI opens by default in TTY sessions before the slash-command prompt.
+- Home TUI surfaces project, workspace, Godot runtime, build model, and suggested next action.
 - Interactive menu-first settings UI in TTY sessions.
 - Bracketed `[*]` menu selection with arrow-key navigation and `space`/`enter` accept.
 - Nested menu text prompts keep one active readline owner so typed characters are not echoed twice.
@@ -510,11 +512,11 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 ## Next Slice
 
-Recommended next: editor-facing history summaries.
+Recommended next: guided TUI setup checklist.
 
-The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, advisory routing recommendation, and editor-facing model quality summary slices are complete. The next useful product slice is to continue editor context quality:
+The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, advisory routing recommendation, editor-facing model quality summary, and beginner home TUI slices are complete. The next useful product slice is to continue the beginner TUI:
 
-- expand editor-facing summaries for task, playtest, and validation history.
+- turn setup into a guided checklist for workspace, runtime, model, and first validation.
 
 ## Third Review: Architecture Hardening (2026-06-16)
 

@@ -100,13 +100,19 @@ Open a terminal inside either:
 - an existing Godot project containing `project.godot`, or
 - an empty/new folder where you want GodotCoder to scaffold a project.
 
-Start the interactive shell:
+Start the terminal app:
 
 ```bash
 node /path/to/GodotCoder/dist/cli.js
 ```
 
-Available slash commands:
+GodotCoder opens a beginner home menu first. It shows whether the current
+folder has a Godot project, whether the workspace is initialized, whether the
+Godot runtime and build model are configured, and the suggested next action.
+Choose with arrow keys, type-to-jump, then `space` or `enter`. Choose `Back`
+to drop into the slash-command prompt for power use.
+
+Common slash commands:
 
 ```text
 /menu
@@ -172,7 +178,7 @@ scripts/main.gd
 .godotcoder/
 ```
 
-Build previews changes by default with a compact line diff and stores a pending build in the interactive shell. Use `/apply` to write the pending build or `/reject` to discard it.
+Build previews changes by default with a compact line diff and stores a pending build in the terminal session. Use `/apply` to write the pending build or `/reject` to discard it.
 
 Task state is stored alongside the readable checklist in `.godotcoder/tasks.json`:
 
@@ -432,7 +438,9 @@ node /path/to/GodotCoder/dist/cli.js setup
 ```
 
 `setup` opens one menu for runtime, model provider, auth, preferences, and status.
-Menus use `[*]` selection markers with arrow-key navigation, plus `space` or `enter` to accept.
+The default terminal home also shows a readiness checklist for project,
+workspace, Godot runtime, and build model state. Menus use `[*]` selection
+markers with arrow-key navigation, plus `space` or `enter` to accept.
 
 Settings and auth:
 
@@ -622,6 +630,6 @@ src/
 
 Next implementation slices:
 
-1. Expand editor-facing summaries for task, playtest, and validation history.
-2. Add more project-inspection and validation helpers for larger brownfield projects.
-3. Improve patch recovery and versioning workflows for applied AI changes.
+1. Turn setup into a guided checklist for workspace, runtime, model, and first validation.
+2. Add a guided brownfield workflow for inspect, validate, intent, preview, and apply.
+3. Add a compact TUI preview review screen for apply, reject, or revise.
