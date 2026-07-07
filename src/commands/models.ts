@@ -1,5 +1,5 @@
 import type { Interface } from "node:readline/promises";
-import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { listModelEvalPromptSets, runModelEval } from "../core/model-evals.js";
 import { modelRoutingRecommendation, modelRunReport } from "../core/model-runs.js";

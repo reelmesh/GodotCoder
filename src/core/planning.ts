@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { inspectGodotProject } from "./godot-project.js";
+import { inspectGodotProject } from "./godot-project-indexer.js";
 import { workspacePaths } from "./workspace.js";
 
 export interface PlanningResult {

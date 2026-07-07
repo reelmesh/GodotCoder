@@ -67,72 +67,7 @@ export function updateGodotConfigText(text: string, edits: ProjectSettingEdit[])
 }
 
 export async function updateGodotProjectSetting(projectRoot: string, section: string, key: string, value: GodotConfigValue): Promise<void> {
-  const projectFile = path.join(projectRoot, "project.godot");
-  let text = "";
-  try {
-    text = await readFile(projectFile, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
-  }
-  const updatedText = updateGodotConfigTextSingle(text, section, key, value);
-  await writeFile(projectFile, updatedText, "utf8");
-}
-
-export function updateGodotConfigTextSingle(text: string, targetSection: string, targetKey: string, value: GodotConfigValue): string {
-  const lines = text.split(/\r?\n/);
-  const serialized = serializeGodotValue(value);
-  let currentSection = "root";
-  let keyIndex = -1;
-  let sectionStartIndex = -1;
-  let nextSectionIndex = -1;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index]!.trim();
-    if (line.startsWith(";")) continue;
-
-    const sectionMatch = line.match(/^\[(.+)]$/);
-    if (sectionMatch) {
-      const secName = sectionMatch[1]!;
-      if (currentSection === targetSection) {
-        nextSectionIndex = index;
-        break;
-      }
-      currentSection = secName;
-      if (currentSection === targetSection) {
-        sectionStartIndex = index;
-      }
-      continue;
-    }
-
-    if (currentSection === targetSection) {
-      const eqIdx = line.indexOf("=");
-      if (eqIdx !== -1) {
-        const key = line.slice(0, eqIdx).trim();
-        if (key === targetKey) {
-          keyIndex = index;
-        }
-      }
-    }
-  }
-
-  const newLine = `${targetKey}=${serialized}`;
-
-  if (keyIndex !== -1) {
-    lines[keyIndex] = newLine;
-  } else if (sectionStartIndex !== -1) {
-    const insertIndex = nextSectionIndex !== -1 ? nextSectionIndex : lines.length;
-    lines.splice(insertIndex, 0, newLine);
-  } else {
-    if (lines.length > 0 && lines[lines.length - 1]!.trim() !== "") {
-      lines.push("");
-    }
-    lines.push(`[${targetSection}]`);
-    lines.push(newLine);
-  }
-
-  return lines.join("\n");
+  await updateProjectGodot(projectRoot, [{ section, key, value }]);
 }
 
 function validateProjectSettingEdit(edit: ProjectSettingEdit): void {

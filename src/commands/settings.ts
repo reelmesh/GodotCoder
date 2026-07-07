@@ -1,5 +1,5 @@
 import type { Interface } from "node:readline/promises";
-import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { chooseMenuOption, withMenu } from "../core/menu.js";
 import { loadModelConfig } from "../core/providers.js";
 import { loadSettings, setSetting, writeSettings, defaultSettings } from "../core/settings.js";

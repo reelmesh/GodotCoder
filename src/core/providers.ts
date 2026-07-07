@@ -9,7 +9,17 @@ import { workspacePaths } from "./workspace.js";
 export type ModelProviderKind = "openai" | "anthropic" | "ollama" | "lmstudio" | "openrouter" | "openai-compatible";
 export type ModelRole = "planning" | "build" | "review" | "fallback";
 
+export const modelProviderNames = ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const;
 export const modelRoles = ["planning", "build", "review", "fallback"] as const;
+
+const providerDefaults: Record<ModelProviderKind, { baseUrl: string | null; apiKeyEnv: string | null }> = {
+  openai: { baseUrl: "https://api.openai.com/v1", apiKeyEnv: "OPENAI_API_KEY" },
+  anthropic: { baseUrl: "https://api.anthropic.com/v1", apiKeyEnv: "ANTHROPIC_API_KEY" },
+  ollama: { baseUrl: "http://127.0.0.1:11434", apiKeyEnv: null },
+  lmstudio: { baseUrl: "http://127.0.0.1:1234", apiKeyEnv: "LM_API_TOKEN" },
+  openrouter: { baseUrl: "https://openrouter.ai/api/v1", apiKeyEnv: "OPENROUTER_API_KEY" },
+  "openai-compatible": { baseUrl: null, apiKeyEnv: null },
+};
 
 export interface ModelConfig {
   schemaVersion: 1;
@@ -217,7 +227,7 @@ function parseModelConfig(value: unknown): ModelConfig {
   const root = asObject(value, "model config");
   return {
     schemaVersion: asLiteral(root.schemaVersion, 1, "model config schemaVersion"),
-    provider: asOneOf(root.provider, ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"], "model config provider"),
+    provider: asOneOf(root.provider, modelProviderNames, "model config provider"),
     model: asString(root.model, "model config model"),
     baseUrl: asNullableString(root.baseUrl, "model config baseUrl"),
     apiKeyEnv: asNullableString(root.apiKeyEnv, "model config apiKeyEnv"),
@@ -270,21 +280,12 @@ function configFromEnv(): ModelConfig | null {
   return null;
 }
 
-function defaultBaseUrl(provider: ModelProviderKind): string | null {
-  if (provider === "openai") return "https://api.openai.com/v1";
-  if (provider === "anthropic") return "https://api.anthropic.com/v1";
-  if (provider === "ollama") return "http://127.0.0.1:11434";
-  if (provider === "lmstudio") return "http://127.0.0.1:1234";
-  if (provider === "openrouter") return "https://openrouter.ai/api/v1";
-  return process.env.GODOTCODER_BASE_URL ?? null;
+export function defaultBaseUrl(provider: ModelProviderKind): string | null {
+  return providerDefaults[provider].baseUrl ?? process.env.GODOTCODER_BASE_URL ?? null;
 }
 
-function defaultApiKeyEnv(provider: ModelProviderKind): string | null {
-  if (provider === "openai") return "OPENAI_API_KEY";
-  if (provider === "anthropic") return "ANTHROPIC_API_KEY";
-  if (provider === "lmstudio") return "LM_API_TOKEN";
-  if (provider === "openrouter") return "OPENROUTER_API_KEY";
-  return null;
+export function defaultApiKeyEnv(provider: ModelProviderKind): string | null {
+  return providerDefaults[provider].apiKeyEnv;
 }
 
 function requireEnv(name: string): string {

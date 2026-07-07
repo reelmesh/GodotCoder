@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
+import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project-indexer.js";
 import { discoverRuntime } from "./runtime-discovery.js";
 import { createRuntimeProfile } from "./runtime-profile.js";
 import { CliError } from "./errors.js";

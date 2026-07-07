@@ -178,7 +178,7 @@ scripts/main.gd
 .godotcoder/
 ```
 
-Build previews changes by default with a compact line diff and stores a pending build in the terminal session. Use `/apply` to write the pending build or `/reject` to discard it.
+Build previews changes by default with a compact line diff and stores the generated pending build in the terminal session. Use `/apply` to write that exact preview or `/reject` to discard it.
 
 Task state is stored alongside the readable checklist in `.godotcoder/tasks.json`:
 
@@ -269,7 +269,7 @@ node /path/to/GodotCoder/dist/cli.js playtest
 node /path/to/GodotCoder/dist/cli.js play --test
 ```
 
-Playtest records are stored under `.godotcoder/playtests/`. Each run includes stdout/stderr logs, the Godot engine log path, a simulated input timeline, visual artifact/report paths when available, and heuristic signals such as input simulation, frame/physics processing, scene/text changes, blank visual output, runtime errors, and premature exit. The latest playtest summary is included in future LLM build context.
+Playtest records are stored under `.godotcoder/playtests/`. Each run includes stdout/stderr logs, the Godot engine log path, a simulated input timeline, visual artifact/report paths when available, and heuristic signals such as input simulation, frame/physics processing, scene/text changes, blank visual output, runtime errors, and premature exit. The latest playtest summary is included in later LLM build context.
 
 Validation modes:
 
@@ -426,10 +426,8 @@ node /path/to/GodotCoder/dist/cli.js docs show class-input
 artifact from trusted official Godot documentation sources. LLM build prompts
 include matching official docs links and summaries as primary grounding.
 
-LLM-driven game synthesis is the primary path. Deterministic prototype builders
-exist only as internal bootstrap fallbacks for smoke tests and initial
-scaffolding; they are optional accelerators, not a genre whitelist or limit on
-original game structures.
+LLM-driven game synthesis is the primary path. The scaffold only creates a
+minimal Godot project; game implementation comes from the configured model.
 
 Guided setup:
 
@@ -593,11 +591,10 @@ src/
   commands/                 17 CLI command handlers (auth, build, harness, etc.)
   prompts/                  Controlled LLM build/retry prompt templates
   core/                     Business logic
-    builders/               Deterministic game builders (asteroid-shooter, platformer)
+    generated-file.ts       Shared generated file type
     godot-config-parser.ts  project.godot INI parser + serializer
     godot-project-indexer.ts Project discovery, file walker, inspection
     godot-setting-editor.ts Safe project.godot mutation helpers
-    godot-project.ts        Barrel re-export of the three modules above
     flags.ts                Shared flag parsing + provider defaults
     session-commands.ts     Single source of truth for all 32 slash commands
     completion.ts           Tab completion (derives from session-commands)
@@ -617,7 +614,6 @@ src/
 
 ## Documentation
 
-- [HTML Documentation](docs/index.html) — complete navigable reference (open in browser)
 - [Tutorial & Examples](docs/TUTORIAL.md) — step-by-step from zero to playable game
 - [FAQ](docs/FAQ.md) — quick answers for tasks, playtests, providers, and commit policy
 - [Product Requirements](docs/PRD.md)
@@ -628,8 +624,4 @@ src/
 
 ## Roadmap
 
-Next implementation slices:
-
-1. Turn setup into a guided checklist for workspace, runtime, model, and first validation.
-2. Add a guided brownfield workflow for inspect, validate, intent, preview, and apply.
-3. Add a compact TUI preview review screen for apply, reject, or revise.
+The beginner TUI roadmap is complete through guided setup, guided brownfield preview, compact preview review, and session dashboard. Pick the next product slice after a fresh review.

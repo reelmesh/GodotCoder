@@ -1,6 +1,6 @@
 import { launchGodot } from "../core/launch.js";
 import { runPlaytest } from "../core/playtest.js";
-import { findGodotProjectRoot } from "../core/godot-project.js";
+import { findGodotProjectRoot } from "../core/godot-project-indexer.js";
 
 export async function playCommand(args: string[]): Promise<void> {
   const json = args.includes("--json");

@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project-indexer.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
 import { assertExportPresetSubcommand, inspectExportReadiness, previewLinuxExportPreset, writeLinuxExportPreset } from "../core/export.js";

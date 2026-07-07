@@ -1,5 +1,5 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project-indexer.js";
 import { workspacePaths } from "../core/workspace.js";
 
 export async function inspectProject(args: string[]): Promise<void> {

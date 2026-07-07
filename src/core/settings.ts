@@ -2,7 +2,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
-import type { ModelProviderKind } from "./providers.js";
+import { modelProviderNames, type ModelProviderKind } from "./providers.js";
 import { asLiteral, asNullableString, asObject, asOneOf, asString } from "./schema.js";
 import { workspacePaths } from "./workspace.js";
 
@@ -139,7 +139,7 @@ async function verifySecretFilePermissions(filePath: string): Promise<void> {
 }
 
 function parseProvider(value: unknown, label: string): ModelProviderKind {
-  return asOneOf(value, ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const, label);
+  return asOneOf(value, modelProviderNames, label);
 }
 
 function parseSecrets(value: unknown): SecretStore {
@@ -147,7 +147,7 @@ function parseSecrets(value: unknown): SecretStore {
   const providers = asObject(root.providers, "secrets providers");
   const parsed: SecretStore["providers"] = {};
 
-  for (const provider of ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const) {
+  for (const provider of modelProviderNames) {
     if (!providers[provider]) continue;
     const entry = asObject(providers[provider], `secrets provider ${provider}`);
     parsed[provider] = {

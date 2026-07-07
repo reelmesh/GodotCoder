@@ -5,7 +5,7 @@ import { godotVersionPolicyText, isGodotVersionSupported } from "./godot-version
 import { mkdir, readFile, unlink, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { parseGodotConfig } from "./godot-project.js";
+import { parseGodotConfig } from "./godot-config-parser.js";
 import { inflateSync } from "node:zlib";
 import { inspectExportReadiness, type ExportDoctorReport } from "./export.js";
 

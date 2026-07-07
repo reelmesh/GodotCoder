@@ -507,7 +507,7 @@ Detects runtime crashes, script errors, premature exits, blank visual output, mi
 }
 ```
 
-Playtest records live under `.godotcoder/playtests/`, with `latest.json` included in future LLM build context.
+Playtest records live under `.godotcoder/playtests/`, with `latest.json` included in later LLM build context.
 
 ---
 

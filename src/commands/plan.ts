@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
-import { tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { writePlanningArtifacts } from "../core/planning.js";
 import { createRuntimeProfile } from "../core/runtime-profile.js";
 import { loadTaskBoard } from "../core/tasks.js";

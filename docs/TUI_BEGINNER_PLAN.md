@@ -17,6 +17,7 @@ Power users keep every direct command and JSON mode. The TUI is a front door, no
 - Interactive shell with slash commands.
 - Keyboard-driven home menu with arrow keys, type-to-jump, space/enter, and numbered fallback.
 - Menu-first setup, settings, model, auth, runtime, pipeline, and run-history flows.
+- Checklist-style setup status for workspace, runtime, model, auth, and first validation.
 - Godot editor dock for RPC actions and summaries.
 
 ## Slice 1: Beginner Home
@@ -41,6 +42,8 @@ Turn setup into a checklist-style flow:
 - Confirm build role.
 - Run a quick status check.
 
+Status: complete.
+
 ## Slice 3: Guided Brownfield Workflow
 
 Add a menu path for existing projects:
@@ -52,6 +55,8 @@ Add a menu path for existing projects:
 - Preview changes.
 - Apply only after explicit confirmation.
 
+Status: preview path complete. Apply/reject/revise confirmation belongs to Slice 4 so the user applies the reviewed preview, not a regenerated build.
+
 ## Slice 4: Preview Review Screen
 
 Replace raw preview output in TUI mode with a compact review:
@@ -62,6 +67,8 @@ Replace raw preview output in TUI mode with a compact review:
 - Brownfield safety findings.
 - Apply, reject, or revise prompt.
 
+Status: complete for the guided brownfield path.
+
 ## Slice 5: Session Dashboard
 
 Add a persistent summary path:
@@ -71,6 +78,8 @@ Add a persistent summary path:
 - Latest task state.
 - Latest model quality.
 - Pending build preview.
+
+Status: complete except pending preview persistence, which is intentionally skipped until previews are stored beyond the in-memory TUI review.
 
 ## Non-Goals
 

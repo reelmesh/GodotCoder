@@ -1,6 +1,6 @@
 import type { Interface } from "node:readline/promises";
 import { mkdir, writeFile } from "node:fs/promises";
-import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project-indexer.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { writeRuntimeOverride } from "../core/runtime-overrides.js";

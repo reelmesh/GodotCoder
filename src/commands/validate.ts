@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project-indexer.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";
 import { runValidation, runSmokeValidation, runExportValidation, runVisualValidation } from "../core/validation.js";

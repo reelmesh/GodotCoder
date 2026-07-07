@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { GeneratedFile } from "./builders/types.js";
+import type { GeneratedFile } from "./generated-file.js";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
-import type { ProjectIndex } from "./godot-project.js";
+import type { ProjectIndex } from "./godot-project-indexer.js";
 import { previewGeneratedFiles, type BuildPreview, type PreviewFile } from "./preview.js";
 
 export type TaskIntent = "feature" | "fix" | "refactor" | "polish";

@@ -1,6 +1,6 @@
 import type { Interface } from "node:readline/promises";
 import { pathExists } from "../core/files.js";
-import { tryFindGodotProjectRoot, loadProjectIndex } from "../core/godot-project.js";
+import { tryFindGodotProjectRoot, loadProjectIndex, inspectGodotProject } from "../core/godot-project-indexer.js";
 import { loadModelConfigForRole } from "../core/providers.js";
 import { loadRuntimeProfile } from "../core/runtime-profile.js";
 import { authCommand } from "./auth.js";
@@ -17,10 +17,15 @@ import { runsCommand } from "./runs.js";
 import { setupCommand } from "./setup.js";
 import { settingsCommand } from "./settings.js";
 import { showStatus } from "./status.js";
-import { validateProject } from "./validate.js";
+import { validateProject, validateProjectRoot } from "./validate.js";
+import { dashboardCommand } from "./dashboard.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import { workspacePaths } from "../core/workspace.js";
 import { color } from "../core/terminal.js";
+import { detectBrownfieldProject, type TaskIntent } from "../core/brownfield.js";
+import { applyLlmBuild, generateLlmBuild, type LlmBuildPlan } from "../core/llm-build.js";
+import { previewGeneratedFiles, type BuildPreview } from "../core/preview.js";
+import { updateChangeRecordValidation, writeChangeRecord } from "../core/change-records.js";
 
 export async function homeCommand(args: string[] = []): Promise<void> {
   const embedded = args.includes("--embedded");
@@ -29,7 +34,9 @@ export async function homeCommand(args: string[] = []): Promise<void> {
       const choice = await chooseMenuOption(rl, await homePrompt(), [
         { value: "setup", label: "Start guided setup", description: "runtime, model, auth, preferences" },
         { value: "status", label: "Check project status", description: "workspace, runtime, tasks, export" },
+        { value: "dashboard", label: "Session dashboard", description: "latest validation, playtest, tasks, model quality" },
         { value: "pipeline", label: "Make a new playable slice", description: "idea to previewed Godot build" },
+        { value: "brownfield", label: "Work on existing project", description: "inspect, validate, choose intent, preview" },
         { value: "plan", label: "Plan only", description: "brief, GDD, tasks, risks" },
         { value: "build", label: "Preview a change", description: "safe first step for brownfield work" },
         { value: "apply", label: "Apply a change", description: "write files after you know the task" },
@@ -50,7 +57,9 @@ export async function homeCommand(args: string[] = []): Promise<void> {
       await runMenuAction(async () => {
         if (choice === "setup") await setupCommand(["--embedded"]);
         if (choice === "status") await showStatus([]);
+        if (choice === "dashboard") await dashboardCommand([]);
         if (choice === "pipeline") await pipelineCommand(["--embedded"]);
+        if (choice === "brownfield") await guidedBrownfieldWorkflow(rl);
         if (choice === "plan") await promptAndRun(rl, "Game idea", (prompt) => planProject([prompt]));
         if (choice === "build") await promptAndRun(rl, "Build task", (prompt) => buildProject([...prompt.split(/\s+/).filter(Boolean), "--preview"]));
         if (choice === "apply") await promptAndRun(rl, "Build task", (prompt) => buildProject([...prompt.split(/\s+/).filter(Boolean), "--apply"]));
@@ -145,4 +154,107 @@ async function promptAndRun(rl: Interface, label: string, run: (prompt: string) 
     return;
   }
   await run(prompt);
+}
+
+async function guidedBrownfieldWorkflow(rl: Interface): Promise<void> {
+  await inspectProject([]);
+  await validateProject([]);
+
+  const intent = (await chooseMenuOption(rl, "Intent", [
+    { value: "fix", label: "Fix", description: "bug, error, crash, broken behavior" },
+    { value: "feature", label: "Feature", description: "small new capability" },
+    { value: "polish", label: "Polish", description: "feel, UI, balance, visual pass" },
+    { value: "refactor", label: "Refactor", description: "cleanup without behavior change" },
+  ])) as TaskIntent | null;
+  if (!intent) return;
+
+  const task = (await askMenuQuestion(rl, "Focused task > ")).trim();
+  if (!task) {
+    console.log("No task entered.");
+    return;
+  }
+
+  await reviewBrownfieldPreview(rl, task, intent);
+}
+
+export function brownfieldPreviewArgs(task: string, intent: TaskIntent): string[] {
+  return [...task.split(/\s+/).filter(Boolean), "--intent", intent, "--preview"];
+}
+
+async function reviewBrownfieldPreview(rl: Interface, initialTask: string, intent: TaskIntent): Promise<void> {
+  const projectRoot = await tryFindGodotProjectRoot(process.cwd());
+  if (!projectRoot) {
+    console.log("No project.godot found.");
+    return;
+  }
+
+  let task = initialTask;
+  while (true) {
+    const projectIndex = await inspectGodotProject(projectRoot);
+    const brownfield = detectBrownfieldProject(projectIndex);
+    const plan = await generateLlmBuild(projectRoot, task, { intent, brownfieldProfile: brownfield });
+    const preview = await previewGeneratedFiles(projectRoot, plan.summary, plan.files);
+    printPreviewReview(preview);
+
+    const choice = await chooseMenuOption(rl, "Review", [
+      { value: "apply", label: "Apply", description: "write this exact preview and validate" },
+      { value: "revise", label: "Revise", description: "change task and regenerate preview" },
+      { value: "reject", label: "Reject", description: "discard preview" },
+    ]);
+    if (choice === "apply") {
+      await applyReviewedPreview(projectRoot, task, intent, brownfield, plan);
+      return;
+    }
+    if (choice === "revise") {
+      const revised = (await askMenuQuestion(rl, "Revised task > ")).trim();
+      if (revised) task = revised;
+      continue;
+    }
+    console.log(`Rejected preview: ${task}`);
+    return;
+  }
+}
+
+function printPreviewReview(preview: BuildPreview): void {
+  const summary = previewReviewSummary(preview);
+  console.log("Preview review");
+  console.log(preview.summary);
+  console.log(`Files: ${summary.files} (${summary.create} create, ${summary.modify} modify, ${summary.unchanged} unchanged)`);
+  console.log(`Lines: +${summary.added} -${summary.removed}`);
+  for (const file of preview.files) {
+    console.log(`${file.operation} ${file.path} (+${file.addedLines} -${file.removedLines})`);
+  }
+}
+
+export function previewReviewSummary(preview: BuildPreview): { files: number; create: number; modify: number; unchanged: number; added: number; removed: number } {
+  return {
+    files: preview.files.length,
+    create: preview.files.filter((file) => file.operation === "create").length,
+    modify: preview.files.filter((file) => file.operation === "modify").length,
+    unchanged: preview.files.filter((file) => file.operation === "unchanged").length,
+    added: preview.files.reduce((sum, file) => sum + file.addedLines, 0),
+    removed: preview.files.reduce((sum, file) => sum + file.removedLines, 0),
+  };
+}
+
+async function applyReviewedPreview(
+  projectRoot: string,
+  task: string,
+  intent: TaskIntent,
+  brownfield: ReturnType<typeof detectBrownfieldProject>,
+  plan: LlmBuildPlan,
+): Promise<void> {
+  const result = await applyLlmBuild(projectRoot, plan, { prompt: task, intent, brownfieldProfile: brownfield });
+  let record = await writeChangeRecord(projectRoot, {
+    kind: "build",
+    status: "applied",
+    prompt: task,
+    summary: result.summary,
+    files: result.changes,
+    validationIds: [],
+  });
+  const validation = await validateProjectRoot(projectRoot);
+  record = await updateChangeRecordValidation(projectRoot, record, validation.report.id);
+  console.log(`Applied preview: ${record.id}`);
+  console.log(`Validation: ${validation.report.summary.errors} errors, ${validation.report.summary.warnings} warnings`);
 }

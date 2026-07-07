@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { ProjectIndex } from "./godot-project.js";
+import type { ProjectIndex } from "./godot-project-indexer.js";
 import type { RuntimeDiscovery } from "./runtime-discovery.js";
 import { MIN_GODOT_VERSION, isGodotVersionSupported } from "./godot-version.js";
 import { asLiteral, asNullableNumber, asNullableString, asObject, asOneOf, asString, asStringArray } from "./schema.js";

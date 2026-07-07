@@ -1,6 +1,6 @@
 import { readdir, readFile, writeFile, rename } from "node:fs/promises";
 import path from "node:path";
-import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject } from "../core/godot-project-indexer.js";
 import { attemptRepair, type RepairAttempt } from "../core/repair.js";
 import { discoverRuntime } from "../core/runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "../core/runtime-profile.js";

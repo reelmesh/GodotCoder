@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { inspectGodotProject, updateGodotProjectSetting } from "./godot-project.js";
+import { inspectGodotProject } from "./godot-project-indexer.js";
+import { updateGodotProjectSetting } from "./godot-setting-editor.js";
 import { discoverRuntime } from "./runtime-discovery.js";
 import { createRuntimeProfile, loadRuntimeProfile } from "./runtime-profile.js";
 import { workspacePaths } from "./workspace.js";

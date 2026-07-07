@@ -3,6 +3,7 @@
 import { buildProject } from "./commands/build.js";
 import { authCommand } from "./commands/auth.js";
 import { docsCommand } from "./commands/docs.js";
+import { dashboardCommand } from "./commands/dashboard.js";
 import { exportCommand } from "./commands/export.js";
 import { showAgents } from "./commands/agents.js";
 import { runHarnessCommand } from "./commands/harness.js";
@@ -33,6 +34,7 @@ const commands: Record<string, CommandHandler> = {
   menu: homeCommand,
   auth: authCommand,
   docs: docsCommand,
+  dashboard: dashboardCommand,
   export: exportCommand,
   setup: setupCommand,
   settings: settingsCommand,
@@ -95,6 +97,7 @@ Usage:
   godotcoder auth login --provider <provider> --api-key <key>
   godotcoder auth logout --provider <provider>
   godotcoder docs [search <query>|list|cache <doc-id>|show <doc-id>] [--json]
+  godotcoder dashboard [--json]
   godotcoder export doctor [--json]
   godotcoder export preset linux [--apply] [--json]
   godotcoder agents [--json]

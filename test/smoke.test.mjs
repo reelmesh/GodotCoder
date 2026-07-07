@@ -5,7 +5,8 @@ import path from "node:path";
 import test from "node:test";
 
 import { extractDocTextFromHtml, loadCachedGodotDoc, officialGodotDocs, writeDocsContext, docsPromptContextWithExcerpts } from "../dist/core/godot-docs.js";
-import { updateGodotConfigText, parseGodotConfig } from "../dist/core/godot-project.js";
+import { parseGodotConfig } from "../dist/core/godot-config-parser.js";
+import { updateGodotConfigText } from "../dist/core/godot-setting-editor.js";
 import { evaluateGeneratedGameAcceptance, parseLlmBuildReply } from "../dist/core/llm-build.js";
 import { attemptRepair } from "../dist/core/repair.js";
 import { runSmokeValidation, runExportValidation } from "../dist/core/validation.js";
@@ -333,6 +334,5 @@ test("docsPromptContextWithExcerpts includes cached excerpts and parseLlmBuildRe
   assert.equal(result.files[0].contents.includes("\t"), true);
   try { await rm(projectRoot, { recursive: true, force: true }); } catch { /* ignore */ }
 });
-
 
 

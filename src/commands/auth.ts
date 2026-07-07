@@ -1,5 +1,5 @@
 import type { Interface } from "node:readline/promises";
-import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { findGodotProjectRoot, tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { askMenuQuestion, chooseMenuOption, withMenu } from "../core/menu.js";
 import type { ModelProviderKind } from "../core/providers.js";
 import { loadModelConfig } from "../core/providers.js";
@@ -169,4 +169,3 @@ async function logout(args: string[]): Promise<void> {
 
   console.log(`Removed auth for ${provider}.`);
 }
-

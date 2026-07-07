@@ -1,5 +1,5 @@
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
-import { inspectGodotProject, tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { inspectGodotProject, tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { applyLlmBuild, generateLlmBuild } from "../core/llm-build.js";
 import { CliError } from "../core/errors.js";
 import { loadModelConfigForRole } from "../core/providers.js";

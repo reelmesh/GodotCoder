@@ -2,9 +2,9 @@ import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { authCommand } from "./auth.js";
 import { docsCommand } from "./docs.js";
+import { dashboardCommand } from "./dashboard.js";
 import { exportCommand } from "./export.js";
 import { showAgents } from "./agents.js";
-import { buildProject } from "./build.js";
 import { homeCommand } from "./home.js";
 import { runHarnessCommand } from "./harness.js";
 import { inspectProject } from "./inspect.js";
@@ -23,19 +23,33 @@ import { tasksCommand } from "./tasks.js";
 import { validateProject } from "./validate.js";
 import { workflowCommand } from "./workflow.js";
 import { completeSessionLine } from "../core/completion.js";
+import { detectBrownfieldProject, isTaskIntentFlag, parseTaskIntent, type BrownfieldProfile, type TaskIntent } from "../core/brownfield.js";
+import { writeChangeRecord, updateChangeRecordValidation } from "../core/change-records.js";
+import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
+import { inspectGodotProject, tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
+import { applyLlmBuild, generateLlmBuild, type LlmBuildPlan } from "../core/llm-build.js";
+import { previewGeneratedFiles, type BuildPreview } from "../core/preview.js";
 import { loadModelConfig } from "../core/providers.js";
 import { color, clearScreen, separator, logo } from "../core/terminal.js";
+import { validateProjectRoot } from "./validate.js";
 
 type AgentMode = "build" | "plan";
 
 interface SessionState {
   mode: AgentMode;
   promptCount: number;
-  pendingBuildPrompt: string | null;
+  pendingBuild: PendingBuild | null;
+}
+
+interface PendingBuild {
+  prompt: string;
+  intent: TaskIntent;
+  brownfield: BrownfieldProfile;
+  plan: LlmBuildPlan;
 }
 
 export async function startSession(): Promise<void> {
-  const state: SessionState = { mode: "build", promptCount: 0, pendingBuildPrompt: null };
+  const state: SessionState = { mode: "build", promptCount: 0, pendingBuild: null };
 
   printWelcome(state);
   await checkModelWarning();
@@ -110,6 +124,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         return;
       case "/status":
         await showStatus(args);
+        printStatusHint(state);
+        return;
+      case "/dashboard":
+        await dashboardCommand(args);
         printStatusHint(state);
         return;
       case "/setup":
@@ -243,7 +261,7 @@ function printWelcome(state: SessionState): void {
   console.log(logo());
   console.log("");
   console.log(`${color("mode", "cyan")} ${state.mode}  ${color("project", "cyan")} current workspace  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /tasks  /harness  /status  /validate  /build  /runtime doctor  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /tasks  /harness  /status  /dashboard  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -309,23 +327,48 @@ async function runBuildPreview(prompt: string, state: SessionState): Promise<voi
     return;
   }
 
-  state.pendingBuildPrompt = stripBuildFlags(prompt);
+  const args = prompt.split(/\s+/).filter(Boolean);
+  const task = stripBuildFlags(prompt);
+  const intent = parseTaskIntent(args) ?? "feature";
+  const projectRoot = (await tryFindGodotProjectRoot(process.cwd())) ?? process.cwd();
+  await ensureGreenfieldGodotProject(projectRoot, task);
+  const projectIndex = await inspectGodotProject(projectRoot);
+  const brownfield = detectBrownfieldProject(projectIndex);
   console.log(color("Previewing", "green"));
-  await buildProject([...state.pendingBuildPrompt.split(/\s+/).filter(Boolean), "--preview"]);
+  const plan = await generateLlmBuild(projectRoot, task, { intent, brownfieldProfile: brownfield });
+  const preview = await previewGeneratedFiles(projectRoot, plan.summary, plan.files);
+  printPreview(preview);
+  state.pendingBuild = { prompt: task, intent, brownfield, plan };
   console.log(color("Pending build stored. Apply with /apply or discard with /reject.", "gray"));
   printStatusHint(state);
 }
 
 async function runBuildApply(prompt: string, state: SessionState): Promise<void> {
-  const task = stripBuildFlags(prompt || state.pendingBuildPrompt || "");
-  if (!task.trim()) {
+  if (prompt.trim()) {
+    await runBuildPreview(prompt, state);
+  }
+  const pending = state.pendingBuild;
+  if (!pending) {
     console.log("No pending build. Use /build <task> first.");
     return;
   }
 
   console.log(color("Applying", "green"));
-  await buildProject([...task.split(/\s+/).filter(Boolean), "--apply"]);
-  state.pendingBuildPrompt = null;
+  const projectRoot = (await tryFindGodotProjectRoot(process.cwd())) ?? process.cwd();
+  const result = await applyLlmBuild(projectRoot, pending.plan, { prompt: pending.prompt, intent: pending.intent, brownfieldProfile: pending.brownfield });
+  let record = await writeChangeRecord(projectRoot, {
+    kind: "build",
+    status: "applied",
+    prompt: pending.prompt,
+    summary: result.summary,
+    files: result.changes,
+    validationIds: [],
+  });
+  const validation = await validateProjectRoot(projectRoot);
+  record = await updateChangeRecordValidation(projectRoot, record, validation.report.id);
+  console.log(`Applied pending build: ${record.id}`);
+  console.log(`Validation: ${validation.report.summary.errors} errors, ${validation.report.summary.warnings} warnings`);
+  state.pendingBuild = null;
   printStatusHint(state);
 }
 
@@ -334,12 +377,12 @@ async function applyPendingBuild(prompt: string, state: SessionState): Promise<v
 }
 
 function rejectPendingBuild(state: SessionState): void {
-  if (!state.pendingBuildPrompt) {
+  if (!state.pendingBuild) {
     console.log("No pending build to reject.");
     return;
   }
-  console.log(`Rejected pending build: ${state.pendingBuildPrompt}`);
-  state.pendingBuildPrompt = null;
+  console.log(`Rejected pending build: ${state.pendingBuild.prompt}`);
+  state.pendingBuild = null;
   printStatusHint(state);
 }
 
@@ -365,12 +408,12 @@ function setMode(value: string | undefined, state: SessionState): void {
 }
 
 function printStatusHint(state: SessionState): void {
-  console.log(color(`mode=${state.mode} prompts=${state.promptCount} pending=${state.pendingBuildPrompt ? "build" : "none"}`, "gray"));
+  console.log(color(`mode=${state.mode} prompts=${state.promptCount} pending=${state.pendingBuild ? "build" : "none"}`, "gray"));
 }
 
 async function checkModelWarning(): Promise<void> {
   try {
-    const { tryFindGodotProjectRoot } = await import("../core/godot-project.js");
+    const { tryFindGodotProjectRoot } = await import("../core/godot-project-indexer.js");
     const projectRoot = (await tryFindGodotProjectRoot(process.cwd())) ?? process.cwd();
     const config = await loadModelConfig(projectRoot);
     if (!config) {
@@ -385,9 +428,17 @@ async function checkModelWarning(): Promise<void> {
 }
 
 function stripBuildFlags(prompt: string): string {
-  return prompt
-    .split(/\s+/)
-    .filter((arg) => !["--preview", "--apply", "--yes", "--no-validate"].includes(arg))
+  const args = prompt.split(/\s+/);
+  return args
+    .filter((arg, index) => !["--preview", "--apply", "--yes", "--no-validate"].includes(arg) && !isTaskIntentFlag(arg, args[index - 1]))
     .join(" ")
     .trim();
+}
+
+function printPreview(preview: BuildPreview): void {
+  console.log("Build preview");
+  console.log(preview.summary);
+  for (const file of preview.files) {
+    console.log(`${file.operation} ${file.path} (+${file.addedLines} -${file.removedLines}, ${file.beforeLines} -> ${file.afterLines} lines)`);
+  }
 }

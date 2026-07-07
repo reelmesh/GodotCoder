@@ -241,7 +241,7 @@ The editor plugin remains a thin companion:
 - Store playtest artifacts under `.godotcoder/playtests/`, including stdout, stderr, Godot engine logs, timeline JSON, run record JSON, and frame/visual validation paths when available.
 - Report simple interactivity signals: input simulated, frame/physics processing active, scene state changed, text changed, visual output nonblank, runtime errors, and premature exit.
 - Keep warnings advisory; lack of visible/state change is a playtest warning unless runtime errors are present.
-- Include `.godotcoder/playtests/latest.json` in future LLM build context.
+- Include `.godotcoder/playtests/latest.json` in later LLM build context.
 
 ### `godotcoder harness "<game goal>"`
 

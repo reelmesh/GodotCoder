@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { assertBrownfieldSafety, BrownfieldSafetyError, detectBrownfieldProject, inferTaskIntent } from "../dist/core/brownfield.js";
-import { inspectGodotProject } from "../dist/core/godot-project.js";
+import { inspectGodotProject } from "../dist/core/godot-project-indexer.js";
 
 test("brownfield detection treats minimal scaffold as greenfield and extra project files as brownfield", async () => {
   const projectRoot = await makeProject("godotcoder-brownfield-detect-");

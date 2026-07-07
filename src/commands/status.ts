@@ -1,6 +1,6 @@
 import { pathExists } from "../core/files.js";
 import { inspectExportReadiness } from "../core/export.js";
-import { findGodotProjectRoot, loadProjectIndex } from "../core/godot-project.js";
+import { findGodotProjectRoot, loadProjectIndex } from "../core/godot-project-indexer.js";
 import { loadRuntimeProfile } from "../core/runtime-profile.js";
 import { loadTaskBoard } from "../core/tasks.js";
 import { workspacePaths } from "../core/workspace.js";

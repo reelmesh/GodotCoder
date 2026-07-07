@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ensureGreenfieldGodotProject } from "../core/greenfield.js";
-import { tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { createRuntimeProfile } from "../core/runtime-profile.js";
 import { loadTaskBoard } from "../core/tasks.js";
 import { workspacePaths } from "../core/workspace.js";

@@ -4,7 +4,7 @@ import { CliError, formatError } from "../core/errors.js";
 import { pathExists } from "../core/files.js";
 import { readFlag } from "../core/flags.js";
 import { generateLlmBuild } from "../core/llm-build.js";
-import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project.js";
+import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project-indexer.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { modelQualitySummary } from "../core/model-runs.js";
 import { previewGeneratedFiles } from "../core/preview.js";

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CliError } from "./errors.js";
 import { pathExists } from "./files.js";
-import { parseGodotConfig, stringValue } from "./godot-project.js";
+import { parseGodotConfig, stringValue } from "./godot-config-parser.js";
 import type { RuntimeProfile } from "./runtime-profile.js";
 
 export interface ExportPresetSummary {

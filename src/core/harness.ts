@@ -4,7 +4,7 @@ import { detectBrownfieldProject, inferTaskIntent, type BrownfieldProfile, type 
 import { writeChangeRecord, updateChangeRecordValidation } from "./change-records.js";
 import { ensureGreenfieldGodotProject } from "./greenfield.js";
 import { timestampId } from "./ids.js";
-import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project.js";
+import { inspectGodotProject, tryFindGodotProjectRoot } from "./godot-project-indexer.js";
 import { writeDocsContext } from "./godot-docs.js";
 import { applyLlmBuild, generateLlmBuild, LlmBuildError, type LlmBuildPlan } from "./llm-build.js";
 import { writePlanningArtifacts } from "./planning.js";

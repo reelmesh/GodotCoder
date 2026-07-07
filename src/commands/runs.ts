@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { chooseMenuOption, withMenu } from "../core/menu.js";
 import { workspacePaths } from "../core/workspace.js";
 

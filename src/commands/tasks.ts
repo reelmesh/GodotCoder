@@ -1,4 +1,4 @@
-import { tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { isTaskState, loadTaskBoard, updateTask, type TaskRecord } from "../core/tasks.js";
 
 export async function tasksCommand(args: string[]): Promise<void> {

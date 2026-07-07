@@ -1,8 +1,8 @@
 import { allCommandNames, sessionCommands } from "./session-commands.js";
+import { modelProviderNames } from "./providers.js";
 
 const commandNames = allCommandNames();
 
-const providerNames = ["openai", "anthropic", "ollama", "lmstudio", "openrouter", "openai-compatible"] as const;
 const modeNames = ["plan", "build"] as const;
 const approvalNames = ["preview", "auto-apply"] as const;
 const diffNames = ["compact", "full"] as const;
@@ -55,7 +55,7 @@ export function completeSessionLine(line: string): [string[], string] {
       case "approval-mode":
         return completeToken(approvalNames, currentToken, line);
       case "provider":
-        return completeToken(providerNames, currentToken, line);
+        return completeToken(modelProviderNames, currentToken, line);
       case "diffs":
         return completeToken(diffNames, currentToken, line);
       default:
@@ -75,7 +75,7 @@ export function completeSessionLine(line: string): [string[], string] {
       return completeToken(authCommands, second, line);
     }
     if (second === "login" || first === "/login") {
-      return completeToken(providerNames, currentToken, line);
+      return completeToken(modelProviderNames, currentToken, line);
     }
     return completeToken(authCommands, currentToken, line);
   }
@@ -86,7 +86,7 @@ export function completeSessionLine(line: string): [string[], string] {
     }
     if (second === "use") {
       if (currentToken.startsWith("--provider")) {
-        return completeToken(providerNames, currentToken, line);
+        return completeToken(modelProviderNames, currentToken, line);
       }
       return completeToken(modelsCommands, currentToken, line);
     }
@@ -99,7 +99,7 @@ export function completeSessionLine(line: string): [string[], string] {
           return completeToken(modelRoleNames, currentToken, line);
         }
         if (currentToken.startsWith("--provider")) {
-          return completeToken(providerNames, currentToken, line);
+          return completeToken(modelProviderNames, currentToken, line);
         }
       }
       return completeToken(modelRoleCommands, currentToken, line);

@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
-import { homeStatus } from "../src/commands/home.js";
+import { brownfieldPreviewArgs, homeStatus, previewReviewSummary } from "../src/commands/home.js";
 
 it("home status guides users before and after project detection", async () => {
   const previousCwd = process.cwd();
@@ -36,4 +36,19 @@ config/features=PackedStringArray("4.x")
   } finally {
     process.chdir(previousCwd);
   }
+});
+
+it("brownfield guide builds preview args with explicit intent", () => {
+  assert.deepEqual(brownfieldPreviewArgs("fix player jump", "fix"), ["fix", "player", "jump", "--intent", "fix", "--preview"]);
+});
+
+it("preview review summary counts files and changed lines", () => {
+  assert.deepEqual(previewReviewSummary({
+    summary: "test",
+    files: [
+      { path: "res://a.gd", operation: "create", beforeLines: 0, afterLines: 3, addedLines: 3, removedLines: 0, diff: [], diffTruncated: false },
+      { path: "res://b.gd", operation: "modify", beforeLines: 5, afterLines: 6, addedLines: 2, removedLines: 1, diff: [], diffTruncated: false },
+      { path: "res://c.gd", operation: "unchanged", beforeLines: 2, afterLines: 2, addedLines: 0, removedLines: 0, diff: [], diffTruncated: false },
+    ],
+  }), { files: 3, create: 1, modify: 1, unchanged: 1, added: 5, removed: 1 });
 });

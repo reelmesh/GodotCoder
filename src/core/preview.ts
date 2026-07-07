@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { GeneratedFile } from "./builders/types.js";
+import type { GeneratedFile } from "./generated-file.js";
 import { pathExists } from "./files.js";
 
 export interface PreviewFile {

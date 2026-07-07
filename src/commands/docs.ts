@@ -1,4 +1,4 @@
-import { tryFindGodotProjectRoot } from "../core/godot-project.js";
+import { tryFindGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { cacheGodotDoc, loadCachedGodotDoc, officialGodotDocs, searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 
 export async function docsCommand(args: string[]): Promise<void> {

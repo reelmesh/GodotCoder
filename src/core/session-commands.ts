@@ -12,6 +12,7 @@ export const sessionCommands: SessionCommand[] = [
   { name: "/clear", handler: "clear", description: "Clear terminal" },
   { name: "/mode", aliases: ["/agent"], handler: "mode", description: "Set plan/build mode" },
   { name: "/status", handler: "status", description: "Show workspace status" },
+  { name: "/dashboard", handler: "dashboard", description: "Show latest session dashboard", flags: ["--json"] },
   { name: "/setup", handler: "setup", description: "Guided setup wizard" },
   { name: "/workflow", handler: "workflow", description: "Workflow customization" },
   { name: "/settings", handler: "settings", description: "Manage settings", flags: ["--json"] },
