@@ -35,6 +35,12 @@ export interface TaskUpdate {
   links?: Partial<TaskLinks>;
 }
 
+export interface NewTask {
+  title: string;
+  description?: string | null;
+  links?: Partial<TaskLinks>;
+}
+
 const validTaskStates: TaskState[] = ["planned", "active", "blocked", "done"];
 
 export function isTaskState(value: string): value is TaskState {
@@ -122,6 +128,24 @@ export async function updateTask(projectRoot: string, id: string, update: TaskUp
     updatedAt: new Date().toISOString(),
   };
   board.tasks[index] = task;
+  const saved = await saveTaskBoard(projectRoot, board);
+  return { board: saved, task };
+}
+
+export async function addTask(projectRoot: string, input: NewTask): Promise<{ board: TaskBoard; task: TaskRecord }> {
+  const board = await loadTaskBoard(projectRoot);
+  const now = new Date().toISOString();
+  const task: TaskRecord = {
+    id: `task-${String(nextTaskNumber(board.tasks)).padStart(3, "0")}`,
+    title: input.title,
+    description: input.description ?? null,
+    state: "planned",
+    source: "manual",
+    links: normalizeLinks({ ...emptyLinks(), ...(input.links ?? {}) }),
+    createdAt: now,
+    updatedAt: now,
+  };
+  board.tasks.push(task);
   const saved = await saveTaskBoard(projectRoot, board);
   return { board: saved, task };
 }

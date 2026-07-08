@@ -63,6 +63,21 @@ export interface PlaytestResult {
   interactivity: PlaytestInteractivity;
 }
 
+export interface PlaytestTaskSuggestion {
+  intent: "fix" | "polish";
+  category?: PlaytestFeedbackCategory;
+  title: string;
+  description: string;
+}
+
+export type PlaytestFeedbackCategory = "bug" | "feel" | "missing-content" | "balance" | "ux" | "performance" | "scope-change";
+
+export interface PlaytestFeedbackEntry {
+  timestamp: string | null;
+  feedback: string;
+  suggestions: string[];
+}
+
 export async function runPlaytest(projectRoot: string): Promise<PlaytestResult> {
   const startedAt = new Date();
   const id = `playtest_${timestampId(startedAt)}`;
@@ -267,6 +282,109 @@ export function analyzePlaytestInteractivity(input: {
       prematureExit,
     },
   };
+}
+
+export function suggestPlaytestTasks(playtest: Pick<PlaytestResult, "id" | "errors" | "interactivity" | "visual">): PlaytestTaskSuggestion[] {
+  const suggestions: PlaytestTaskSuggestion[] = [];
+  const signals = playtest.interactivity.signals;
+
+  if (playtest.errors.length > 0) {
+    suggestions.push({
+      intent: "fix",
+      title: "Fix runtime errors found during playtest.",
+      description: [`Playtest: ${playtest.id}`, ...playtest.errors.slice(0, 3)].join("\n"),
+    });
+  }
+  if (signals.visualNonBlank === false) {
+    suggestions.push({
+      intent: "fix",
+      title: "Fix blank or near-blank playtest output.",
+      description: `Playtest: ${playtest.id}\nFrame: ${playtest.visual?.artifactPath ?? "not available"}`,
+    });
+  }
+  if (!signals.inputSimulated || (!signals.frameProcessingActive && !signals.physicsProcessingActive)) {
+    suggestions.push({
+      intent: "fix",
+      title: "Make the main scene respond during automated playtest.",
+      description: `Playtest: ${playtest.id}\nInput simulated: ${signals.inputSimulated}\nFrame processing: ${signals.frameProcessingActive}\nPhysics processing: ${signals.physicsProcessingActive}`,
+    });
+  }
+  if (!signals.sceneStateChanged && !signals.textChanged) {
+    suggestions.push({
+      intent: "polish",
+      title: "Add visible feedback or state changes during play.",
+      description: `Playtest: ${playtest.id}\nNo simple scene-state or text changes were observed.`,
+    });
+  }
+
+  return suggestions.slice(0, 3);
+}
+
+export function suggestTasksFromPlaytestFeedback(feedback: string): PlaytestTaskSuggestion[] {
+  const text = feedback.trim();
+  if (!text) return [];
+  const category = classifyPlaytestFeedback(text);
+  const intent: PlaytestTaskSuggestion["intent"] = category === "bug" || category === "performance" ? "fix" : "polish";
+  return [{
+    intent,
+    category,
+    title: `${titleForFeedbackCategory(category)}.`,
+    description: `Player feedback: ${text}`,
+  }];
+}
+
+export function formatPlaytestFeedbackEntry(input: { createdAt: string; feedback: string; suggestions: PlaytestTaskSuggestion[] }): string {
+  const lines = [
+    `## ${input.createdAt}`,
+    "",
+    `Feedback: ${input.feedback.trim()}`,
+    "",
+    "Suggested tasks:",
+    ...input.suggestions.map((suggestion) => `- [${suggestion.intent}] ${suggestion.title}${suggestion.category ? ` (${suggestion.category})` : ""}`),
+    "",
+  ];
+  return lines.join("\n");
+}
+
+export async function readPlaytestFeedbackEntries(filePath: string, limit = 3): Promise<PlaytestFeedbackEntry[]> {
+  try {
+    const text = (await readFile(filePath, "utf8")).trim();
+    if (!text) return [];
+    return text.split(/\n(?=##\s+)/).slice(-limit).map(parsePlaytestFeedbackEntry).filter((entry): entry is PlaytestFeedbackEntry => Boolean(entry));
+  } catch {
+    return [];
+  }
+}
+
+function parsePlaytestFeedbackEntry(text: string): PlaytestFeedbackEntry | null {
+  const feedback = text.match(/Feedback:\s*(.+?)(?:\n|$)/)?.[1]?.trim();
+  if (!feedback) return null;
+  return {
+    timestamp: text.match(/^##\s*(.+)$/m)?.[1]?.trim() ?? null,
+    feedback,
+    suggestions: Array.from(text.matchAll(/^-\s+(.+)$/gm), (match) => match[1]!.trim()),
+  };
+}
+
+function classifyPlaytestFeedback(feedback: string): PlaytestFeedbackCategory {
+  const text = feedback.toLowerCase();
+  if (/\b(crash|error|bug|broken|stuck|freeze|doesn't work|does not work|can't|cannot)\b/.test(text)) return "bug";
+  if (/\b(slow|lag|stutter|fps|frame rate|performance)\b/.test(text)) return "performance";
+  if (/\b(confusing|unclear|menu|button|ui|ux|read|text)\b/.test(text)) return "ux";
+  if (/\b(hard|easy|damage|health|balance|unfair|overpowered|too much|too little)\b/.test(text)) return "balance";
+  if (/\b(add|missing|need|needs|more|content|level|enemy|weapon|sound|music)\b/.test(text)) return "missing-content";
+  if (/\b(scope|bigger|smaller|instead|change direction|pivot)\b/.test(text)) return "scope-change";
+  return "feel";
+}
+
+function titleForFeedbackCategory(category: PlaytestFeedbackCategory): string {
+  if (category === "bug") return "Fix reported playtest bug";
+  if (category === "performance") return "Improve playtest performance";
+  if (category === "ux") return "Clarify playtest UX";
+  if (category === "balance") return "Tune playtest balance";
+  if (category === "missing-content") return "Add requested playtest content";
+  if (category === "scope-change") return "Review requested scope change";
+  return "Polish game feel from playtest feedback";
 }
 
 async function readTimeline(timelinePath: string): Promise<PlaytestTimelineEvent[]> {

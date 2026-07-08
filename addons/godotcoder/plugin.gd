@@ -398,7 +398,7 @@ func _editor_summary_text(envelope: Dictionary) -> String:
 	var result := envelope.get("result", {})
 	if typeof(result) != TYPE_DICTIONARY:
 		return ""
-	var has_summary := result.has("latestValidation") or result.has("latestVisualValidation") or result.has("latestRepair") or result.has("modelQuality")
+	var has_summary := result.has("latestValidation") or result.has("latestVisualValidation") or result.has("latestRepair") or result.has("latestPlaytestFeedback") or result.has("modelQuality")
 	if not has_summary:
 		return ""
 	var lines: PackedStringArray = []
@@ -406,9 +406,15 @@ func _editor_summary_text(envelope: Dictionary) -> String:
 	lines.append(_artifact_summary_line("validation", result.get("latestValidation", null)))
 	lines.append(_artifact_summary_line("visual", result.get("latestVisualValidation", null)))
 	lines.append(_artifact_summary_line("repair", result.get("latestRepair", null)))
+	lines.append(_playtest_feedback_line(result.get("latestPlaytestFeedback", null)))
 	for line in _model_quality_lines(result.get("modelQuality", null)):
 		lines.append(line)
 	return "\n".join(lines)
+
+func _playtest_feedback_line(value: Variant) -> String:
+	if typeof(value) != TYPE_DICTIONARY:
+		return "  playtest feedback: none"
+	return "  playtest feedback: %s" % str(value.get("feedback", "none"))
 
 func _artifact_summary_line(label: String, value: Variant) -> String:
 	if typeof(value) != TYPE_DICTIONARY:

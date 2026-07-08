@@ -122,8 +122,9 @@ Usage:
   godotcoder rpc <method> [--json]
   godotcoder plan <game idea> [--json]
   godotcoder pipeline <game idea> [--preview] [--apply] [--play] [--no-repair] [--json]
-  godotcoder play [--editor] [--test] [--json]
-  godotcoder playtest [--json]
+  godotcoder play [--editor] [--test] [--suggest-tasks] [--apply] [--json]
+  godotcoder playtest [--suggest-tasks] [--apply] [--json]
+  godotcoder playtest feedback <playtest note> [--apply] [--json]
 
 Run without arguments to open the interactive GodotCoder session.
 MVP focus: Godot 4.3+, Linux-first, CLI workspace commands.`);

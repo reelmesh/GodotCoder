@@ -17,6 +17,7 @@ test("session dashboard summarizes latest artifacts", async () => {
     await writeFile(path.join(projectRoot, "project.godot"), "config_version=5\n");
     await writeFile(path.join(paths.validationsDir, "val.json"), JSON.stringify({ id: "val", summary: { errors: 1, warnings: 2 } }) + "\n");
     await writeFile(path.join(paths.playtestsDir, "latest.json"), JSON.stringify({ id: "play", status: "completed" }) + "\n");
+    await writeFile(path.join(paths.playtestsDir, "feedback.md"), "## 2026-07-08T10:00:00.000Z\n\nFeedback: Jump feels floaty.\n");
     await saveTaskBoard(projectRoot, {
       schemaVersion: 1,
       updatedAt: new Date().toISOString(),
@@ -30,6 +31,7 @@ test("session dashboard summarizes latest artifacts", async () => {
     assert.equal(dashboard.latestValidation?.errors, 1);
     assert.equal(dashboard.latestValidation?.warnings, 2);
     assert.equal(dashboard.latestPlaytest?.status, "completed");
+    assert.equal(dashboard.latestPlaytestFeedback, "Jump feels floaty.");
     assert.equal(dashboard.taskCounts?.planned, 1);
     assert.equal(dashboard.taskCounts?.done, 1);
   } finally {

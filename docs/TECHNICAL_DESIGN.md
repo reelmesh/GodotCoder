@@ -231,7 +231,7 @@ The editor plugin remains a thin companion:
 - `build.preview` returns raw preview data plus a compact summary for the dock.
 - `build.apply` routes through the existing CLI build command with `--apply --json`.
 - `build.reject` records a structured non-mutating rejection acknowledgement.
-- `editor.summary` reads the latest validation, visual validation, repair, and model quality artifacts from `.godotcoder/`.
+- `editor.summary` reads the latest validation, visual validation, repair, playtest feedback, and model quality artifacts from `.godotcoder/`.
 - The dock owns only UI state such as the current prompt, captured editor context, and pending preview summary.
 
 ### Playtest Intelligence
@@ -240,8 +240,9 @@ The editor plugin remains a thin companion:
 - Temporarily inject a Godot autoload that simulates input actions and records a short timeline.
 - Store playtest artifacts under `.godotcoder/playtests/`, including stdout, stderr, Godot engine logs, timeline JSON, run record JSON, and frame/visual validation paths when available.
 - Report simple interactivity signals: input simulated, frame/physics processing active, scene state changed, text changed, visual output nonblank, runtime errors, and premature exit.
+- Support `playtest feedback <note>` for heuristic classification of manual playtest notes into task-board suggestions.
 - Keep warnings advisory; lack of visible/state change is a playtest warning unless runtime errors are present.
-- Include `.godotcoder/playtests/latest.json` in later LLM build context.
+- Include `.godotcoder/playtests/latest.json` and recent `.godotcoder/playtests/feedback.md` entries in later LLM build context.
 
 ### `godotcoder harness "<game goal>"`
 

@@ -123,7 +123,7 @@ choose a workflow. Choose `Back` to reach the prompt.
 | `/runs` | Browse harness run history |
 | `/history` | Same as `/runs` |
 | `/play` | Launch the game |
-| `/playtest` | Automated 5-second test |
+| `/playtest` | Automated test or feedback note |
 | `/open` | Open in Godot editor |
 | `/settings` | Configure preferences |
 
@@ -484,6 +484,9 @@ node dist/cli.js play --test
 
 # JSON output
 node dist/cli.js playtest --json
+
+# Turn manual feedback into a task
+node dist/cli.js playtest feedback "jump feels floaty" --apply
 ```
 
 Detects runtime crashes, script errors, premature exits, blank visual output, missing frame processing, and lack of simple state/text changes:
@@ -507,7 +510,7 @@ Detects runtime crashes, script errors, premature exits, blank visual output, mi
 }
 ```
 
-Playtest records live under `.godotcoder/playtests/`, with `latest.json` included in later LLM build context.
+Playtest records live under `.godotcoder/playtests/`, with `latest.json` and recent manual feedback included in later LLM build context and the session dashboard. Use `playtest feedback <note>` to classify a manual playtest note and preview or append a task-board item; applied feedback is logged to `.godotcoder/playtests/feedback.md`.
 
 ---
 

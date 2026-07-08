@@ -188,6 +188,10 @@ async function handleSessionLine(line: string, state: SessionState): Promise<voi
         await playCommand(args);
         printStatusHint(state);
         return;
+      case "/playtest":
+        await playCommand(["--test", ...args]);
+        printStatusHint(state);
+        return;
       case "/runtime":
         await runtimeCommand(args);
         printStatusHint(state);
@@ -261,7 +265,7 @@ function printWelcome(state: SessionState): void {
   console.log(logo());
   console.log("");
   console.log(`${color("mode", "cyan")} ${state.mode}  ${color("project", "cyan")} current workspace  ${color("runtime", "cyan")} native/flatpak`);
-  console.log(`${color("commands", "cyan")} /menu  /make  /play  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /tasks  /harness  /status  /dashboard  /validate  /build  /runtime doctor  /exit`);
+  console.log(`${color("commands", "cyan")} /menu  /make  /play  /playtest  /repair  /rpc  /help  /setup  /settings  /auth  /models  /docs  /runs  /tasks  /harness  /status  /dashboard  /validate  /build  /runtime doctor  /exit`);
   console.log(separator());
   console.log("");
 }
@@ -297,6 +301,7 @@ function printSessionHelp(): void {
   console.log(`${color("/pipeline <idea>", "cyan").padEnd(22)} Build a complete playable slice and validate it`);
   console.log(`${color("/make <idea>", "cyan").padEnd(22)} Alias for /pipeline`);
   console.log(`${color("/play", "cyan").padEnd(22)} Launch the current Godot game`);
+  console.log(`${color("/playtest", "cyan").padEnd(22)} Run automated playtest or record feedback`);
   console.log(`${color("/open", "cyan").padEnd(22)} Alias for /play`);
   console.log(`${color("/runtime doctor", "cyan").padEnd(22)} Detect native/Flatpak Godot runtime`);
   console.log(`${color("/runtime use <cmd>", "cyan").padEnd(22)} Pin a native, Flatpak, or custom Godot command`);

@@ -7,6 +7,7 @@ import { generateLlmBuild } from "../core/llm-build.js";
 import { findGodotProjectRoot, inspectGodotProject, loadProjectIndex, type ProjectIndex } from "../core/godot-project-indexer.js";
 import { searchGodotDocs, writeDocsContext } from "../core/godot-docs.js";
 import { modelQualitySummary } from "../core/model-runs.js";
+import { readPlaytestFeedbackEntries } from "../core/playtest.js";
 import { previewGeneratedFiles } from "../core/preview.js";
 import { runProcess } from "../core/process.js";
 import { completeWithModel, loadModelConfigForRole, modelSystemPrompt } from "../core/providers.js";
@@ -140,6 +141,7 @@ async function editorSummary(): Promise<unknown> {
     latestValidation: await latestValidationSummary(paths.validationsDir, false),
     latestVisualValidation: await latestValidationSummary(paths.validationsDir, true),
     latestRepair: await latestRepairSummary(paths.repairsDir),
+    latestPlaytestFeedback: await latestPlaytestFeedback(paths.playtestsDir),
     modelQuality: await modelQualitySummary(projectRoot),
   };
 }
@@ -288,6 +290,12 @@ async function latestRepairSummary(repairsDir: string): Promise<unknown | null> 
           warnings: typeof validationSummary.warnings === "number" ? validationSummary.warnings : null,
         },
   };
+}
+
+async function latestPlaytestFeedback(playtestsDir: string): Promise<unknown | null> {
+  const filePath = path.join(playtestsDir, "feedback.md");
+  const latest = (await readPlaytestFeedbackEntries(filePath, 1))[0];
+  return latest ? { ...latest, path: filePath } : null;
 }
 
 async function latestJsonFiles(dir: string): Promise<Array<{ path: string; mtimeMs: number }>> {

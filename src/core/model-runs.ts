@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { timestampId } from "./ids.js";
+import { readPlaytestFeedbackEntries } from "./playtest.js";
 import type { ModelProviderKind } from "./providers.js";
 import { workspacePaths } from "./workspace.js";
 
@@ -32,6 +33,7 @@ export interface ModelRunRecord {
     visualValidation: string | null;
     repair: string | null;
     playtest: string | null;
+    playtestFeedback: string | null;
     tasks: string | null;
   };
 }
@@ -239,14 +241,15 @@ export function summarizeModelQuality(records: ModelRunRecord[]): ModelQualitySu
 
 export async function latestModelContext(projectRoot: string): Promise<ModelRunRecord["context"]> {
   const paths = workspacePaths(projectRoot);
-  const [validation, visualValidation, repair, playtest, tasks] = await Promise.all([
+  const [validation, visualValidation, repair, playtest, playtestFeedback, tasks] = await Promise.all([
     latestValidationSummary(paths.validationsDir, false),
     latestValidationSummary(paths.validationsDir, true),
     latestRepairSummary(paths.repairsDir),
     readLatestJsonSummary(path.join(paths.playtestsDir, "latest.json"), summarizePlaytest),
+    readRecentFeedback(path.join(paths.playtestsDir, "feedback.md")),
     readTextSummary(paths.tasks),
   ]);
-  return { validation, visualValidation, repair, playtest, tasks };
+  return { validation, visualValidation, repair, playtest, playtestFeedback, tasks };
 }
 
 export function formatModelRetryContext(context: ModelRunRecord["context"]): string {
@@ -255,6 +258,7 @@ export function formatModelRetryContext(context: ModelRunRecord["context"]): str
     ["Latest visual validation", context.visualValidation],
     ["Latest repair", context.repair],
     ["Latest playtest", context.playtest],
+    ["Recent playtest feedback", context.playtestFeedback],
     ["Current tasks", context.tasks],
   ]
     .filter((entry): entry is [string, string] => Boolean(entry[1]))
@@ -309,6 +313,12 @@ async function readTextSummary(filePath: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function readRecentFeedback(filePath: string): Promise<string | null> {
+  const entries = await readPlaytestFeedbackEntries(filePath, 3);
+  const text = entries.map((entry) => [entry.timestamp, entry.feedback, ...entry.suggestions].filter(Boolean).join(" ")).join(" ");
+  return text ? truncate(text, 700) : null;
 }
 
 function summarizeValidation(value: unknown, requireVisual: boolean): string | null {
@@ -464,6 +474,7 @@ function parseModelRunContext(value: unknown): ModelRunRecord["context"] {
     visualValidation: stringValue(root.visualValidation),
     repair: stringValue(root.repair),
     playtest: stringValue(root.playtest),
+    playtestFeedback: stringValue(root.playtestFeedback),
     tasks: stringValue(root.tasks),
   };
 }

@@ -267,9 +267,12 @@ You can also run an automated playtest to simulate 5 seconds of input headlessly
 ```bash
 node /path/to/GodotCoder/dist/cli.js playtest
 node /path/to/GodotCoder/dist/cli.js play --test
+node /path/to/GodotCoder/dist/cli.js playtest --suggest-tasks
+node /path/to/GodotCoder/dist/cli.js playtest --suggest-tasks --apply
+node /path/to/GodotCoder/dist/cli.js playtest feedback "jump feels floaty" --apply
 ```
 
-Playtest records are stored under `.godotcoder/playtests/`. Each run includes stdout/stderr logs, the Godot engine log path, a simulated input timeline, visual artifact/report paths when available, and heuristic signals such as input simulation, frame/physics processing, scene/text changes, blank visual output, runtime errors, and premature exit. The latest playtest summary is included in later LLM build context.
+Playtest records are stored under `.godotcoder/playtests/`. Each run includes stdout/stderr logs, the Godot engine log path, a simulated input timeline, visual artifact/report paths when available, and heuristic signals such as input simulation, frame/physics processing, scene/text changes, blank visual output, runtime errors, and premature exit. Use `--suggest-tasks` to turn bad playtest signals into proposed task-board items, or `playtest feedback` to classify a manual playtest note; add `--apply` to append tasks and log feedback to `.godotcoder/playtests/feedback.md`. The latest playtest summary and recent manual feedback are included in later LLM build context and the session dashboard.
 
 Validation modes:
 

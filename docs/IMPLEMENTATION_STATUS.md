@@ -29,17 +29,18 @@ Implemented and verified the next confidence-building arc:
 - Editor plugin review/apply UX
   - Adds CLI-owned RPC methods for `build.apply`, `build.reject`, and `editor.summary`.
   - Adds pending preview state, Apply, Reject, and Summaries controls to the Godot dock.
-  - Shows latest validation, visual validation, repair, and model quality artifact summaries without reading workspace files from GDScript.
+  - Shows latest validation, visual validation, repair, playtest feedback, and model quality artifact summaries without reading workspace files from GDScript.
   - Keeps the plugin thin: it captures context, invokes CLI/RPC commands, stores UI history, and displays envelopes.
 - Playtest intelligence
   - Expands `godotcoder playtest` with a simulated input timeline, stdout/stderr logs, Godot engine logs, and durable records under `.godotcoder/playtests/`.
   - Captures frame artifacts directly when possible and records fallback visual validation artifact/report paths when the headless playtest viewport cannot be analyzed.
   - Reports heuristic interactivity signals: input simulated, frame/physics processing active, scene state changed, text changed, visual nonblank status, runtime errors, and premature exit.
   - Adds `.godotcoder/playtests/latest.json` to future LLM build context.
+  - Adds `godotcoder playtest feedback <note> [--apply]` and interactive `/playtest feedback` to classify manual notes, suggest task-board items, append accepted feedback to `.godotcoder/playtests/feedback.md`, surface the latest note in dashboard/editor summaries, and include recent notes in later build context.
 - Model quality telemetry and retry context
   - Adds durable model-run records under `.godotcoder/model-runs/`.
   - Tracks command, task intent, provider/model, outcome, retry recovery, prompt preview, model attempts, and compact context used for the run.
-  - Feeds recent validation, visual validation, repair, playtest, and task findings into the retry prompt after an invalid model response or failed acceptance gate.
+  - Feeds recent validation, visual validation, repair, playtest, manual playtest feedback, and task findings into the retry prompt after an invalid model response or failed acceptance gate.
   - Preserves existing `.godotcoder/model-failures/` artifacts for failed harness runs while adding a broader success/failure ledger for quality analysis.
 - Review-driven prompt and artifact hardening
   - Moves controlled build/retry prompt text into `src/prompts/build.txt` and `src/prompts/build-retry.txt`.
@@ -66,8 +67,8 @@ Implemented and verified the next confidence-building arc:
   - Recommends the strongest observed build candidate using success rate, retry dependence, and evidence volume.
   - Keeps recommendations advisory only; GodotCoder does not automatically switch or manage model routing.
 - Editor-facing model quality summaries
-  - Adds compact model quality data to `godotcoder rpc editor.summary`.
-  - Surfaces total runs, successes, failures, retry recoveries, latest run, latest failure, recommendation, and confidence in the Godot dock.
+  - Adds compact model quality data and latest manual playtest feedback to `godotcoder rpc editor.summary`.
+  - Surfaces total runs, successes, failures, retry recoveries, latest run, latest failure, recommendation, confidence, and playtest feedback in the Godot dock.
   - Reuses `.godotcoder/model-runs/` rather than adding a second telemetry store.
 
 Verification for this arc:
@@ -513,7 +514,7 @@ The suite covers the project config mutation helper, missing scene/resource repa
 
 Recommended next: no beginner TUI slice remains; pick the next product area after review.
 
-The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, advisory routing recommendation, editor-facing model quality summary, beginner home TUI, guided setup checklist, guided brownfield preview, compact preview review, and session dashboard slices are complete.
+The visual validation, brownfield safety, Linux export preset automation, editor plugin UX, playtest intelligence, manual playtest feedback loop, task board iteration loop, model quality telemetry, role-aware build/fallback model selection, model outcome reporting, repeatable model eval prompts, advisory routing recommendation, editor-facing model quality summary, beginner home TUI, guided setup checklist, guided brownfield preview, compact preview review, and session dashboard slices are complete.
 
 The next useful product slice should be chosen after a fresh review.
 

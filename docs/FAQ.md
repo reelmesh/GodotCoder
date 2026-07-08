@@ -14,7 +14,7 @@ Use `godotcoder build --task <task-id> --preview` to inspect a task-backed build
 
 ## What does `godotcoder playtest` do?
 
-It runs a short headless playtest, simulates input, records a timeline, and stores logs plus frame or visual validation artifacts under `.godotcoder/playtests/`. The latest playtest summary is also fed into later build prompts.
+It runs a short headless playtest, simulates input, records a timeline, and stores logs plus frame or visual validation artifacts under `.godotcoder/playtests/`. Use `--suggest-tasks` for task suggestions from bad signals, or `playtest feedback <note>` for manual feedback; applied feedback is logged to `.godotcoder/playtests/feedback.md`. The latest playtest summary and recent manual feedback are also fed into later build prompts.
 
 ## What should I commit?
 
@@ -22,4 +22,4 @@ Commit the durable project artifacts under `.godotcoder/`, including planning fi
 
 ## What is the current next slice?
 
-The beginner TUI roadmap is complete through guided setup, guided brownfield preview, compact preview review, and session dashboard. The next product slice should be chosen after a fresh review of current gaps.
+The beginner TUI roadmap and manual playtest feedback loop are complete through guided setup, guided brownfield preview, compact preview review, session dashboard, task suggestions, feedback logging, build context, and editor summaries. The next product slice should be chosen after a fresh review of current gaps.

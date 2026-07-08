@@ -157,6 +157,10 @@ export function completeSessionLine(line: string): [string[], string] {
     return completeToken(repairCommands, currentToken, line);
   }
 
+  if (first === "/playtest") {
+    return completeFlags(first, currentToken, line);
+  }
+
   if (first === "/rpc") {
     if (parts.length === 2 && !endsWithSpace) {
       return completeToken(rpcMethods, second, line);

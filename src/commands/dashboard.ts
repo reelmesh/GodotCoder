@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathExists } from "../core/files.js";
 import { findGodotProjectRoot } from "../core/godot-project-indexer.js";
 import { modelQualitySummary } from "../core/model-runs.js";
+import { readPlaytestFeedbackEntries } from "../core/playtest.js";
 import { loadTaskBoard } from "../core/tasks.js";
 import { workspacePaths } from "../core/workspace.js";
 
@@ -10,6 +11,7 @@ export interface SessionDashboard {
   projectRoot: string;
   latestValidation: ValidationSummary | null;
   latestPlaytest: PlaytestSummary | null;
+  latestPlaytestFeedback: string | null;
   taskCounts: { planned: number; active: number; blocked: number; done: number } | null;
   modelQuality: Awaited<ReturnType<typeof modelQualitySummary>>;
 }
@@ -46,6 +48,7 @@ export async function loadSessionDashboard(projectRoot: string): Promise<Session
     projectRoot,
     latestValidation: await latestValidation(paths.validationsDir),
     latestPlaytest: await latestPlaytest(paths.playtestsDir),
+    latestPlaytestFeedback: await latestPlaytestFeedback(paths.playtestsDir),
     taskCounts: board
       ? {
           planned: board.tasks.filter((task) => task.state === "planned").length,
@@ -63,6 +66,7 @@ export function printSessionDashboard(dashboard: SessionDashboard): void {
   console.log(`Project: ${dashboard.projectRoot}`);
   console.log(`Validation: ${formatValidation(dashboard.latestValidation)}`);
   console.log(`Playtest: ${formatPlaytest(dashboard.latestPlaytest)}`);
+  console.log(`Playtest feedback: ${dashboard.latestPlaytestFeedback ?? "none"}`);
   console.log(`Tasks: ${dashboard.taskCounts ? `${dashboard.taskCounts.planned} planned, ${dashboard.taskCounts.active} active, ${dashboard.taskCounts.blocked} blocked, ${dashboard.taskCounts.done} done` : "none"}`);
   console.log(`Model quality: ${formatModelQuality(dashboard.modelQuality)}`);
 }
@@ -90,6 +94,10 @@ async function latestPlaytest(playtestsDir: string): Promise<PlaytestSummary | n
     status: stringValue(report.status) ?? stringValue(report.outcome),
     path: filePath,
   };
+}
+
+async function latestPlaytestFeedback(playtestsDir: string): Promise<string | null> {
+  return (await readPlaytestFeedbackEntries(path.join(playtestsDir, "feedback.md"), 1))[0]?.feedback ?? null;
 }
 
 async function latestJsonFiles(dir: string): Promise<Array<{ path: string; mtimeMs: number }>> {

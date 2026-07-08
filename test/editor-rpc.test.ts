@@ -24,6 +24,7 @@ it("editor RPC exposes latest artifact summaries and reject acknowledgements", a
   assert.equal(summaryPayload.result.latestRepair.id, "repair_1");
   assert.equal(summaryPayload.result.latestRepair.status, "repaired");
   assert.equal(summaryPayload.result.latestRepair.actionCount, 1);
+  assert.equal(summaryPayload.result.latestPlaytestFeedback.feedback, "Jump feels floaty.");
   assert.equal(summaryPayload.result.modelQuality.total, 2);
   assert.equal(summaryPayload.result.modelQuality.successes, 1);
   assert.equal(summaryPayload.result.modelQuality.failures, 1);
@@ -64,9 +65,11 @@ config/features=PackedStringArray("4.x")
 async function writeArtifactFixtures(projectRoot: string): Promise<void> {
   const validationsDir = path.join(projectRoot, ".godotcoder", "validations");
   const repairsDir = path.join(projectRoot, ".godotcoder", "repairs");
+  const playtestsDir = path.join(projectRoot, ".godotcoder", "playtests");
   const modelRunsDir = path.join(projectRoot, ".godotcoder", "model-runs");
   await mkdir(validationsDir, { recursive: true });
   await mkdir(repairsDir, { recursive: true });
+  await mkdir(playtestsDir, { recursive: true });
   await mkdir(modelRunsDir, { recursive: true });
   await writeFile(path.join(validationsDir, "val_visual.json"), JSON.stringify({
     id: "val_visual",
@@ -97,6 +100,7 @@ async function writeArtifactFixtures(projectRoot: string): Promise<void> {
     actions: [{ type: "create-file", path: "scenes/main.tscn", description: "Created scene." }],
     validationAfter: { id: "val_after", summary: { errors: 0, warnings: 0 } },
   }, null, 2) + "\n");
+  await writeFile(path.join(playtestsDir, "feedback.md"), "## 2026-07-08T10:00:00.000Z\n\nFeedback: Jump feels floaty.\n");
   await writeFile(path.join(modelRunsDir, "model_run_failure.json"), JSON.stringify({
     schemaVersion: 1,
     id: "model_run_failure",

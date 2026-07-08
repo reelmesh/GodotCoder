@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
 import { brownfieldPreviewArgs, homeStatus, previewReviewSummary } from "../src/commands/home.js";
+import { completeSessionLine } from "../src/core/completion.js";
 
 it("home status guides users before and after project detection", async () => {
   const previousCwd = process.cwd();
@@ -51,4 +52,13 @@ it("preview review summary counts files and changed lines", () => {
       { path: "res://c.gd", operation: "unchanged", beforeLines: 2, afterLines: 2, addedLines: 0, removedLines: 0, diff: [], diffTruncated: false },
     ],
   }), { files: 3, create: 1, modify: 1, unchanged: 1, added: 5, removed: 1 });
+});
+
+it("playtest completion exposes feedback workflow", () => {
+  const [matches] = completeSessionLine("/playtest f");
+  const [flagMatches] = completeSessionLine("/playtest --");
+
+  assert.deepEqual(matches, ["feedback"]);
+  assert.equal(flagMatches.includes("--suggest-tasks"), true);
+  assert.equal(flagMatches.includes("--apply"), true);
 });
